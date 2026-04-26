@@ -21,38 +21,7 @@ class HomePage:
         self.search_query = ""
         self.main_container = None
         self.settings_visible = False
-        
-        # UI Components
-        self.grid_view = ft.GridView(
-            expand=True,
-            runs_count=3 if self.page.width > 600 else 2,
-            max_extent=280,
-            spacing=16,
-            run_spacing=16,
-            padding=16,
-        )
-        
-        self.filter_chips = ft.Row(
-            spacing=8,
-            controls=[
-                self._make_filter_chip("Все", "all"),
-                self._make_filter_chip("🧴 Уходовая", "care"),
-                self._make_filter_chip("💄 Декоративная", "decorative"),
-            ],
-        )
-        
-        self.search_field = ft.TextField(
-            hint_text="Поиск...",
-            prefix_icon=ft.icons.Icons.SEARCH,
-            visible=False,
-            border_radius=24,
-            border_color="#E8B4BC",
-            focused_border_color="#D497A3",
-            on_change=self._on_search,
-            width=200,
-        )
-        
-        self.search_visible = False
+        self.product_cards = []
         
         # Check notifications on init
         self._check_notifications()
@@ -72,17 +41,12 @@ class HomePage:
                 if urgent:
                     messages.append(f"📅 Скоро истекает: {', '.join(p['name'] for p in urgent[:3])}")
             
-            # Show in-app notification if there are expiring products
             if messages and hasattr(self.page, 'show_snack_bar'):
                 self.page.show_snack_bar(
                     ft.SnackBar(
                         content=ft.Text("\n".join(messages)),
                         bgcolor="#E8A87C" if expired else "#F5E6E8",
                         duration=5,
-                        action=ft.TextButton(
-                            content=ft.Text("Подробнее", color="#2D2D2D"),
-                            on_click=None,
-                        ),
                     )
                 )
         except Exception as e:
@@ -93,8 +57,8 @@ class HomePage:
         is_active = self.current_filter == value
         
         chip = ft.Container(
-            content=ft.Text(label, size=14),
-            padding=ft.padding.Padding(16, 8, 16, 8),
+            content=ft.Text(label, size=13),
+            padding=ft.padding.Padding(14, 8, 14, 8),
             border_radius=20,
             border=ft.border.all(1, "#E8B4BC" if is_active else "#E8E8E8"),
             bgcolor="#E8B4BC" if is_active else "#FFFFFF",
@@ -142,14 +106,26 @@ class HomePage:
         self.products = [Product(**row) for row in data]
         self._render_grid()
     
+    def _get_card_width(self) -> int:
+        """Get card width based on screen size."""
+        width = self.page.width
+        if width < 500:
+            return 160  # Mobile small
+        elif width < 700:
+            return 180  # Mobile large
+        elif width < 1000:
+            return 220  # Tablet
+        else:
+            return 260  # Desktop
+    
     def _render_grid(self):
         """Render product grid."""
-        self.grid_view.controls.clear()
+        self.product_list.controls.clear()
+        self.product_cards = []
         
         if not self.products:
-            self.grid_view.controls.append(
+            self.product_list.controls.append(
                 ft.Container(
-                    col={"xs": 12, "sm": 12, "md": 12, "lg": 12, "xl": 12},
                     content=ft.Column(
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         controls=[
@@ -162,21 +138,44 @@ class HomePage:
                             ),
                         ],
                     ),
-alignment=ft.alignment.Alignment(0, 0),
+                    alignment=ft.alignment.Alignment(0, 0),
                     padding=48,
                 )
             )
         else:
-            for product in self.products:
-                self.grid_view.controls.append(
-                    product_card(
+            card_width = self._get_card_width()
+            cols = max(1, int(self.page.width / card_width))
+            
+            # Create rows of cards
+            for i in range(0, len(self.products), cols):
+                row_cards = []
+                for j in range(cols):
+                    idx = i + j
+                    if idx >= len(self.products):
+                        break
+                    product = self.products[idx]
+                    card = product_card(
                         product,
                         on_edit=lambda e, p=product: self._open_edit_modal(p),
                         on_delete=lambda e, p=product: self._confirm_delete(p),
                     )
+                    row_cards.append(card)
+                    self.product_cards.append(card)
+                
+                # Add row to list
+                self.product_list.controls.append(
+                    ft.Container(
+                        content=ft.Row(
+                            controls=row_cards,
+                            spacing=12,
+                            run_spacing=12,
+                            alignment=ft.MainAxisAlignment.START,
+                        ),
+                        padding=ft.padding.Padding(8, 8, 8, 8),
+                    )
                 )
         
-        self.grid_view.update()
+        self.product_list.update()
         self.page.update()
     
     def _open_add_modal(self, e=None):
@@ -264,84 +263,124 @@ alignment=ft.alignment.Alignment(0, 0),
         self.main_container.content = settings_page(self.page, on_back)
         self.main_container.update()
     
+    def _on_resize(self, e):
+        """Handle window resize."""
+        self.load_products()
+    
     def _build_main_content(self) -> ft.Column:
         """Build main page content."""
+        self.filter_chips = ft.Row(
+            spacing=8,
+            scroll=ft.ScrollMode.AUTO,
+            controls=[
+                self._make_filter_chip("Все", "all"),
+                self._make_filter_chip("🧴 Уходовая", "care"),
+                self._make_filter_chip("💄 Декоративная", "decorative"),
+            ],
+        )
+        
+        self.search_field = ft.TextField(
+            hint_text="Поиск...",
+            prefix_icon=ft.icons.Icons.SEARCH,
+            visible=False,
+            border_radius=20,
+            border_color="#E8B4BC",
+            focused_border_color="#D497A3",
+            on_change=self._on_search,
+            width=160,
+            text_size=14,
+        )
+        
+        self.search_visible = False
+        
+        # Product list (vertical scroll)
+        self.product_list = ft.ListView(
+            expand=True,
+            spacing=0,
+            padding=ft.padding.Padding(8, 8, 8, 8),
+        )
+        
+        self.page.on_resize = self._on_resize
+        
         return ft.Column(
             expand=True,
             controls=[
                 # Header
                 ft.Container(
-                    content=ft.Row(
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    content=ft.Column(
                         controls=[
                             ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                 controls=[
-                                    ft.Text("💄", size=28),
-                                    ft.Text(
-                                        value="Beauty Shelf",
-                                        size=24,
-                                        weight=ft.FontWeight.W_600,
-                                        color="#2D2D2D",
+                                    ft.Row(
+                                        controls=[
+                                            ft.Text("💄", size=24),
+                                            ft.Text(
+                                                value="Beauty Shelf",
+                                                size=20,
+                                                weight=ft.FontWeight.W_600,
+                                                color="#2D2D2D",
+                                            ),
+                                        ],
+                                        spacing=6,
+                                    ),
+                                    ft.Row(
+                                        controls=[
+                                            ft.IconButton(
+                                                icon=ft.icons.Icons.SEARCH,
+                                                icon_color="#8A8A8A",
+                                                icon_size=22,
+                                                tooltip="Поиск",
+                                                on_click=self.toggle_search,
+                                            ),
+                                            ft.IconButton(
+                                                icon=ft.icons.Icons.SETTINGS,
+                                                icon_color="#8A8A8A",
+                                                icon_size=22,
+                                                tooltip="Настройки",
+                                                on_click=self._open_settings,
+                                            ),
+                                            ft.Container(width=4),
+                                            ft.ElevatedButton(
+                                                content=ft.Text("+", size=18, weight=ft.FontWeight.BOLD),
+                                                style=ft.ButtonStyle(
+                                                    bgcolor="#E8B4BC",
+                                                    color="#FFFFFF",
+                                                    padding=ft.padding.Padding(12, 8, 12, 8),
+                                                    shape=ft.RoundedRectangleBorder(radius=20),
+                                                ),
+                                                on_click=self._open_add_modal,
+                                            ),
+                                        ],
+                                        spacing=0,
                                     ),
                                 ],
-                                spacing=8,
                             ),
-                            ft.Row(
-                                controls=[
-                                    ft.IconButton(
-                                        icon=ft.icons.Icons.SEARCH,
-                                        icon_color="#8A8A8A",
-                                        tooltip="Поиск",
-                                        on_click=self.toggle_search,
-                                    ),
-                                    ft.IconButton(
-                                        icon=ft.icons.Icons.SETTINGS,
-                                        icon_color="#8A8A8A",
-                                        tooltip="Настройки",
-                                        on_click=self._open_settings,
-                                    ),
-                                    self.search_field,
-                                    ft.ElevatedButton(
-                                        content=ft.Row(
-                                            controls=[
-                                                ft.Text("+", size=18, weight=ft.FontWeight.BOLD),
-                                                ft.Text("Добавить", size=14),
-                                            ],
-                                            spacing=4,
-                                        ),
-                                        style=ft.ButtonStyle(
-                                            bgcolor="#E8B4BC",
-                                            color="#FFFFFF",
-                                            padding=ft.padding.Padding(16, 10, 16, 10),
-                                            shape=ft.RoundedRectangleBorder(radius=20),
-                                        ),
-                                        on_click=self._open_add_modal,
-                                    ),
-                                ],
-                                spacing=4,
+                            # Search field
+                            ft.Container(
+                                content=self.search_field,
+                                padding=ft.padding.Padding(0, 8, 0, 0),
+                                visible=self.search_visible,
                             ),
                         ],
                     ),
-                    padding=ft.padding.Padding(16, 16, 16, 8),
+                    padding=ft.padding.Padding(12, 12, 12, 8),
                     bgcolor="#FFFFFF",
-                    shadow=ft.BoxShadow(
-                        spread_radius=0,
-                        blur_radius=8,
-                        color="#00000008",
-                        offset=ft.Offset(0, 2),
-                    ),
                 ),
                 
                 # Filter chips
                 ft.Container(
-                    content=self.filter_chips,
-                    padding=ft.padding.Padding(16, 12, 16, 0),
-                    bgcolor="#FDF9FA",
+                    content=ft.Container(
+                        content=self.filter_chips,
+                        padding=ft.padding.Padding(0, 4, 0, 4),
+                        clip_behavior="hardEdge",
+                    ),
+                    bgcolor="#F5F5F5",
                 ),
                 
-                # Product grid
+                # Product grid/list
                 ft.Container(
-                    content=self.grid_view,
+                    content=self.product_list,
                     expand=True,
                     bgcolor="#FDF9FA",
                 ),

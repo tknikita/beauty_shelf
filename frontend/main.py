@@ -257,17 +257,15 @@ class App:
         def confirm(e):
             try:
                 delete_product(product.id)
-                self.page.dialog.open = False
-                self.page.update()
+                self.page.close_dialog()
                 self.load()
             except Exception as ex:
                 print(f"Delete error: {ex}")
         
         def cancel(e):
-            self.page.dialog.open = False
-            self.page.update()
+            self.page.close_dialog()
         
-        self.page.dialog = ft.AlertDialog(
+        dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text("Удалить?"),
             content=ft.Text(f'"{product.name}" будет удалён.'),
@@ -276,8 +274,7 @@ class App:
                 ft.TextButton("Удалить", on_click=confirm),
             ],
         )
-        self.page.dialog.open = True
-        self.page.update()
+        self.page.show_dialog(dialog)
     
     def _show_form(self, product: Product):
         is_edit = product is not None
@@ -316,15 +313,13 @@ class App:
                                  purpose.value or None, exp_date)
                 else:
                     add_product(name.value, selected_type.value, cat_dropdown.value, purpose.value or None, exp_date)
-                self.page.dialog.open = False
-                self.page.update()
+                self.page.close_dialog()
                 self.load()
             except Exception as ex:
                 print(f"Save error: {ex}")
         
         def cancel(e):
-            self.page.dialog.open = False
-            self.page.update()
+            self.page.close_dialog()
         
         def select_type(t):
             selected_type.value = t
@@ -333,7 +328,7 @@ class App:
             cat_dropdown.value = list(cats.keys())[0]
             type_row.controls[0].border = ft.border.all(1, "#E8B4BC" if t == "care" else "#E8E8E8")
             type_row.controls[1].border = ft.border.all(1, "#E8B4BC" if t == "decorative" else "#E8E8E8")
-            self.page.dialog.update()
+            self.page.update()
         
         type_row = ft.Row([
             ft.Container(
@@ -350,7 +345,7 @@ class App:
             ),
         ])
         
-        self.page.dialog = ft.AlertDialog(
+        dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text(title),
             content=ft.Column(spacing=12, controls=[name, type_row, cat_dropdown, purpose, date_field]),
@@ -359,8 +354,7 @@ class App:
                 ft.TextButton("Сохранить", on_click=save),
             ],
         )
-        self.page.dialog.open = True
-        self.page.update()
+        self.page.show_dialog(dialog)
 
 
 def main(page: ft.Page):

@@ -6,8 +6,20 @@ import httpx
 from datetime import date, datetime
 from typing import Optional, List, Dict
 
-# Backend URL - configurable
-BACKEND_URL = "http://localhost:8000"
+# For web browser: use /api/ path (nginx proxy)
+# For desktop/mobile: use http://localhost:8000
+# We detect platform at import time
+import flet as _flet
+
+# Check if running in browser (Pyodide)
+_IS_WEB = False
+try:
+    import js  # Pyodide
+    _IS_WEB = True
+except ImportError:
+    pass
+
+BACKEND_URL = "/api" if _IS_WEB else "http://localhost:8000"
 
 
 def set_backend_url(url: str):

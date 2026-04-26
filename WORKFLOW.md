@@ -1,110 +1,141 @@
 # Beauty Shelf - Workflow Guide
 
-## Сессия работы
+## Быстрый старт (Docker)
 
-### Перед началом
 ```bash
-cd beauty_shelf
+# 1. Собрать и запустить
+docker-compose up -d --build
+
+# 2. Открыть
+# Backend API: http://localhost:8000
+# Frontend:    http://localhost:8080
+# Swagger:     http://localhost:8000/docs
 ```
 
-### Запуск проекта
+## Локальная разработка
 
-**Терминал 1 - Backend:**
+### Backend
 ```bash
 cd backend
+python3 -m venv venv
 source venv/bin/activate
+pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-**Терминал 2 - Frontend:**
+### Frontend (Desktop)
 ```bash
 cd frontend
 source venv/bin/activate
 python main.py
 ```
 
-### Проверка работы API
-```bash
-# Все продукты
-curl http://localhost:8000/api/products
-
-# Добавить продукт
-curl -X POST http://localhost:8000/api/products \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Крем","type":"care","category":"face_cream","purpose":"Увлажнение","expiry_date":"2025-12-01"}'
-
-# Продукты по типу
-curl http://localhost:8000/api/products?type=care
-```
-
-## Типичные задачи
-
-### Добавить новую фичу
-1. Изменить `backend/main.py` для API
-2. Изменить `frontend/api.py` для клиента
-3. Изменить `frontend/main.py` для UI
-4. Перезапустить backend
-
-### Исправить баг
-1. Проверить логи backend в терминале
-2. Проверить консоль Flet
-3. Исправить
-4. Перезапустить нужную часть
-
-### Обновить категории
-1. Изменить `frontend/categories.py`
-2. Перезапустить frontend
-
-## Git workflow
+## Тесты
 
 ```bash
-# Проверить изменения
-git status
+# Backend тесты
+cd backend
+source venv/bin/activate
+pip install -r requirements-test.txt
+pytest ../tests/ -v
 
-# Закоммитить
-git add -A
-git commit -m "feat: описание"
-
-# Посмотреть историю
-git log --oneline -5
+# Или из корня
+docker-compose exec backend pytest /app/tests/ -v
 ```
 
-## Ошибки и решения
+## Docker команды
 
-| Проблема | Решение |
-|----------|--------|
-| "Module not found" | Перезапустить backend |
-| Фронт не видит данные | Проверить что backend на порту 8000 |
-| Flet ошибка | Проверить импорты, перезапустить |
-| API вернул ошибку | Проверить логи uvicorn |
+```bash
+# Запуск
+docker-compose up -d
 
-## Структура файлов
+# Остановка
+docker-compose down
+
+# Логи
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# Пересборка
+docker-compose up -d --build
+
+# Полный reset
+docker-compose down -v
+docker-compose up -d --build
+```
+
+## Структура Docker
+
+```
+┌─────────────────────────────────────────────────┐
+│                   nginx:alpine                  │
+│  Frontend (port 8080)                         │
+│  ┌─────────────────────────────────────────┐ │
+│  │  SPA routing + API proxy (/api → backend) │ │
+│  └─────────────────────────────────────────┘ │
+└─────────────────────┬───────────────────────┘ │
+                      │ proxy_pass
+                      ▼
+┌─────────────────────────────────────────────────┐
+│               python:3.12-slim                   │
+│  Backend API (port 8000)                         │
+│  ┌─────────────────────────────────────────┐   │
+│  │  FastAPI + SQLite (/app/data/)           │   │
+│  └─────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────┘
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/products` | Все продукты |
+| GET | `/api/products?type=care` | По типу |
+| POST | `/api/products` | Создать |
+| PUT | `/api/products/{id}` | Обновить |
+| DELETE | `/api/products/{id}` | Удалить |
+| GET | `/api/products/search/{query}` | Поиск |
+| GET | `/api/expiring?days=7` | Истекающие |
+| GET | `/api/health` | Health check |
+
+## Развёртывание
+
+### Локально (Docker)
+```bash
+./deploy.sh
+```
+
+### На сервере
+```bash
+git pull
+docker-compose up -d --build
+```
+
+### Удалённый доступ
+```bash
+# Backend
+http://YOUR_IP:8000
+
+# Frontend  
+http://YOUR_IP:8080
+```
+
+## Файлы
 
 ```
 beauty_shelf/
 ├── backend/
-│   ├── main.py      # FastAPI app, endpoints
-│   ├── requirements.txt
-│   └── beauty_shelf.db  # SQLite (создаётся)
+│   ├── main.py           # FastAPI app
+│   ├── Dockerfile
+│   └── requirements.txt
 ├── frontend/
-│   ├── main.py     # Flet UI
-│   ├── api.py      # HTTP клиент
-│   └── categories.py
-└── README.md
-```
-
-## Консольные команды
-
-```bash
-# Backend
-uvicorn main:app --reload --port 8000  # с hot reload
-uvicorn main:app --host 0.0.0.0 --port 8000  # для доступа с телефона
-
-# Frontend
-python main.py  # desktop
-flet build web .  # веб билд
-
-# Тесты API
-curl http://localhost:8000/docs  # Swagger UI
-curl http://localhost:8000/redoc  # ReDoc
+│   ├── main.py          # Flet UI
+│   ├── api.py           # API client
+│   └── requirements.txt
+├── tests/
+│   └── test_api.py      # pytest tests
+├── docker-compose.yml
+├── Dockerfile.frontend
+├── nginx.conf
+└── deploy.sh
 ```

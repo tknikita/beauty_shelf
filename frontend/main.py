@@ -78,10 +78,13 @@ class App:
                                     ft.Row([ft.Text("💄", size=24), ft.Text("Beauty Shelf", size=20, weight=ft.FontWeight.W_600)]),
                                     ft.Row([
                                         ft.IconButton(icon=ft.icons.Icons.SEARCH, icon_size=22, on_click=self.toggle_search),
-                                        ft.Container(
-                                            content=ft.Text("+", size=20, weight=ft.FontWeight.BOLD),
-                                            bgcolor="#E8B4BC", width=36, height=36, border_radius=18,
-                                            alignment=ft.alignment.Alignment(0, 0), on_click=self.add_product
+                                        ft.TextButton(
+                                            content=ft.Container(
+                                                content=ft.Text("+", size=20, weight=ft.FontWeight.BOLD),
+                                                bgcolor="#E8B4BC", width=36, height=36, border_radius=18,
+                                                alignment=ft.alignment.Alignment(0, 0),
+                                            ),
+                                            on_click=self.add_product,
                                         ),
                                     ]),
                                 ],
@@ -114,13 +117,16 @@ class App:
     
     def _chip(self, label, value):
         active = self.filter == value
-        return ft.Container(
-            content=ft.Text(label, size=13),
-            padding=ft.padding.Padding(12, 6, 12, 6),
-            border_radius=16,
-            border=ft.border.all(1, "#E8B4BC" if active else "#E8E8E8"),
-            bgcolor="#E8B4BC" if active else "#FFFFFF",
+        return ft.TextButton(
+            content=ft.Container(
+                content=ft.Text(label, size=13),
+                padding=ft.padding.Padding(12, 6, 12, 6),
+                border_radius=16,
+                border=ft.border.all(1, "#E8B4BC" if active else "#E8E8E8"),
+                bgcolor="#E8B4BC" if active else "#FFFFFF",
+            ),
             on_click=lambda e: self.set_filter(value),
+            style=ft.ButtonStyle(padding=0),
         )
     
     def toggle_search(self, e):
@@ -248,6 +254,7 @@ class App:
         )
     
     def add_product(self, e=None):
+        print("=== add_product called ===")
         self._show_form(None)
     
     def edit_product(self, product: Product):
@@ -360,7 +367,9 @@ class App:
 def main(page: ft.Page):
     page.title = "Beauty Shelf"
     page.theme_mode = ft.ThemeMode.LIGHT
-    App(page)
+    print("=== Beauty Shelf initializing ===")
+    app = App(page)
+    print("=== Beauty Shelf initialized ===")
 
 
 if __name__ == "__main__":

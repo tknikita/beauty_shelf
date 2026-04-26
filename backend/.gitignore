@@ -1,0 +1,8 @@
+*.db
+__pycache__/
+venv/
+*.pyc
+build/
+.flet/
+*.log
+.DS_Store

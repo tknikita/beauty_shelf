@@ -264,13 +264,13 @@ class App:
         def confirm(e):
             try:
                 delete_product(product.id)
-                self.page.close_dialog()
+                self.page.pop_dialog()
                 self.load()
             except Exception as ex:
                 print(f"Delete error: {ex}")
         
         def cancel(e):
-            self.page.close_dialog()
+            self.page.pop_dialog()
         
         dialog = ft.AlertDialog(
             modal=True,
@@ -320,13 +320,13 @@ class App:
                                  purpose.value or None, exp_date)
                 else:
                     add_product(name.value, selected_type.value, cat_dropdown.value, purpose.value or None, exp_date)
-                self.page.close_dialog()
+                self.page.pop_dialog()
                 self.load()
             except Exception as ex:
                 print(f"Save error: {ex}")
         
         def cancel(e):
-            self.page.close_dialog()
+            self.page.pop_dialog()
         
         def select_type(t):
             selected_type.value = t

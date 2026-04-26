@@ -11,6 +11,7 @@ env/
 
 # Database
 *.db
+data/
 
 # IDE
 .vscode/
@@ -22,10 +23,16 @@ env/
 .DS_Store
 Thumbs.db
 
-# Build
+# Build artifacts
 build/
 dist/
 *.egg-info/
-
-# Flet
 .flet/
+
+# Frontend build (generated)
+frontend_build/
+
+# Tests
+tests/__pycache__/
+.pytest_cache/
+

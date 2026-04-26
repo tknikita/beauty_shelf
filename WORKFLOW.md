@@ -19,7 +19,7 @@ uvicorn main:app --reload --port 8000
 **Терминал 2 - Frontend:**
 ```bash
 cd frontend
-source ../venv/bin/activate  # или ../backend/venv
+source venv/bin/activate
 python main.py
 ```
 

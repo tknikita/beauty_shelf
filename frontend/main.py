@@ -257,61 +257,42 @@ class App:
         def confirm(e):
             try:
                 delete_product(product.id)
-                self.page.close_dialog()
+                self.page.dialog.open = False
+                self.page.update()
                 self.load()
             except Exception as ex:
                 print(f"Delete error: {ex}")
         
-        self.page.show_dialog(
-            ft.AlertDialog(
-                modal=True,
-                title=ft.Text("Удалить?"),
-                content=ft.Text(f'"{product.name}" будет удалён.'),
-                actions=[
-                    ft.TextButton("Отмена", on_click=lambda e: self.page.close_dialog()),
-                    ft.TextButton("Удалить", on_click=confirm),
-                ],
-            )
+        def cancel(e):
+            self.page.dialog.open = False
+            self.page.update()
+        
+        self.page.dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Удалить?"),
+            content=ft.Text(f'"{product.name}" будет удалён.'),
+            actions=[
+                ft.TextButton("Отмена", on_click=cancel),
+                ft.TextButton("Удалить", on_click=confirm),
+            ],
         )
+        self.page.dialog.open = True
+        self.page.update()
     
     def _show_form(self, product: Product):
         is_edit = product is not None
         title = "Редактировать" if is_edit else "Добавить продукт"
         
         name = ft.TextField(label="Название", value=product.name if is_edit else "", autofocus=True, border_radius=10)
-        
         purpose = ft.TextField(label="Для чего", value=product.purpose or "" if is_edit else "", border_radius=10)
-        
         date_field = ft.TextField(
             label="Срок (YYYY-MM-DD)", 
             value=product.expiry_date.split("T")[0] if is_edit and product.expiry_date else "",
             border_radius=10
         )
         
-        # Type selector
         selected_type = ft.Text(value=product.type if is_edit else "care")
         
-        def select_type(t):
-            selected_type.value = t
-            self.page.close_dialog()
-            self._show_form(product)  # Reopen with new type
-        
-        type_row = ft.Row([
-            ft.Container(
-                content=ft.Text("🧴", size=16),
-                padding=10, border_radius=8,
-                border=ft.border.all(1, "#E8B4BC" if selected_type.value == "care" else "#E8E8E8"),
-                on_click=lambda e: select_type("care"),
-            ),
-            ft.Container(
-                content=ft.Text("💄", size=16),
-                padding=10, border_radius=8,
-                border=ft.border.all(1, "#E8B4BC" if selected_type.value == "decorative" else "#E8E8E8"),
-                on_click=lambda e: select_type("decorative"),
-            ),
-        ])
-        
-        # Category dropdown
         cats = CARE_CATEGORIES if selected_type.value == "care" else DECORATIVE_CATEGORIES
         cat_dropdown = ft.Dropdown(
             label="Категория",
@@ -335,22 +316,51 @@ class App:
                                  purpose.value or None, exp_date)
                 else:
                     add_product(name.value, selected_type.value, cat_dropdown.value, purpose.value or None, exp_date)
-                self.page.close_dialog()
+                self.page.dialog.open = False
+                self.page.update()
                 self.load()
             except Exception as ex:
                 print(f"Save error: {ex}")
         
-        self.page.show_dialog(
-            ft.AlertDialog(
-                modal=True,
-                title=ft.Text(title),
-                content=ft.Column(spacing=12, controls=[name, type_row, cat_dropdown, purpose, date_field]),
-                actions=[
-                    ft.TextButton("Отмена", on_click=lambda e: self.page.close_dialog()),
-                    ft.TextButton("Сохранить", on_click=save),
-                ],
-            )
+        def cancel(e):
+            self.page.dialog.open = False
+            self.page.update()
+        
+        def select_type(t):
+            selected_type.value = t
+            cats = CARE_CATEGORIES if t == "care" else DECORATIVE_CATEGORIES
+            cat_dropdown.options = [ft.dropdown.Option(key=k, text=f"{v['icon']} {v['name']}") for k, v in cats.items()]
+            cat_dropdown.value = list(cats.keys())[0]
+            type_row.controls[0].border = ft.border.all(1, "#E8B4BC" if t == "care" else "#E8E8E8")
+            type_row.controls[1].border = ft.border.all(1, "#E8B4BC" if t == "decorative" else "#E8E8E8")
+            self.page.dialog.update()
+        
+        type_row = ft.Row([
+            ft.Container(
+                content=ft.Text("🧴", size=16),
+                padding=10, border_radius=8,
+                border=ft.border.all(1, "#E8B4BC" if selected_type.value == "care" else "#E8E8E8"),
+                on_click=lambda e: select_type("care"),
+            ),
+            ft.Container(
+                content=ft.Text("💄", size=16),
+                padding=10, border_radius=8,
+                border=ft.border.all(1, "#E8B4BC" if selected_type.value == "decorative" else "#E8E8E8"),
+                on_click=lambda e: select_type("decorative"),
+            ),
+        ])
+        
+        self.page.dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(title),
+            content=ft.Column(spacing=12, controls=[name, type_row, cat_dropdown, purpose, date_field]),
+            actions=[
+                ft.TextButton("Отмена", on_click=cancel),
+                ft.TextButton("Сохранить", on_click=save),
+            ],
         )
+        self.page.dialog.open = True
+        self.page.update()
 
 
 def main(page: ft.Page):

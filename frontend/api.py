@@ -80,12 +80,12 @@ def init_database() -> None:
 # Product operations
 def get_all_products() -> List[dict]:
     """Get all products."""
-    return _get("/api/products")
+    return _get("/products")
 
 
 def get_products_by_type(product_type: str) -> List[dict]:
     """Get products by type."""
-    return _get(f"/api/products?type={product_type}")
+    return _get(f"/products?type={product_type}")
 
 
 def add_product(name: str, product_type: str, category: str, 
@@ -98,7 +98,7 @@ def add_product(name: str, product_type: str, category: str,
         "purpose": purpose,
         "expiry_date": expiry_date.isoformat() if hasattr(expiry_date, 'isoformat') else str(expiry_date)
     }
-    result = _post("/api/products", data)
+    result = _post("/products", data)
     return result.get("id", 0)
 
 
@@ -112,37 +112,37 @@ def update_product(product_id: int, name: str, product_type: str,
         "purpose": purpose,
         "expiry_date": expiry_date.isoformat() if hasattr(expiry_date, 'isoformat') else str(expiry_date)
     }
-    _put(f"/api/products/{product_id}", data)
+    _put(f"/products/{product_id}", data)
 
 
 def delete_product(product_id: int) -> None:
     """Delete a product."""
-    _delete(f"/api/products/{product_id}")
+    _delete(f"/products/{product_id}")
 
 
 def search_products(query: str) -> List[dict]:
     """Search products."""
-    return _get(f"/api/products/search/{query}")
+    return _get(f"/products/search/{query}")
 
 
 # Settings
 def get_setting(key: str) -> Optional[str]:
     """Get a setting."""
-    result = _get(f"/api/settings/{key}")
+    result = _get(f"/settings/{key}")
     return result.get("value")
 
 
 def set_setting(key: str, value: str) -> None:
     """Set a setting."""
-    _put(f"/api/settings/{key}", {"value": value})
+    _put(f"/settings/{key}", {"value": value})
 
 
 # Expiring products
 def get_expiring_products(days: int = 7) -> List[dict]:
     """Get products expiring soon."""
-    return _get(f"/api/expiring?days={days}")
+    return _get(f"/expiring?days={days}")
 
 
 def get_expired_products() -> List[dict]:
     """Get expired products."""
-    return _get("/api/expired")
+    return _get("/expired")

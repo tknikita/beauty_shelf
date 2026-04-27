@@ -40,6 +40,7 @@ def init_db():
     DB_DIR.mkdir(parents=True, exist_ok=True)
     conn = get_db()
     with conn:
+        # Create products table
         conn.execute("""
             CREATE TABLE IF NOT EXISTS products (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,10 +49,28 @@ def init_db():
                 category TEXT NOT NULL,
                 purpose TEXT,
                 expiry_date DATE NOT NULL,
+                is_opened INTEGER DEFAULT 0,
+                opened_date DATE,
+                expiry_days_after_open INTEGER DEFAULT 30,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        
+        # Migrate existing data if columns don't exist
+        try:
+            conn.execute("ALTER TABLE products ADD COLUMN is_opened INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            conn.execute("ALTER TABLE products ADD COLUMN opened_date DATE")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            conn.execute("ALTER TABLE products ADD COLUMN expiry_days_after_open INTEGER DEFAULT 30")
+        except sqlite3.OperationalError:
+            pass
+        
         conn.execute("""
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
@@ -70,6 +89,9 @@ class ProductCreate(BaseModel):
     category: str
     purpose: Optional[str] = None
     expiry_date: date
+    is_opened: bool = False
+    opened_date: Optional[date] = None
+    expiry_days_after_open: int = 30
 
 
 class ProductUpdate(BaseModel):
@@ -78,6 +100,9 @@ class ProductUpdate(BaseModel):
     category: Optional[str] = None
     purpose: Optional[str] = None
     expiry_date: Optional[date] = None
+    is_opened: Optional[bool] = None
+    opened_date: Optional[date] = None
+    expiry_days_after_open: Optional[int] = None
 
 
 class Product(BaseModel):
@@ -87,6 +112,9 @@ class Product(BaseModel):
     category: str
     purpose: Optional[str]
     expiry_date: str
+    is_opened: int
+    opened_date: Optional[str]
+    expiry_days_after_open: int
     created_at: Optional[str]
     updated_at: Optional[str]
 
@@ -125,9 +153,18 @@ def create_product(product: ProductCreate):
     """Create a new product."""
     conn = get_db()
     cursor = conn.execute(
-        """INSERT INTO products (name, type, category, purpose, expiry_date)
-           VALUES (?, ?, ?, ?, ?)""",
-        (product.name, product.type, product.category, product.purpose, product.expiry_date.isoformat())
+        """INSERT INTO products (name, type, category, purpose, expiry_date, is_opened, opened_date, expiry_days_after_open)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            product.name,
+            product.type,
+            product.category,
+            product.purpose,
+            product.expiry_date.isoformat(),
+            1 if product.is_opened else 0,
+            product.opened_date.isoformat() if product.opened_date else None,
+            product.expiry_days_after_open
+        )
     )
     conn.commit()
     product_id = cursor.lastrowid
@@ -162,6 +199,15 @@ def update_product(product_id: int, product: ProductUpdate):
     if product.expiry_date is not None:
         updates.append("expiry_date = ?")
         values.append(product.expiry_date.isoformat())
+    if product.is_opened is not None:
+        updates.append("is_opened = ?")
+        values.append(1 if product.is_opened else 0)
+    if product.opened_date is not None:
+        updates.append("opened_date = ?")
+        values.append(product.opened_date.isoformat() if product.opened_date else None)
+    if product.expiry_days_after_open is not None:
+        updates.append("expiry_days_after_open = ?")
+        values.append(product.expiry_days_after_open)
     
     updates.append("updated_at = CURRENT_TIMESTAMP")
     values.append(product_id)

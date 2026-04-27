@@ -55,48 +55,55 @@ class Product:
 class App:
     def __init__(self, page: ft.Page):
         self.page = page
+        self.page.controls.clear()
+        
+        # Set page size for web
+        self.page.height = 720
+        
         self.products = []
         self.filter = "all"
         self.search = ""
         
-        self.content_col = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True)
+        self.content_col = ft.ListView(expand=True, spacing=10, padding=10)
         
+        print("Adding UI to page")
+        # First, just add a simple Text to test
+        self.page.add(ft.Text("TESTING BASIC RENDER", size=40, color="red"))
+        self.page.update()
+        print("Basic text added")
+        
+        # Then add the full UI
         self.page.add(self._build_ui())
+        self.page.update()
+        print("Full UI added, loading data")
         self.load()
     
     def _build_ui(self):
+        print("Building UI structure")
         return ft.Column(
             expand=True,
+            spacing=0,
             controls=[
                 # Header
                 ft.Container(
-                    content=ft.Column(
+                    content=ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         controls=[
-                            ft.Row(
-                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                controls=[
-                                    ft.Row([ft.Text("💄", size=24), ft.Text("Beauty Shelf", size=20, weight=ft.FontWeight.W_600)]),
-                                    ft.Row([
-                                        ft.IconButton(icon=ft.icons.Icons.SEARCH, icon_size=22, on_click=self.toggle_search),
-                                        ft.TextButton(
-                                            content=ft.Container(
-                                                content=ft.Text("+", size=20, weight=ft.FontWeight.BOLD),
-                                                bgcolor="#E8B4BC", width=36, height=36, border_radius=18,
-                                                alignment=ft.alignment.Alignment(0, 0),
-                                            ),
-                                            on_click=self.add_product,
-                                        ),
-                                    ]),
-                                ],
-                            ),
-                            ft.Container(
-                                content=ft.TextField(hint_text="Поиск...", prefix_icon=ft.icons.Icons.SEARCH, 
-                                                    on_submit=self.do_search, border_radius=20, text_size=14),
-                                padding=ft.padding.Padding(0, 8, 0, 0), visible=False
-                            ),
+                            ft.Row([ft.Text("💄", size=24), ft.Text("Beauty Shelf", size=20, weight=ft.FontWeight.W_600)]),
+                            ft.Row([
+                                ft.IconButton(icon=ft.icons.Icons.SEARCH, icon_size=22, on_click=lambda e: self.toggle_search()),
+                                ft.TextButton(
+                                    content=ft.Container(
+                                        content=ft.Text("+", size=20, weight=ft.FontWeight.BOLD),
+                                        bgcolor="#E8B4BC", width=36, height=36, border_radius=18,
+                                        alignment=ft.alignment.Alignment(0, 0),
+                                    ),
+                                    on_click=lambda e: self.add_product(),
+                                ),
+                            ]),
                         ],
                     ),
-                    padding=12, bgcolor="#FFFFFF",
+                    padding=12, bgcolor="#FFFFFF", height=60,
                 ),
                 # Filters
                 ft.Container(
@@ -110,8 +117,8 @@ class App:
                     ),
                     padding=ft.padding.Padding(12, 8, 12, 8), bgcolor="#F5F5F5",
                 ),
-                # Content
-                ft.Container(content=self.content_col, expand=True, bgcolor="#FDF9FA"),
+                # Content - ListView that fills remaining space
+                self.content_col,
             ],
         )
     
@@ -149,15 +156,20 @@ class App:
             else:
                 data = get_products_by_type(self.filter)
             self.products = [Product(p) for p in data]
+            print(f"Loaded {len(self.products)} products: {[p.name for p in self.products]}")
         except Exception as e:
-            print(f"Load error: {e}")
+            print(f"Load error: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             self.products = []
         self.render()
     
     def render(self):
+        print(f"Rendering {len(self.products)} products, filter={self.filter}, page_width={self.page.width}")
         self.content_col.controls.clear()
         
         if not self.products:
+            print("No products - showing empty state")
             self.content_col.controls.append(
                 ft.Container(
                     content=ft.Column(
@@ -172,14 +184,18 @@ class App:
                 )
             )
         else:
+            print(f"Building grid for {len(self.products)} products")
             # Grid layout
             cols = 2 if self.page.width and self.page.width < 600 else 3
+            print(f"Using {cols} columns")
             
             for i in range(0, len(self.products), cols):
                 row_items = []
                 for j in range(cols):
                     if i + j < len(self.products):
-                        row_items.append(self._card(self.products[i + j]))
+                        card = self._card(self.products[i + j])
+                        row_items.append(card)
+                        print(f"Added card for {self.products[i + j].name}")
                 
                 if row_items:
                     self.content_col.controls.append(
@@ -188,6 +204,7 @@ class App:
                             padding=ft.padding.Padding(8, 8, 8, 8),
                         )
                     )
+                    print(f"Added row with {len(row_items)} cards")
         
         self.page.update()
     
@@ -367,9 +384,13 @@ class App:
 def main(page: ft.Page):
     page.title = "Beauty Shelf"
     page.theme_mode = ft.ThemeMode.LIGHT
-    print("=== Beauty Shelf initializing ===")
+    page.window_width = 1280
+    page.window_height = 720
+    page.width = 1280
+    page.height = 720
+    print(f"=== Beauty Shelf initializing ===, page: {page.width}x{page.height}")
     app = App(page)
-    print("=== Beauty Shelf initialized ===")
+    print(f"=== Beauty Shelf initialized ===, page: {page.width}x{page.height}")
 
 
 if __name__ == "__main__":

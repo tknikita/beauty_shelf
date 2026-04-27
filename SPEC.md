@@ -108,6 +108,8 @@ docker-compose logs -f frontend
 - Search by name or purpose
 - Add/Edit/Delete products
 - **Opened product tracking** (date opened + expiry after opening)
+- **Barcode scanner** with camera and manual input
+- **Auto-fill from Open Beauty Facts / Open Food Facts API**
 - Responsive design (mobile + desktop)
 - Combined filtering (filters work together)
 
@@ -156,6 +158,13 @@ When a product is marked as "opened":
 - Calculate effective expiry: `opened_date + expiry_days_after_open`
 - If no `opened_date`, fall back to original `expiry_date`
 - Display "📅 Вскрыто X дн. назад" badge on product cards
+
+### Barcode Scanner
+- Camera-based scanning using BarcodeDetector API
+- Manual barcode input with Enter key or blur trigger
+- Auto-fill from Open Beauty Facts API (https://world.openbeautyfacts.org/api/v2/)
+- Fallback to Open Food Facts API (https://world.openfoodfacts.org/api/v2/)
+- Auto-detect product type (care/decorative) from categories
 
 ## Project Structure
 

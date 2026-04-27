@@ -341,6 +341,136 @@
             font-size: 11px;
         }
         
+        /* Barcode scanner */
+        .barcode-section {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .barcode-input {
+            flex: 1;
+        }
+        
+        .scan-btn {
+            width: 48px;
+            height: 48px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--white);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .scan-btn:hover {
+            border-color: var(--primary);
+            background: var(--bg);
+        }
+        
+        .scan-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--text-light);
+        }
+        
+        .scan-btn:hover svg {
+            stroke: var(--primary);
+        }
+        
+        /* Scanner modal */
+        .scanner-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .scanner-video {
+            width: 100%;
+            display: block;
+        }
+        
+        .scanner-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        
+        .scanner-line {
+            width: 80%;
+            height: 2px;
+            background: var(--primary);
+            box-shadow: 0 0 8px var(--primary);
+            animation: scan 2s linear infinite;
+        }
+        
+        @keyframes scan {
+            0%, 100% { transform: translateY(-100px); }
+            50% { transform: translateY(100px); }
+        }
+        
+        .scanner-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .scanner-instructions {
+            text-align: center;
+            padding: 16px;
+            color: var(--text-light);
+            font-size: 13px;
+        }
+        
+        /* Lookup loading */
+        .lookup-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            color: var(--text-light);
+            font-size: 13px;
+        }
+        
+        .lookup-success {
+            padding: 8px 12px;
+            background: var(--ok-bg);
+            color: #5A9E6F;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        
+        .lookup-error {
+            padding: 8px 12px;
+            background: var(--warning-bg);
+            color: #C47B3D;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        
         /* Modal */
         .modal-overlay {
             position: fixed;
@@ -751,43 +881,172 @@
         
         /* Responsive */
         @media (max-width: 600px) {
+            /* Header */
+            .logo {
+                font-size: 16px;
+            }
+            
+            .logo-icon {
+                font-size: 20px;
+            }
+            
+            .header-actions {
+                gap: 6px;
+            }
+            
+            .btn-icon {
+                width: 36px;
+                height: 36px;
+            }
+            
+            .view-toggle {
+                display: none;
+            }
+            
+            /* Search */
+            .search-container {
+                padding: 10px 16px;
+            }
+            
+            .search-input {
+                max-width: 100%;
+            }
+            
+            /* Filters */
+            .filters {
+                padding: 10px 16px;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+            
+            .filter-btn {
+                font-size: 12px;
+                padding: 8px 12px;
+                border-radius: 16px;
+            }
+            
+            .dropdown {
+                width: 100%;
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .dropdown-btn {
+                width: 100%;
+                min-width: 0;
+                font-size: 12px;
+                padding: 8px 32px 8px 12px;
+                border-radius: 16px;
+            }
+            
+            .dropdown-menu {
+                width: calc(100vw - 32px);
+                left: 50%;
+                transform: translateX(-50%);
+                max-width: 100%;
+            }
+            
+            /* Main content */
+            main {
+                padding: 16px;
+            }
+            
+            /* Product card */
+            .products-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .product-card {
+                border-radius: 10px;
+            }
+            
+            .product-header {
+                padding: 12px;
+            }
+            
+            .product-body {
+                padding: 0 12px 12px;
+            }
+            
+            .product-name {
+                font-size: 15px;
+            }
+            
+            /* Modal */
+            .modal-overlay {
+                padding: 0;
+                align-items: flex-end;
+            }
+            
+            .modal {
+                max-width: 100%;
+                max-height: 95vh;
+                border-radius: 20px 20px 0 0;
+                margin: 0;
+            }
+            
+            .modal-header {
+                padding: 16px 20px;
+            }
+            
+            .modal-body {
+                padding: 20px;
+            }
+            
             .form-row {
                 grid-template-columns: 1fr;
             }
             
-            .filters {
-                overflow-x: auto;
-                flex-wrap: nowrap;
-                -webkit-overflow-scrolling: touch;
-                gap: 6px;
+            .form-actions {
+                flex-direction: column;
             }
             
-            .filter-btn {
-                flex-shrink: 0;
-            }
-            
-            .dropdown-btn {
-                min-width: 120px;
-                font-size: 12px;
-                padding: 8px 28px 8px 10px;
-            }
-            
-            .products-grid {
-                grid-template-columns: 1fr;
-            }
-            
+            /* Table */
             .table-container {
-                overflow-x: auto;
+                border-radius: 10px;
+                margin: 0 -16px;
+                width: calc(100% + 32px);
             }
             
             .products-table {
-                min-width: 600px;
+                font-size: 12px;
             }
             
-            .view-toggle-btn {
+            .products-table th,
+            .products-table td {
+                padding: 10px 12px;
+            }
+            
+            /* Opened badge */
+            .opened-badge {
+                font-size: 10px;
+            }
+        }
+        
+        /* Very small screens */
+        @media (max-width: 400px) {
+            .filter-btn {
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+            
+            .header-actions .btn-icon {
                 width: 32px;
                 height: 32px;
                 font-size: 14px;
+            }
+        }
+        
+        /* Improve touch targets on all screens */
+        @media (pointer: coarse) {
+            .filter-btn,
+            .dropdown-btn,
+            .btn,
+            .menu-btn,
+            .action-btn {
+                min-height: 44px;
+                min-width: 44px;
             }
         }
     </style>
@@ -874,6 +1133,26 @@
                     <input type="hidden" id="productId">
                     
                     <div class="form-group">
+                        <div class="barcode-section">
+                            <div class="barcode-input" style="flex: 1;">
+                                <label class="form-label">Штрихкод (EAN/UPC)</label>
+                                <input type="text" class="form-input" id="barcode" placeholder="Введите или отсканируйте">
+                            </div>
+                            <button type="button" class="scan-btn" onclick="openScanner()" title="Сканировать штрихкод">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="16" rx="2"/>
+                                    <line x1="7" y1="8" x2="7" y2="16"/>
+                                    <line x1="10" y1="8" x2="10" y2="16"/>
+                                    <line x1="13" y1="8" x2="13" y2="12"/>
+                                    <line x1="16" y1="8" x2="16" y2="16"/>
+                                    <line x1="19" y1="8" x2="19" y2="11"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="lookupResult"></div>
+                    </div>
+                    
+                    <div class="form-group">
                         <label class="form-label">Название</label>
                         <input type="text" class="form-input" id="name" required placeholder="Например: Тональный крем">
                     </div>
@@ -948,6 +1227,26 @@
         </div>
     </div>
     
+    <!-- Scanner Modal -->
+    <div class="modal-overlay" id="scannerModal">
+        <div class="modal" style="max-width: 440px;">
+            <div class="modal-header">
+                <h2>Сканировать штрихкод</h2>
+                <button class="modal-close" onclick="closeScanner()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="scanner-container">
+                    <video id="scannerVideo" class="scanner-video" autoplay playsinline></video>
+                    <div class="scanner-overlay">
+                        <div class="scanner-line"></div>
+                    </div>
+                    <button class="scanner-close" onclick="closeScanner()">×</button>
+                </div>
+                <p class="scanner-instructions">Наведите камеру на штрихкод</p>
+            </div>
+        </div>
+    </div>
+    
     <!-- Toast -->
     <div class="toast" id="toast"></div>
     
@@ -997,6 +1296,12 @@
         let sortDirection = 'asc';
         let searchTimeout = null;
         let deleteProductId = null;
+        let scannerStream = null;
+        let scannerAnimFrame = null;
+        
+        // Barcode Scanner API
+        const BARCODE_API = 'https://world.openbeautyfacts.org/api/v2/product/';
+        const FOOD_API = 'https://world.openfoodfacts.org/api/v2/product/';
         
         // Init
         document.addEventListener('DOMContentLoaded', () => {
@@ -1004,6 +1309,19 @@
             updateCategoryDropdown();
             loadProducts();
             document.addEventListener('click', handleOutsideClick);
+            
+            // Barcode input - auto-lookup on Enter
+            const barcodeInput = document.getElementById('barcode');
+            barcodeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleBarcodeInput();
+                }
+            });
+            
+            barcodeInput.addEventListener('blur', () => {
+                handleBarcodeInput();
+            });
         });
         
         // Categories
@@ -1437,11 +1755,18 @@
             document.getElementById('openedDate').value = '';
             document.getElementById('expiryDaysAfterOpen').value = '30';
             toggleOpenedFields();
+            // Reset barcode
+            document.getElementById('barcode').value = '';
+            document.getElementById('lookupResult').innerHTML = '';
             document.getElementById('formModal').classList.add('show');
+            document.getElementById('name').focus();
         }
         
         async function openEditModal(id) {
             closeAllMenus();
+            // Reset barcode for edit mode
+            document.getElementById('barcode').value = '';
+            document.getElementById('lookupResult').innerHTML = '';
             const product = products.find(p => p.id === id);
             if (!product) return;
             
@@ -1463,6 +1788,169 @@
         
         function closeModal() {
             document.getElementById('formModal').classList.remove('show');
+        }
+        
+        // Barcode scanner functions
+        async function openScanner() {
+            const modal = document.getElementById('scannerModal');
+            modal.classList.add('show');
+            
+            try {
+                scannerStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                
+                const video = document.getElementById('scannerVideo');
+                video.srcObject = scannerStream;
+                
+                // Wait for video to be ready
+                await new Promise(resolve => {
+                    video.onloadedmetadata = resolve;
+                });
+                
+                // Start scanning loop
+                startScanning();
+                
+            } catch (err) {
+                console.error('Camera access error:', err);
+                showToast('Не удалось получить доступ к камере');
+                closeScanner();
+            }
+        }
+        
+        function closeScanner() {
+            if (scannerStream) {
+                scannerStream.getTracks().forEach(track => track.stop());
+                scannerStream = null;
+            }
+            if (scannerAnimFrame) {
+                cancelAnimationFrame(scannerAnimFrame);
+                scannerAnimFrame = null;
+            }
+            document.getElementById('scannerModal').classList.remove('show');
+        }
+        
+        async function startScanning() {
+            const video = document.getElementById('scannerVideo');
+            
+            // Check if BarcodeDetector is available
+            if ('BarcodeDetector' in window) {
+                const detector = new BarcodeDetector({
+                    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
+                });
+                
+                const scan = async () => {
+                    if (!scannerStream) return;
+                    
+                    try {
+                        const barcodes = await detector.detect(video);
+                        if (barcodes.length > 0) {
+                            const barcode = barcodes[0].rawValue;
+                            closeScanner();
+                            handleBarcodeDetected(barcode);
+                            return;
+                        }
+                    } catch (err) {
+                        // Ignore detection errors
+                    }
+                    
+                    scannerAnimFrame = requestAnimationFrame(scan);
+                };
+                
+                scan();
+            } else {
+                // Fallback: use quagga-like detection via canvas
+                // For now, just show message
+                console.log('BarcodeDetector not supported, use manual input');
+            }
+        }
+        
+        // Handle barcode input (manual or scanned)
+        async function handleBarcodeInput() {
+            const barcode = document.getElementById('barcode').value.trim();
+            if (barcode.length < 8) return;
+            
+            handleBarcodeDetected(barcode);
+        }
+        
+        async function handleBarcodeDetected(barcode) {
+            const resultDiv = document.getElementById('lookupResult');
+            resultDiv.innerHTML = `
+                <div class="lookup-loading">
+                    <div class="spinner"></div>
+                    Поиск по базе...
+                </div>
+            `;
+            
+            try {
+                // Try Open Beauty Facts first
+                let product = await lookupBarcode(barcode, BARCODE_API);
+                
+                // If not found, try Open Food Facts
+                if (!product) {
+                    product = await lookupBarcode(barcode, FOOD_API);
+                }
+                
+                if (product) {
+                    // Fill form with found data
+                    fillFormFromProduct(product);
+                    resultDiv.innerHTML = `<div class="lookup-success">✓ Найден: ${escapeHtml(product.product_name || product.name)}</div>`;
+                } else {
+                    // Auto-fill barcode, user can complete manually
+                    document.getElementById('barcode').value = barcode;
+                    resultDiv.innerHTML = `<div class="lookup-error">Продукт не найден. Введите данные вручную.</div>`;
+                }
+            } catch (err) {
+                console.error('Lookup error:', err);
+                resultDiv.innerHTML = `<div class="lookup-error">Ошибка поиска. Введите данные вручную.</div>`;
+            }
+        }
+        
+        async function lookupBarcode(barcode, apiUrl) {
+            try {
+                const res = await fetch(`${apiUrl}${barcode}.json`, {
+                    headers: {
+                        'User-Agent': 'BeautyShelf/1.0 (https://github.com/beauty-shelf)'
+                    }
+                });
+                
+                if (!res.ok) return null;
+                
+                const data = await res.json();
+                
+                if (data.status === 1 && data.product) {
+                    return data.product;
+                }
+                
+                return null;
+            } catch (err) {
+                return null;
+            }
+        }
+        
+        function fillFormFromProduct(product) {
+            // Product name
+            const name = product.product_name || product.product_name_fr || product.name;
+            if (name) {
+                document.getElementById('name').value = name;
+            }
+            
+            // Brand as purpose
+            if (product.brands) {
+                document.getElementById('purpose').value = product.brands;
+            }
+            
+            // Try to guess type/category from categories
+            const categories = (product.categories || '').toLowerCase();
+            if (categories.includes('soin') || categories.includes('skincare') || 
+                categories.includes('уход') || categories.includes('cream')) {
+                document.getElementById('type').value = 'care';
+                updateCategories();
+            } else if (categories.includes('makeup') || categories.includes('макияж') || 
+                       categories.includes('decorat') || categories.includes('rouge')) {
+                document.getElementById('type').value = 'decorative';
+                updateCategories();
+            }
         }
         
         // Toggle opened fields visibility

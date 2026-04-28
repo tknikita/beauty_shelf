@@ -50,6 +50,9 @@ class _ProductFormState extends State<ProductForm> {
     _openedDate = p?.openedDate;
     _expiryDaysAfterOpen = p?.expiryDaysAfterOpen ?? 30;
     _imageUrl = p?.imageUrl;
+    
+    // Listen for theme changes
+    AppTheme.instance.addListener(_onThemeChanged);
   }
 
   @override
@@ -57,7 +60,12 @@ class _ProductFormState extends State<ProductForm> {
     _barcodeController.dispose();
     _nameController.dispose();
     _purposeController.dispose();
+    AppTheme.instance.removeListener(_onThemeChanged);
     super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _lookupBarcode() async {
@@ -139,7 +147,8 @@ class _ProductFormState extends State<ProductForm> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = AppTheme.instance.getCategoriesByType(_type);
+    final theme = AppTheme.instance;
+    final categories = theme.getCategoriesByType(_type);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -157,7 +166,7 @@ class _ProductFormState extends State<ProductForm> {
             children: [
               Text(
                 widget.product == null ? 'Добавить продукт' : 'Изменить продукт',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
               ),
               const SizedBox(height: 24),
               
@@ -169,9 +178,9 @@ class _ProductFormState extends State<ProductForm> {
                       controller: _barcodeController,
                       decoration: InputDecoration(
                         labelText: 'Штрихкод (EAN/UPC)',
-                        border: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.instance.borderColor)),
+                        border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                         filled: true,
-                        fillColor: AppTheme.instance.backgroundColor,
+                        fillColor: theme.backgroundColor,
                         suffixIcon: _isLookingUp
                             ? const SizedBox(
                                 width: 20,
@@ -205,10 +214,10 @@ class _ProductFormState extends State<ProductForm> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        border: Border.all(color: AppTheme.instance.borderColor),
+                        border: Border.all(color: theme.borderColor),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(Icons.qr_code_scanner, color: AppTheme.instance.textLightColor),
+                      child: Icon(Icons.qr_code_scanner, color: theme.textLightColor),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -224,8 +233,8 @@ class _ProductFormState extends State<ProductForm> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _lookupResult!.startsWith('Найден') 
-                        ? AppTheme.instance.okBgColor
-                        : AppTheme.instance.warningBgColor,
+                        ? theme.okBgColor
+                        : theme.warningBgColor,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
@@ -234,8 +243,8 @@ class _ProductFormState extends State<ProductForm> {
                         _lookupResult!.startsWith('Найден') ? Icons.check_circle : Icons.warning,
                         size: 16,
                         color: _lookupResult!.startsWith('Найден') 
-                            ? AppTheme.instance.okColor
-                            : AppTheme.instance.warningColor,
+                            ? theme.okColor
+                            : theme.warningColor,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -244,8 +253,8 @@ class _ProductFormState extends State<ProductForm> {
                           style: TextStyle(
                             fontSize: 13,
                             color: _lookupResult!.startsWith('Найден') 
-                                ? AppTheme.instance.okColor
-                                : AppTheme.instance.warningColor,
+                                ? theme.okColor
+                                : theme.warningColor,
                           ),
                         ),
                       ),
@@ -263,7 +272,7 @@ class _ProductFormState extends State<ProductForm> {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        border: Border.all(color: AppTheme.instance.borderColor),
+                        border: Border.all(color: theme.borderColor),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: ClipRRect(
@@ -293,7 +302,7 @@ class _ProductFormState extends State<ProductForm> {
                     IconButton(
                       onPressed: () => setState(() => _imageUrl = null),
                       icon: const Icon(Icons.delete_outline),
-                      color: AppTheme.instance.warningColor,
+                      color: theme.warningColor,
                     ),
                   ],
                 ],
@@ -305,7 +314,7 @@ class _ProductFormState extends State<ProductForm> {
                 controller: _nameController,
                 decoration: InputDecoration(
                   labelText: 'Название',
-                  border: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.instance.borderColor)),
+                  border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                 ),
                 validator: (v) => v == null || v.trim().isEmpty ? 'Введите название' : null,
               ),
@@ -317,7 +326,7 @@ class _ProductFormState extends State<ProductForm> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: _type,
-                      decoration: InputDecoration(labelText: 'Тип', border: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.instance.borderColor))),
+                      decoration: InputDecoration(labelText: 'Тип', border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor))),
                       items: const [
                         DropdownMenuItem(value: 'care', child: Text('Уходовая')),
                         DropdownMenuItem(value: 'decorative', child: Text('Декоративная')),
@@ -325,7 +334,7 @@ class _ProductFormState extends State<ProductForm> {
                       onChanged: (v) {
                         setState(() {
                           _type = v!;
-                          final cats = AppTheme.instance.getCategoriesByType(_type);
+                          final cats = theme.getCategoriesByType(_type);
                           _category = cats.keys.first;
                         });
                       },
@@ -335,7 +344,7 @@ class _ProductFormState extends State<ProductForm> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: categories.containsKey(_category) ? _category : categories.keys.first,
-                      decoration: InputDecoration(labelText: 'Категория', border: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.instance.borderColor))),
+                      decoration: InputDecoration(labelText: 'Категория', border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor))),
                       items: categories.entries
                           .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
                           .toList(),
@@ -351,7 +360,7 @@ class _ProductFormState extends State<ProductForm> {
                 controller: _purposeController,
                 decoration: InputDecoration(
                   labelText: 'Назначение',
-                  border: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.instance.borderColor)),
+                  border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                   hintText: 'Например: Для сухой кожи',
                 ),
               ),
@@ -373,12 +382,12 @@ class _ProductFormState extends State<ProductForm> {
                 child: InputDecorator(
                   decoration: InputDecoration(
                     labelText: 'Годен до',
-                    border: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.instance.borderColor)),
-                    suffixIcon: Icon(Icons.calendar_today, color: AppTheme.instance.textLightColor),
+                    border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                    suffixIcon: Icon(Icons.calendar_today, color: theme.textLightColor),
                   ),
                   child: Text(
                     '${_expiryDate.day}.${_expiryDate.month.toString().padLeft(2, '0')}.${_expiryDate.year}',
-                    style: TextStyle(color: AppTheme.instance.textColor),
+                    style: TextStyle(color: theme.textColor),
                   ),
                 ),
               ),
@@ -419,13 +428,13 @@ class _ProductFormState extends State<ProductForm> {
                         child: InputDecorator(
                           decoration: InputDecoration(
                             labelText: 'Дата вскрытия',
-                            border: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.instance.borderColor)),
+                            border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                           ),
                           child: Text(
                             _openedDate != null
                                 ? '${_openedDate!.day}.${_openedDate!.month.toString().padLeft(2, '0')}.${_openedDate!.year}'
                                 : 'Выберите дату',
-                            style: TextStyle(color: AppTheme.instance.textColor),
+                            style: TextStyle(color: theme.textColor),
                           ),
                         ),
                       ),
@@ -436,7 +445,7 @@ class _ProductFormState extends State<ProductForm> {
                         initialValue: _expiryDaysAfterOpen.toString(),
                         decoration: InputDecoration(
                           labelText: 'Срок после вскрытия (дней)',
-                          border: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.instance.borderColor)),
+                          border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                         ),
                         keyboardType: TextInputType.number,
                         onChanged: (v) => _expiryDaysAfterOpen = int.tryParse(v) ?? 30,

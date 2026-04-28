@@ -355,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildTableView() {
     return Expanded(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: ProductTable(
           products: _filteredProducts,

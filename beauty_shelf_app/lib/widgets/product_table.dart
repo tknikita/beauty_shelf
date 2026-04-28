@@ -65,6 +65,25 @@ class ProductTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
 
+    if (products.isEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.borderColor),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Text(
+              'Нет продуктов',
+              style: TextStyle(color: theme.textLightColor),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -86,27 +105,13 @@ class ProductTable extends StatelessWidget {
                 _headerCell('Тип', flex: 1),
                 _headerCell('Годен до', flex: 2),
                 _headerCell('Статус', flex: 1),
-                const SizedBox(width: 80), // Actions column
+                const SizedBox(width: 80),
               ],
             ),
           ),
           const Divider(height: 1),
-          // Rows - use Expanded to fill remaining space
-          Expanded(
-            child: products.isEmpty
-                ? Center(
-                    child: Text(
-                      'Нет продуктов',
-                      style: TextStyle(color: theme.textLightColor),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: products.length,
-                    itemBuilder: (context, index) {
-                      return _buildRow(products[index]);
-                    },
-                  ),
-          ),
+          // Rows
+          ...products.map((p) => _buildRow(p)).toList(),
         ],
       ),
     );

@@ -13,6 +13,7 @@
   - [x] Allow users to enter custom colors
   - [x] Color picker or HEX input field
   - [x] Validate color format (#RRGGBB)
+  - [x] Clickable color palette (tabs for primary/background)
 
 ### Medium Priority
 - [x] Compact settings screen layout

@@ -112,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppTheme.instance.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -139,8 +140,9 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Удалить продукт?'),
-        content: const Text('Это действие нельзя отменить.'),
+        backgroundColor: AppTheme.instance.surfaceColor,
+        title: Text('Удалить продукт?', style: TextStyle(color: AppTheme.instance.textColor)),
+        content: Text('Это действие нельзя отменить.', style: TextStyle(color: AppTheme.instance.textColor)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

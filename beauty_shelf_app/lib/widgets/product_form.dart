@@ -496,7 +496,8 @@ class _BarcodeEntryDialogState extends State<_BarcodeEntryDialog> {
     final theme = AppTheme.instance;
 
     return AlertDialog(
-      title: const Text('Введите штрихкод'),
+      backgroundColor: theme.surfaceColor,
+      title: Text('Введите штрихкод', style: TextStyle(color: theme.textColor)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

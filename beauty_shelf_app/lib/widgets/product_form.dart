@@ -166,10 +166,14 @@ class _ProductFormState extends State<ProductForm> {
                   const SizedBox(width: 12),
                   IconButton(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Сканирование камерой скоро будет'),
-                          behavior: SnackBarBehavior.floating,
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => _BarcodeEntryDialog(
+                          onSubmit: (barcode) {
+                            _barcodeController.text = barcode;
+                            Navigator.pop(ctx);
+                            _lookupBarcode();
+                          },
                         ),
                       );
                     },
@@ -395,5 +399,72 @@ class _ProductFormState extends State<ProductForm> {
         ),
       ),
     );
+  }
+}
+
+class _BarcodeEntryDialog extends StatefulWidget {
+  final Function(String) onSubmit;
+
+  const _BarcodeEntryDialog({required this.onSubmit});
+
+  @override
+  State<_BarcodeEntryDialog> createState() => _BarcodeEntryDialogState();
+}
+
+class _BarcodeEntryDialogState extends State<_BarcodeEntryDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+
+    return AlertDialog(
+      title: const Text('Введите штрихкод'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _controller,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              hintText: '1234567890123',
+              border: const OutlineInputBorder(),
+              filled: true,
+              fillColor: theme.backgroundColor,
+            ),
+            autofocus: true,
+            onSubmitted: (_) => _submit(),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Введите код с упаковки или отсканируйте камерой',
+            style: TextStyle(fontSize: 12, color: theme.textLightColor),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('ОК'),
+        ),
+      ],
+    );
+  }
+
+  void _submit() {
+    final barcode = _controller.text.trim();
+    if (barcode.isNotEmpty) {
+      widget.onSubmit(barcode);
+    }
   }
 }

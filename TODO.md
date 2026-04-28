@@ -22,6 +22,9 @@
   - [x] Compact HEX inputs side by side
 
 ### Low Priority / Ideas
+- [x] Barcode entry dialog
+  - [x] Manual barcode input
+  - [x] Auto-lookup on submit
 - [ ] Camera-based barcode scanning (Web BarcodeDetector API)
 - [ ] Dark mode support
 - [ ] Product categories custom management

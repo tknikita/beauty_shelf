@@ -34,6 +34,9 @@
 - Flutter web WASM warnings (non-critical)
 - Form deprecated `value` parameter warnings
 
+## Table View Bug (UNRESOLVED)
+Table view header renders but rows don't appear on Flutter Web. Minimal `Column` + `.map()` works, but adding styling/Container breaks rendering. Current implementation is minimal text-only version until proper layout solution found.
+
 ## Tech Debt
 - Remove `// ignore: avoid_web_libraries` for dart:html
 - Consider migrating to `web` package instead of `dart:html`

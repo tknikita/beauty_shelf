@@ -139,6 +139,37 @@ class SettingsScreen extends StatelessWidget {
               ),
               
               const SizedBox(height: 24),
+
+              // Categories
+              Text(
+                'Категории',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.borderColor),
+                ),
+                child: Column(
+                  children: [
+                    _CategoryTab(
+                      type: 'care',
+                      label: 'Уходовая',
+                      categories: theme.getCategoriesByType('care'),
+                    ),
+                    const Divider(height: 1),
+                    _CategoryTab(
+                      type: 'decorative',
+                      label: 'Декоративная',
+                      categories: theme.getCategoriesByType('decorative'),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
               
               // About
               Text(
@@ -475,6 +506,167 @@ class _PresetChip extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CategoryTab extends StatefulWidget {
+  final String type;
+  final String label;
+  final Map<String, String> categories;
+
+  const _CategoryTab({
+    required this.type,
+    required this.label,
+    required this.categories,
+  });
+
+  @override
+  State<_CategoryTab> createState() => _CategoryTabState();
+}
+
+class _CategoryTabState extends State<_CategoryTab> {
+  bool _expanded = false;
+
+  void _addCategory() {
+    final keyController = TextEditingController();
+    final nameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Добавить категорию (${widget.label})'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: keyController,
+              decoration: const InputDecoration(labelText: 'Ключ', hintText: 'my_category'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Название'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (keyController.text.isNotEmpty && nameController.text.isNotEmpty) {
+                AppTheme.instance.addCategory(
+                  widget.type,
+                  keyController.text.trim().toLowerCase().replaceAll(' ', '_'),
+                  nameController.text.trim(),
+                );
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Добавить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+    final sortedKeys = widget.categories.keys.toList()..sort();
+
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                  color: theme.textLightColor,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: theme.textColor,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${sortedKeys.length} шт.',
+                  style: TextStyle(fontSize: 12, color: theme.textLightColor),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_expanded) ...[
+          ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            onReorder: (oldIndex, newIndex) {
+              if (newIndex > oldIndex) newIndex--;
+              final keys = List<String>.from(sortedKeys);
+              final key = keys.removeAt(oldIndex);
+              keys.insert(newIndex, key);
+              AppTheme.instance.reorderCategories(widget.type, keys);
+            },
+            children: sortedKeys.asMap().entries.map((entry) {
+              final index = entry.key;
+              final key = entry.value;
+              final name = widget.categories[key]!;
+
+              return ReorderableDragStartListener(
+                key: ValueKey('${widget.type}_$key'),
+                index: index,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: index > 0 ? BorderSide(color: theme.borderColor, width: 0.5) : BorderSide.none,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.drag_handle, size: 18, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(name, style: TextStyle(color: theme.textColor)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        color: theme.dangerColor,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        padding: EdgeInsets.zero,
+                        onPressed: () {
+                          AppTheme.instance.removeCategory(widget.type, key);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: OutlinedButton.icon(
+              onPressed: _addCategory,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Добавить'),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

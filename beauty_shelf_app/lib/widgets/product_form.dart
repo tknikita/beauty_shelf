@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 
 class ProductForm extends StatefulWidget {
   final Product? product;
@@ -114,7 +115,7 @@ class _ProductFormState extends State<ProductForm> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = Categories.byType[_type] ?? {};
+    final categories = AppTheme.instance.getCategoriesByType(_type);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -251,7 +252,8 @@ class _ProductFormState extends State<ProductForm> {
                       onChanged: (v) {
                         setState(() {
                           _type = v!;
-                          _category = Categories.byType[_type]!.keys.first;
+                          final cats = AppTheme.instance.getCategoriesByType(_type);
+                          _category = cats.keys.first;
                         });
                       },
                     ),

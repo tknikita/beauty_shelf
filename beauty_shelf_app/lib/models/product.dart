@@ -1,3 +1,5 @@
+import '../theme/app_theme.dart';
+
 class Product {
   final int? id;
   final String name;
@@ -105,7 +107,7 @@ class Product {
 enum ProductStatus { ok, warning, danger, expired }
 
 class Categories {
-  static const Map<String, Map<String, String>> byType = {
+  static const Map<String, Map<String, String>> defaults = {
     'care': {
       'basic_care': 'Базовая уходовая',
       'cleanser': 'Очищение',
@@ -135,7 +137,6 @@ class Categories {
     },
   };
 
-  static String getCategoryName(String type, String category) {
-    return byType[type]?[category] ?? category;
-  }
+  static Map<String, Map<String, String>> get byType => AppTheme.instance.categories;
+  static String getCategoryName(String type, String category) => byType[type]?[category] ?? category;
 }

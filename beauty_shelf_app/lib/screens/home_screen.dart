@@ -21,7 +21,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String? _error;
   
-  String _filter = 'all';
+  String _typeFilter = 'all';
+  String? _categoryFilter;
   String _searchQuery = '';
   bool get _isTableView => AppTheme.instance.isTableView;
 
@@ -66,9 +67,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _applyFilters() {
     setState(() {
       _filteredProducts = _products.where((p) {
-        // Type filter
-        if (_filter != 'all' && p.type != _filter) return false;
-        // Search filter
+        if (_typeFilter != 'all' && p.type != _typeFilter) return false;
+        if (_categoryFilter != null && p.category != _categoryFilter) return false;
         if (_searchQuery.isNotEmpty) {
           final q = _searchQuery.toLowerCase();
           if (!p.name.toLowerCase().contains(q) &&
@@ -81,9 +81,17 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _setFilter(String filter) {
+  void _setTypeFilter(String filter) {
     setState(() {
-      _filter = filter;
+      _typeFilter = filter;
+      _categoryFilter = null;
+      _applyFilters();
+    });
+  }
+
+  void _setCategoryFilter(String? category) {
+    setState(() {
+      _categoryFilter = category;
       _applyFilters();
     });
   }
@@ -172,6 +180,39 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildCategoryChips() {
+    final categories = AppTheme.instance.getCategoriesByType(_typeFilter);
+    final sortedKeys = categories.keys.toList()
+      ..sort((a, b) => categories[a]!.compareTo(categories[b]!));
+    final theme = AppTheme.instance;
+
+    return SizedBox(
+      height: 28,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: sortedKeys.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return _MiniFilterChip(
+              label: 'Все',
+              selected: _categoryFilter == null,
+              onTap: () => _setCategoryFilter(null),
+              color: theme.primaryColor,
+            );
+          }
+          final key = sortedKeys[index - 1];
+          return _MiniFilterChip(
+            label: categories[key]!,
+            selected: _categoryFilter == key,
+            onTap: () => _setCategoryFilter(key),
+            color: theme.primaryColor,
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -202,7 +243,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          // View toggle
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
@@ -239,12 +279,16 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // Search
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: TextField(
-              onChanged: (v) => _applyFilters(),
+              onChanged: (v) {
+                setState(() {
+                  _searchQuery = v;
+                  _applyFilters();
+                });
+              },
               decoration: InputDecoration(
                 hintText: 'Поиск...',
                 prefixIcon: Icon(Icons.search, color: AppTheme.instance.textLightColor),
@@ -258,39 +302,44 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-
-          // Filters
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _FilterChip(
-                  label: 'Все',
-                  selected: _filter == 'all',
-                  onTap: () => _setFilter('all'),
-                  color: AppTheme.instance.primaryColor,
+                Row(
+                  children: [
+                    _FilterChip(
+                      label: 'Все',
+                      selected: _typeFilter == 'all',
+                      onTap: () => _setTypeFilter('all'),
+                      color: AppTheme.instance.primaryColor,
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: 'Уход',
+                      selected: _typeFilter == 'care',
+                      onTap: () => _setTypeFilter('care'),
+                      color: AppTheme.instance.primaryColor,
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: 'Декор.',
+                      selected: _typeFilter == 'decorative',
+                      onTap: () => _setTypeFilter('decorative'),
+                      color: AppTheme.instance.primaryColor,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Уход',
-                  selected: _filter == 'care',
-                  onTap: () => _setFilter('care'),
-                  color: AppTheme.instance.primaryColor,
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Декоративная',
-                  selected: _filter == 'decorative',
-                  onTap: () => _setFilter('decorative'),
-                  color: AppTheme.instance.primaryColor,
-                ),
+                if (_typeFilter != 'all') ...[
+                  const SizedBox(height: 8),
+                  _buildCategoryChips(),
+                ],
               ],
             ),
           ),
           const Divider(height: 1),
-
-          // Content
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -354,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTableView() {
-    return SingleChildScrollView(
+    return Container(
       padding: const EdgeInsets.all(16),
       child: ProductTable(
         products: _filteredProducts,
@@ -417,6 +466,45 @@ class _FilterChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             color: selected ? Colors.white : AppTheme.instance.textColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniFilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color color;
+
+  const _MiniFilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? color.withAlpha(30) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? color : AppTheme.instance.borderColor,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: selected ? color : AppTheme.instance.textLightColor,
+            fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
           ),
         ),
       ),

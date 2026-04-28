@@ -63,92 +63,166 @@ class ProductTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.instance.borderColor),
+        border: Border.all(color: theme.borderColor),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(AppTheme.instance.backgroundColor),
-            dataRowColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.hovered)) {
-                return AppTheme.instance.backgroundColor;
-              }
-              return Colors.white;
-            }),
-            columnSpacing: 24,
-            horizontalMargin: 16,
-            columns: [
-              DataColumn(label: Text('Название', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.instance.textLightColor))),
-              DataColumn(label: Text('Тип', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.instance.textLightColor))),
-              DataColumn(label: Text('Категория', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.instance.textLightColor))),
-              DataColumn(label: Text('Годен до', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.instance.textLightColor))),
-              DataColumn(label: Text('Статус', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.instance.textLightColor))),
-              const DataColumn(label: Text('')),
-            ],
-            rows: products.map((p) {
-              return DataRow(
-                cells: [
-                  DataCell(Text(p.name, style: TextStyle(fontWeight: FontWeight.w500, color: AppTheme.instance.textColor))),
-                  DataCell(Text(p.type == 'care' ? 'Уход' : 'Декор.', style: TextStyle(color: AppTheme.instance.textLightColor))),
-                  DataCell(Text(Categories.getCategoryName(p.type, p.category), style: TextStyle(color: AppTheme.instance.textLightColor))),
-                  DataCell(
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(_formatDate(p.effectiveExpiryDate), style: TextStyle(color: AppTheme.instance.textColor)),
-                        if (p.isOpened)
-                          Text(
-                            'Вскрыто ${_getOpenedDaysAgo(p)} дн.',
-                            style: TextStyle(fontSize: 11, color: AppTheme.instance.textLightColor),
-                          ),
-                      ],
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.backgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            ),
+            child: Row(
+              children: [
+                _headerCell('Название', flex: 3),
+                _headerCell('Тип', flex: 1),
+                _headerCell('Годен до', flex: 2),
+                _headerCell('Статус', flex: 1),
+                const SizedBox(width: 80), // Actions column
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          // Rows
+          Expanded(
+            child: ListView.builder(
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                final p = products[index];
+                return _buildRow(p);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerCell(String text, {int flex = 1}) {
+    return Expanded(
+      flex: flex,
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.instance.textLightColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRow(Product p) {
+    final theme = AppTheme.instance;
+
+    return InkWell(
+      onTap: () => onEdit(p),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: theme.borderColor, width: 0.5)),
+        ),
+        child: Row(
+          children: [
+            // Name
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    p.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: theme.textColor,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  DataCell(
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getStatusBgColor(p.status),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        _getStatusText(p.status),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: _getStatusColor(p.status),
-                        ),
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          onPressed: () => onEdit(p),
-                          color: AppTheme.instance.textLightColor,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 18),
-                          onPressed: () => onDelete(p),
-                          color: AppTheme.instance.dangerColor,
-                        ),
-                      ],
-                    ),
+                  Text(
+                    Categories.getCategoryName(p.type, p.category),
+                    style: TextStyle(fontSize: 12, color: theme.textLightColor),
                   ),
                 ],
-              );
-            }).toList(),
-          ),
+              ),
+            ),
+            // Type
+            Expanded(
+              flex: 1,
+              child: Text(
+                p.type == 'care' ? 'Уход' : 'Декор.',
+                style: TextStyle(fontSize: 13, color: theme.textLightColor),
+              ),
+            ),
+            // Expiry
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _formatDate(p.effectiveExpiryDate),
+                    style: TextStyle(fontSize: 13, color: theme.textColor),
+                  ),
+                  if (p.isOpened)
+                    Text(
+                      'Вскрыто ${_getOpenedDaysAgo(p)} дн.',
+                      style: TextStyle(fontSize: 11, color: theme.textLightColor),
+                    ),
+                ],
+              ),
+            ),
+            // Status
+            Expanded(
+              flex: 1,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getStatusBgColor(p.status),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _getStatusText(p.status),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: _getStatusColor(p.status),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            // Actions
+            SizedBox(
+              width: 80,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    onPressed: () => onEdit(p),
+                    color: theme.textLightColor,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    padding: EdgeInsets.zero,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    onPressed: () => onDelete(p),
+                    color: theme.dangerColor,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

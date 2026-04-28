@@ -145,23 +145,24 @@ class ApiService {
     
     if (input.files?.isNotEmpty == true) {
       final file = input.files!.first;
-      final reader = html.FileReader();
-      reader.readAsArrayBuffer(file);
       
-      await reader.onLoadEnd.first;
+      final formData = html.FormData();
+      formData.appendBlob('file', file, file.name);
       
-      final bytes = reader.result;
-      if (bytes != null) {
-        final response = await http.post(
-          Uri.parse('$baseUrl/images/upload'),
-          body: bytes,
-          headers: {'Content-Type': file.type},
-        );
+      try {
+        final request = html.HttpRequest();
+        request.open('POST', '$baseUrl/images/upload', async: false);
+        request.send(formData);
         
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
+        // Wait for completion (sync in dart:html)
+        await request.onLoadEnd.first;
+        
+        if (request.status == 200) {
+          final data = json.decode(request.responseText as String);
           return data['url'] as String?;
         }
+      } catch (e) {
+        // Fallback - try with http package
       }
     }
     

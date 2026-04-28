@@ -184,12 +184,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
             ),
             const SizedBox(width: 8),
-            const Text(
+            Text(
               'Beauty Shelf',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF333333),
+                color: AppTheme.textColor,
               ),
             ),
           ],
@@ -199,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFFDF9FA),
+              color: AppTheme.backgroundColor,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -240,9 +240,9 @@ class _HomeScreenState extends State<HomeScreen> {
               onChanged: (v) => _applyFilters(),
               decoration: InputDecoration(
                 hintText: 'Поиск...',
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF8A8A8A)),
+                prefixIcon: Icon(Icons.search, color: AppTheme.textLightColor),
                 filled: true,
-                fillColor: const Color(0xFFFDF9FA),
+                fillColor: AppTheme.backgroundColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
@@ -402,14 +402,14 @@ class _FilterChip extends StatelessWidget {
           color: selected ? color : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? color : const Color(0xFFE8E8E8),
+            color: selected ? color : AppTheme.borderColor,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
-            color: selected ? Colors.white : const Color(0xFF333333),
+            color: selected ? Colors.white : AppTheme.textColor,
           ),
         ),
       ),

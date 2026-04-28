@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const BeautyShelfApp());
@@ -15,19 +16,21 @@ class BeautyShelfApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFE8B4BC),
-          surface: const Color(0xFFFDF9FA),
+          seedColor: AppTheme.primaryColor,
+          surface: AppTheme.backgroundColor,
         ),
         useMaterial3: true,
         fontFamily: 'Inter',
-        appBarTheme: const AppBarTheme(
+        primaryColor: AppTheme.primaryColor,
+        scaffoldBackgroundColor: AppTheme.backgroundColor,
+        appBarTheme: AppBarTheme(
           backgroundColor: Colors.white,
-          foregroundColor: Color(0xFF333333),
+          foregroundColor: AppTheme.textColor,
           elevation: 0,
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFE8B4BC),
+            backgroundColor: AppTheme.primaryColor,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -36,7 +39,7 @@ class BeautyShelfApp extends StatelessWidget {
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF333333),
+            foregroundColor: AppTheme.textColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),

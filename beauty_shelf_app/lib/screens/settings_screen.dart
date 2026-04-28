@@ -13,7 +13,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _presets = [
     {
-      'name': 'Розовый (по умолчанию)',
+      'name': 'Розовый',
       'primary': 'E8B4BC',
       'primaryDark': 'D49BA5',
       'background': 'FDF9FA',
@@ -50,11 +50,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     },
   ];
 
-  String _currentPreset = 'Розовый (по умолчанию)';
+  String _currentPreset = 'Розовый';
 
   void _applyPreset(Map<String, dynamic> preset) {
     setState(() {
-      _currentPreset = preset['name'];
+      _currentPreset = preset['name'] ?? '';
       AppTheme.primaryColor = Color(int.parse('FF${preset['primary']}', radix: 16));
       AppTheme.primaryDarkColor = Color(int.parse('FF${preset['primaryDark']}', radix: 16));
       AppTheme.backgroundColor = Color(int.parse('FF${preset['background']}', radix: 16));
@@ -63,7 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Применён пресет: ${preset['name']}'),
+        content: Text('Применён: ${preset['name']}'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -72,120 +72,108 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF9FA),
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: const Text('Настройки'),
+        title: Text('Настройки', style: TextStyle(color: AppTheme.textColor)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, color: AppTheme.textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Color theme section
-          const Text(
+          Text(
             'Цветовая тема',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textColor),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Выберите цветовую схему приложения',
-            style: TextStyle(fontSize: 14, color: Color(0xFF8A8A8A)),
+          Text(
+            'Выберите цветовую схему',
+            style: TextStyle(fontSize: 14, color: AppTheme.textLightColor),
           ),
           const SizedBox(height: 16),
           
-          // Presets grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1.5,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: _presets.length,
-            itemBuilder: (context, index) {
-              final preset = _presets[index];
-              final isSelected = _currentPreset == preset['name'];
-              final color = Color(int.parse('FF${preset['primary']}', radix: 16));
-              
-              return GestureDetector(
-                onTap: () => _applyPreset(preset),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected ? color : const Color(0xFFE8E8E8),
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      Container(
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-                        ),
+          // Compact horizontal scroll
+          SizedBox(
+            height: 80,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _presets.length,
+              itemBuilder: (context, index) {
+                final preset = _presets[index];
+                final isSelected = _currentPreset == preset['name'];
+                final color = Color(int.parse('FF${preset['primary']}', radix: 16));
+                final bgColor = Color(int.parse('FF${preset['background']}', radix: 16));
+                
+                return GestureDetector(
+                  onTap: () => _applyPreset(preset),
+                  child: Container(
+                    width: 90,
+                    margin: EdgeInsets.only(right: index < _presets.length - 1 ? 12 : 0),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? color : AppTheme.borderColor,
+                        width: isSelected ? 2 : 1,
                       ),
-                      Positioned(
-                        bottom: 12,
-                        left: 12,
-                        right: 12,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (isSelected)
-                              Icon(Icons.check_circle, color: color, size: 20),
-                            if (!isSelected)
-                              Container(
-                                width: 20,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: const Color(0xFFE8E8E8)),
+                    ),
+                    child: Stack(
+                      children: [
+                        Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 8,
+                          left: 8,
+                          right: 8,
+                          child: Row(
+                            children: [
+                              Icon(
+                                isSelected ? Icons.check_circle : Icons.circle_outlined,
+                                color: isSelected ? color : AppTheme.textLightColor,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  preset['name'] ?? '',
+                                  style: const TextStyle(fontSize: 11),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            const SizedBox(height: 8),
-                            Text(
-                              preset['name'] ?? '',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
           
           const SizedBox(height: 32),
           
-          // Preview section
-          const Text(
+          Text(
             'Превью',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textColor),
           ),
           const SizedBox(height: 16),
           
-          // Sample card preview
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE8E8E8)),
+              border: Border.all(color: AppTheme.borderColor),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,38 +190,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Beauty Shelf',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                      ),
+                    Text(
+                      'Beauty Shelf',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textColor),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Тестовый продукт',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textColor),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Уходовая косметика',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF8A8A8A)),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textLightColor),
                 ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0F7F2),
+                    color: AppTheme.okBgColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
+                  child: Text(
                     'OK · 120 дн.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF5A9E6F),
-                    ),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.okColor),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -250,10 +232,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           
           const SizedBox(height: 32),
           
-          // About section
-          const Text(
+          Text(
             'О приложении',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textColor),
           ),
           const SizedBox(height: 16),
           Container(
@@ -261,24 +242,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE8E8E8)),
+              border: Border.all(color: AppTheme.borderColor),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Beauty Shelf',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textColor),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'Версия 1.0.0',
-                  style: TextStyle(fontSize: 14, color: Color(0xFF8A8A8A)),
+                  style: TextStyle(fontSize: 14, color: AppTheme.textLightColor),
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 Text(
                   'Трекер косметики с отслеживанием сроков годности.',
-                  style: TextStyle(fontSize: 14),
+                  style: TextStyle(fontSize: 14, color: AppTheme.textColor),
                 ),
               ],
             ),

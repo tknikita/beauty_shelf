@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/product.dart';
+import '../theme/app_theme.dart';
 
 class ProductTable extends StatelessWidget {
   final List<Product> products;
@@ -17,24 +18,24 @@ class ProductTable extends StatelessWidget {
   Color _getStatusColor(ProductStatus status) {
     switch (status) {
       case ProductStatus.ok:
-        return const Color(0xFF5A9E6F);
+        return AppTheme.okColor;
       case ProductStatus.warning:
-        return const Color(0xFFC47B3D);
+        return AppTheme.warningColor;
       case ProductStatus.danger:
       case ProductStatus.expired:
-        return const Color(0xFFB85C6A);
+        return AppTheme.dangerColor;
     }
   }
 
   Color _getStatusBgColor(ProductStatus status) {
     switch (status) {
       case ProductStatus.ok:
-        return const Color(0xFFF0F7F2);
+        return AppTheme.okBgColor;
       case ProductStatus.warning:
-        return const Color(0xFFFDF5F0);
+        return AppTheme.warningBgColor;
       case ProductStatus.danger:
       case ProductStatus.expired:
-        return const Color(0xFFFDF0F2);
+        return AppTheme.dangerBgColor;
     }
   }
 
@@ -66,46 +67,46 @@ class ProductTable extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(const Color(0xFFFDF9FA)),
+            headingRowColor: WidgetStateProperty.all(AppTheme.backgroundColor),
             dataRowColor: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.hovered)) {
-                return const Color(0xFFFDF9FA);
+                return AppTheme.backgroundColor;
               }
               return Colors.white;
             }),
             columnSpacing: 24,
             horizontalMargin: 16,
-            columns: const [
-              DataColumn(label: Text('Название', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF8A8A8A)))),
-              DataColumn(label: Text('Тип', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF8A8A8A)))),
-              DataColumn(label: Text('Категория', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF8A8A8A)))),
-              DataColumn(label: Text('Годен до', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF8A8A8A)))),
-              DataColumn(label: Text('Статус', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF8A8A8A)))),
-              DataColumn(label: Text('')),
+            columns: [
+              DataColumn(label: Text('Название', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.textLightColor))),
+              DataColumn(label: Text('Тип', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.textLightColor))),
+              DataColumn(label: Text('Категория', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.textLightColor))),
+              DataColumn(label: Text('Годен до', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.textLightColor))),
+              DataColumn(label: Text('Статус', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.textLightColor))),
+              const DataColumn(label: Text('')),
             ],
             rows: products.map((p) {
               return DataRow(
                 cells: [
-                  DataCell(Text(p.name, style: const TextStyle(fontWeight: FontWeight.w500))),
-                  DataCell(Text(p.type == 'care' ? 'Уход' : 'Декор.', style: TextStyle(color: Colors.grey[600]))),
-                  DataCell(Text(Categories.getCategoryName(p.type, p.category), style: TextStyle(color: Colors.grey[600]))),
+                  DataCell(Text(p.name, style: TextStyle(fontWeight: FontWeight.w500, color: AppTheme.textColor))),
+                  DataCell(Text(p.type == 'care' ? 'Уход' : 'Декор.', style: TextStyle(color: AppTheme.textLightColor))),
+                  DataCell(Text(Categories.getCategoryName(p.type, p.category), style: TextStyle(color: AppTheme.textLightColor))),
                   DataCell(
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(_formatDate(p.effectiveExpiryDate)),
+                        Text(_formatDate(p.effectiveExpiryDate), style: TextStyle(color: AppTheme.textColor)),
                         if (p.isOpened)
                           Text(
                             'Вскрыто ${_getOpenedDaysAgo(p)} дн.',
-                            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                            style: TextStyle(fontSize: 11, color: AppTheme.textLightColor),
                           ),
                       ],
                     ),
@@ -134,12 +135,12 @@ class ProductTable extends StatelessWidget {
                         IconButton(
                           icon: const Icon(Icons.edit_outlined, size: 18),
                           onPressed: () => onEdit(p),
-                          color: Colors.grey[400],
+                          color: AppTheme.textLightColor,
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete_outline, size: 18),
                           onPressed: () => onDelete(p),
-                          color: const Color(0xFFD9848C),
+                          color: AppTheme.dangerColor,
                         ),
                       ],
                     ),

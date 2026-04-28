@@ -28,14 +28,13 @@
 
 ## Plan (Step by Step)
 
-1. [ ] Fix table view toggle
-2. [ ] Commit: "fix: table view toggle"
-3. [ ] Make all widgets use AppTheme colors
-4. [ ] Commit: "fix: use AppTheme colors consistently"
-5. [ ] Add manual HEX color input
-6. [ ] Commit: "feat: add custom color picker"
-7. [ ] Make settings screen more compact
-8. [ ] Commit: "fix: compact settings screen"
+1. [x] Fix table view toggle ✓ `c1a92aa`
+2. [ ] Make all widgets use AppTheme colors
+3. [ ] Commit: "fix: use AppTheme colors consistently"
+4. [ ] Add manual HEX color input
+5. [ ] Commit: "feat: add custom color picker"
+6. [ ] Make settings screen more compact
+7. [ ] Commit: "fix: compact settings screen"
 
 ## Current File Structure
 ```

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
+import '../theme/app_theme.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -16,25 +17,25 @@ class ProductCard extends StatelessWidget {
   Color _getStatusColor() {
     switch (product.status) {
       case ProductStatus.ok:
-        return const Color(0xFF5A9E6F);
+        return AppTheme.okColor;
       case ProductStatus.warning:
-        return const Color(0xFFC47B3D);
+        return AppTheme.warningColor;
       case ProductStatus.danger:
-        return const Color(0xFFB85C6A);
+        return AppTheme.dangerColor;
       case ProductStatus.expired:
-        return const Color(0xFFD9848C);
+        return AppTheme.dangerColor;
     }
   }
 
   Color _getStatusBgColor() {
     switch (product.status) {
       case ProductStatus.ok:
-        return const Color(0xFFF0F7F2);
+        return AppTheme.okBgColor;
       case ProductStatus.warning:
-        return const Color(0xFFFDF5F0);
+        return AppTheme.warningBgColor;
       case ProductStatus.danger:
       case ProductStatus.expired:
-        return const Color(0xFFFDF0F2);
+        return AppTheme.dangerBgColor;
     }
   }
 
@@ -70,7 +71,7 @@ class ProductCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFE8E8E8)),
+        side: BorderSide(color: AppTheme.borderColor),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -86,9 +87,10 @@ class ProductCard extends StatelessWidget {
                     children: [
                       Text(
                         product.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          color: AppTheme.textColor,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -96,14 +98,14 @@ class ProductCard extends StatelessWidget {
                         product.type == 'care' ? 'Уходовая' : 'Декоративная',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: AppTheme.textLightColor,
                         ),
                       ),
                     ],
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert, color: Colors.grey[400], size: 20),
+                  icon: Icon(Icons.more_vert, color: AppTheme.textLightColor, size: 20),
                   onSelected: (value) {
                     if (value == 'edit') onEdit();
                     if (value == 'delete') onDelete();
@@ -119,13 +121,13 @@ class ProductCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline, size: 18, color: Color(0xFFD9848C)),
-                          SizedBox(width: 8),
-                          Text('Удалить', style: TextStyle(color: Color(0xFFD9848C))),
+                          Icon(Icons.delete_outline, size: 18, color: AppTheme.dangerColor),
+                          const SizedBox(width: 8),
+                          Text('Удалить', style: TextStyle(color: AppTheme.dangerColor)),
                         ],
                       ),
                     ),
@@ -142,11 +144,11 @@ class ProductCard extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 4),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 12, color: Colors.grey[500]),
+                    Icon(Icons.calendar_today, size: 12, color: AppTheme.textLightColor),
                     const SizedBox(width: 4),
                     Text(
                       'Вскрыто ${_getOpenedDaysAgo()} дн. назад',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 11, color: AppTheme.textLightColor),
                     ),
                   ],
                 ),
@@ -178,7 +180,7 @@ class ProductCard extends StatelessWidget {
       padding: const EdgeInsets.only(top: 4),
       child: RichText(
         text: TextSpan(
-          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 13, color: AppTheme.textLightColor),
           children: [
             TextSpan(
               text: label,

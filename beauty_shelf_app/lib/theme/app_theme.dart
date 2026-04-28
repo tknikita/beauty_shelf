@@ -8,8 +8,11 @@ class AppTheme {
   static Color textLightColor = const Color(0xFF8A8A8A);
   static Color borderColor = const Color(0xFFE8E8E8);
   static Color okColor = const Color(0xFF8FC9A3);
+  static Color okBgColor = const Color(0xFFF0F7F2);
   static Color warningColor = const Color(0xFFE8A87C);
+  static Color warningBgColor = const Color(0xFFFDF5F0);
   static Color dangerColor = const Color(0xFFD9848C);
+  static Color dangerBgColor = const Color(0xFFFDF0F2);
   
   static ThemeData get theme => ThemeData(
     colorScheme: ColorScheme.fromSeed(

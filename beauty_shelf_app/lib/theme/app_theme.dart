@@ -269,6 +269,7 @@ void loadDarkMode() {
     if (saved == '1') {
       AppTheme.instance._isDarkMode = true;
       AppTheme.instance._applyDarkMode();
+      AppTheme.instance.notifyListeners();
     }
   } catch (e) {
     // localStorage not available

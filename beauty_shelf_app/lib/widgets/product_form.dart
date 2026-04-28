@@ -430,7 +430,7 @@ class _ProductFormState extends State<ProductForm> {
                     _openedDate = DateTime.now();
                   }
                 }),
-                title: const Text('Вскрыта упаковка'),
+                title: Text('Вскрыта упаковка', style: TextStyle(color: theme.textColor)),
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
               ),

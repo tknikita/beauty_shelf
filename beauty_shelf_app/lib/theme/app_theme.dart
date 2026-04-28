@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+// ignore: avoid_web_libraries
+import 'dart:html' as html;
 
 class AppTheme extends ChangeNotifier {
   static final AppTheme _instance = AppTheme._();
@@ -23,7 +25,7 @@ class AppTheme extends ChangeNotifier {
     primaryColor = primary;
     backgroundColor = background;
     adjustColors();
-    saveToStorage();
+    _saveToStorage();
     notifyListeners();
   }
 
@@ -35,7 +37,32 @@ class AppTheme extends ChangeNotifier {
     ).toColor();
   }
 
-  void loadFromStorage() {}
-  
-  void saveToStorage() {}
+  void _saveToStorage() {
+    try {
+      html.window.localStorage['beauty_shelf_theme'] = 
+        '${primaryColor.value},${backgroundColor.value}';
+    } catch (e) {
+      // localStorage not available
+    }
+  }
+}
+
+void loadThemeFromStorage() {
+  try {
+    final saved = html.window.localStorage['beauty_shelf_theme'];
+    if (saved != null && saved.isNotEmpty) {
+      final parts = saved.split(',');
+      if (parts.length >= 2) {
+        final primary = int.tryParse(parts[0]);
+        final bg = int.tryParse(parts[1]);
+        if (primary != null && bg != null) {
+          AppTheme.instance.primaryColor = Color(primary);
+          AppTheme.instance.backgroundColor = Color(bg);
+          AppTheme.instance.adjustColors();
+        }
+      }
+    }
+  } catch (e) {
+    // localStorage not available
+  }
 }

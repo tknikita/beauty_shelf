@@ -6,138 +6,143 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.instance;
-
-    return Scaffold(
-      backgroundColor: theme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: Text('Настройки', style: TextStyle(color: theme.textColor)),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: theme.textColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            'Цветовая тема',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Выберите цветовую схему',
-            style: TextStyle(fontSize: 14, color: theme.textLightColor),
-          ),
-          const SizedBox(height: 16),
-          
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _PresetCard(name: 'Розовый', primary: const Color(0xFFE8B4BC), background: const Color(0xFFFDF9FA)),
-              _PresetCard(name: 'Лаванда', primary: const Color(0xFFB4A7E8), background: const Color(0xFFF5F3FA)),
-              _PresetCard(name: 'Мята', primary: const Color(0xFFA7E8C4), background: const Color(0xFFF3FAF5)),
-              _PresetCard(name: 'Персик', primary: const Color(0xFFE8C4A7), background: const Color(0xFFFAF5F3)),
-              _PresetCard(name: 'Голубой', primary: const Color(0xFFA7C4E8), background: const Color(0xFFF3F5FA)),
-              _PresetCard(name: 'Монохром', primary: const Color(0xFF666666), background: const Color(0xFFFAFAFA)),
-            ],
-          ),
-          
-          const SizedBox(height: 32),
-          
-          Text(
-            'Превью',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
-          ),
-          const SizedBox(height: 16),
-          
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.borderColor),
+    return ListenableBuilder(
+      listenable: AppTheme.instance,
+      builder: (context, _) {
+        final theme = AppTheme.instance;
+        
+        return Scaffold(
+          backgroundColor: theme.backgroundColor,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            title: Text('Настройки', style: TextStyle(color: theme.textColor)),
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: theme.textColor),
+              onPressed: () => Navigator.pop(context),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          ),
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                'Цветовая тема',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Выберите цветовую схему',
+                style: TextStyle(fontSize: 14, color: theme.textLightColor),
+              ),
+              const SizedBox(height: 16),
+              
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _PresetCard(name: 'Розовый', primary: const Color(0xFFE8B4BC), background: const Color(0xFFFDF9FA)),
+                  _PresetCard(name: 'Лаванда', primary: const Color(0xFFB4A7E8), background: const Color(0xFFF5F3FA)),
+                  _PresetCard(name: 'Мята', primary: const Color(0xFFA7E8C4), background: const Color(0xFFF3FAF5)),
+                  _PresetCard(name: 'Персик', primary: const Color(0xFFE8C4A7), background: const Color(0xFFFAF5F3)),
+                  _PresetCard(name: 'Голубой', primary: const Color(0xFFA7C4E8), background: const Color(0xFFF3F5FA)),
+                  _PresetCard(name: 'Монохром', primary: const Color(0xFF666666), background: const Color(0xFFFAFAFA)),
+                ],
+              ),
+              
+              const SizedBox(height: 32),
+              
+              Text(
+                'Превью',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+              ),
+              const SizedBox(height: 16),
+              
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.borderColor),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: theme.primaryColor,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: theme.primaryColor,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Beauty Shelf',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(height: 16),
                     Text(
-                      'Beauty Shelf',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+                      'Тестовый продукт',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Уходовая косметика',
+                      style: TextStyle(fontSize: 12, color: theme.textLightColor),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: theme.okBgColor,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'OK · 120 дн.',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.okColor),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Тестовый продукт',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
+              ),
+              
+              const SizedBox(height: 32),
+              
+              Text(
+                'О приложении',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.borderColor),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Уходовая косметика',
-                  style: TextStyle(fontSize: 12, color: theme.textLightColor),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Beauty Shelf',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Версия 1.0.0',
+                      style: TextStyle(fontSize: 14, color: theme.textLightColor),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: theme.okBgColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'OK · 120 дн.',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.okColor),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          
-          const SizedBox(height: 32),
-          
-          Text(
-            'О приложении',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.borderColor),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Beauty Shelf',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Версия 1.0.0',
-                  style: TextStyle(fontSize: 14, color: theme.textLightColor),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
-import 'theme/app_theme_io.dart' if (dart.library.html) 'theme/app_theme_web.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

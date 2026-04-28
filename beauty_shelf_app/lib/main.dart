@@ -72,6 +72,15 @@ class _BeautyShelfAppState extends State<BeautyShelfApp> {
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: theme.primaryColor, width: 2),
+          ),
+        ),
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: theme.primaryColor,
+          selectionColor: theme.primaryColor.withAlpha(77),
+          selectionHandleColor: theme.primaryColor,
         ),
       ),
       home: const HomeScreen(),

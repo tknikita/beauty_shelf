@@ -38,6 +38,10 @@ class AppTheme extends ChangeNotifier {
   Color dangerColor = const Color(0xFFD9848C);
   Color dangerBgColor = const Color(0xFFFDF0F2);
 
+  // Selection/focus colors
+  Color selectionColor = const Color(0xFFE8B4BC);
+  Color inputFocusColor = const Color(0xFFE8B4BC);
+
   bool _isDarkMode = false;
   bool get isDarkMode => _isDarkMode;
 
@@ -63,6 +67,8 @@ class AppTheme extends ChangeNotifier {
       okBgColor = const Color(0xFF1A2E1B);
       warningBgColor = const Color(0xFF2E2A1B);
       dangerBgColor = const Color(0xFF2E1A1B);
+      selectionColor = const Color(0xFFE8B4BC);
+      inputFocusColor = const Color(0xFFE8B4BC);
     } else {
       primaryColor = _lightPrimary;
       primaryDarkColor = _lightPrimaryDark;
@@ -74,6 +80,8 @@ class AppTheme extends ChangeNotifier {
       okBgColor = const Color(0xFFF0F7F2);
       warningBgColor = const Color(0xFFFDF5F0);
       dangerBgColor = const Color(0xFFFDF0F2);
+      selectionColor = const Color(0xFFE8B4BC);
+      inputFocusColor = const Color(0xFFE8B4BC);
     }
   }
 

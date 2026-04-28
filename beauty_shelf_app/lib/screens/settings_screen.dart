@@ -201,43 +201,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.borderColor),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: theme.primaryColor,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Beauty Shelf',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
+                    // Product card preview
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: theme.primaryColor,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          Text(
-                            'Тестовый продукт • OK · 120 дн.',
-                            style: TextStyle(fontSize: 12, color: theme.textLightColor),
+                          child: Icon(Icons.auto_awesome, color: theme.backgroundColor, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Сыворотка с витамином C',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: theme.textColor),
+                              ),
+                              Text(
+                                'Уходовая • Сыворотка',
+                                style: TextStyle(fontSize: 11, color: theme.textLightColor),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: theme.okBgColor,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'OK · 120 дн.',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: theme.okColor),
+                          ),
+                        ),
+                      ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: theme.okBgColor,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'OK',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.okColor),
-                      ),
+                    const SizedBox(height: 12),
+                    // Status badges row
+                    Row(
+                      children: [
+                        _StatusBadge(label: 'OK', bgColor: theme.okBgColor, textColor: theme.okColor),
+                        const SizedBox(width: 8),
+                        _StatusBadge(label: 'Скоро', bgColor: theme.warningBgColor, textColor: theme.warningColor),
+                        const SizedBox(width: 8),
+                        _StatusBadge(label: 'Скоро', bgColor: theme.dangerBgColor, textColor: theme.dangerColor),
+                        const SizedBox(width: 8),
+                        _StatusBadge(label: 'Просрочено', bgColor: theme.dangerBgColor, textColor: theme.dangerColor),
+                      ],
                     ),
                   ],
                 ),
@@ -807,6 +826,33 @@ class _CategoryTabState extends State<_CategoryTab> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String label;
+  final Color bgColor;
+  final Color textColor;
+
+  const _StatusBadge({
+    required this.label,
+    required this.bgColor,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: textColor),
+      ),
     );
   }
 }

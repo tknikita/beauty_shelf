@@ -1,8 +1,65 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/api_service.dart';
+import '../models/product.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final _api = ApiService();
+
+  Future<void> _exportData(BuildContext context) async {
+    try {
+      final products = await _api.getProducts();
+      await _api.exportToJson(products);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Экспорт завершён'), behavior: SnackBarBehavior.floating),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка экспорта: $e'), behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  Future<void> _importData(BuildContext context) async {
+    try {
+      final products = await _api.importFromJson();
+      if (products != null && products.isNotEmpty) {
+        int imported = 0;
+        for (final product in products) {
+          await _api.createProduct(product);
+          imported++;
+        }
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Импортировано: $imported'), behavior: SnackBarBehavior.floating),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Выберите файл'), behavior: SnackBarBehavior.floating),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка импорта: $e'), behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
 
   static const _presets = [
     {'name': 'Розовый', 'primary': 0xFFE8B4BC, 'bg': 0xFFFDF9FA},
@@ -212,6 +269,41 @@ class SettingsScreen extends StatelessWidget {
                       type: 'decorative',
                       label: 'Декоративная',
                       categories: theme.getCategoriesByType('decorative'),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Export/Import
+              Text(
+                'Данные',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.surfaceColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.borderColor),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Icon(Icons.upload_file, color: theme.primaryColor),
+                      title: Text('Экспорт', style: TextStyle(color: theme.textColor)),
+                      subtitle: Text('Сохранить продукты в JSON', style: TextStyle(color: theme.textLightColor, fontSize: 12)),
+                      trailing: Icon(Icons.chevron_right, color: theme.textLightColor),
+                      onTap: () => _exportData(context),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: Icon(Icons.download, color: theme.primaryColor),
+                      title: Text('Импорт', style: TextStyle(color: theme.textColor)),
+                      subtitle: Text('Загрузить продукты из JSON', style: TextStyle(color: theme.textLightColor, fontSize: 12)),
+                      trailing: Icon(Icons.chevron_right, color: theme.textLightColor),
+                      onTap: () => _importData(context),
                     ),
                   ],
                 ),

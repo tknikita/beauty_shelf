@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+// ignore: avoid_web_libraries
+import 'dart:html' as html;
 import '../models/product.dart';
 
 class ApiService {
@@ -87,5 +89,49 @@ class ApiService {
     } catch (e) {
       return {};
     }
+  }
+
+  // Export all products to JSON file
+  Future<void> exportToJson(List<Product> products) async {
+    final data = {
+      'version': '1.0',
+      'exportedAt': DateTime.now().toIso8601String(),
+      'products': products.map((p) => p.toJson()).toList(),
+    };
+    
+    final jsonString = const JsonEncoder.withIndent('  ').convert(data);
+    final bytes = utf8.encode(jsonString);
+    final blob = html.Blob([bytes], 'application/json');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', 'beauty_shelf_export_${DateTime.now().millisecondsSinceEpoch}.json')
+      ..click();
+    
+    html.Url.revokeObjectUrl(url);
+  }
+
+  // Import products from JSON file
+  Future<List<Product>?> importFromJson() async {
+    final input = html.FileUploadInputElement()..accept = '.json';
+    input.click();
+    
+    await input.onChange.first;
+    
+    if (input.files?.isNotEmpty == true) {
+      final file = input.files!.first;
+      final reader = html.FileReader();
+      reader.readAsText(file);
+      
+      await reader.onLoadEnd.first;
+      
+      final content = reader.result as String;
+      final data = json.decode(content) as Map<String, dynamic>;
+      
+      final productsList = data['products'] as List<dynamic>;
+      return productsList.map((json) => Product.fromJson(json)).toList();
+    }
+    
+    return null;
   }
 }

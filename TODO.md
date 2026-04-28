@@ -31,7 +31,9 @@
   - [x] Dark colors for background, text, borders
   - [x] Persisted in localStorage
 - [ ] Product categories custom management
-- [ ] Export/Import data (JSON/CSV)
+- [x] Export/Import data (JSON)
+  - [x] Export all products to JSON file
+  - [x] Import products from JSON file
 - [ ] Notifications for expiring products
 - [ ] PWA support for offline mode
 - [ ] Mobile native app (iOS/Android)

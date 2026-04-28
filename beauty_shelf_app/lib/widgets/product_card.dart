@@ -69,6 +69,7 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
+      color: AppTheme.instance.surfaceColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: AppTheme.instance.borderColor),

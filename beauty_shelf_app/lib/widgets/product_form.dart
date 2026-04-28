@@ -147,7 +147,7 @@ class _ProductFormState extends State<ProductForm> {
                         labelText: 'Штрихкод (EAN/UPC)',
                         border: const OutlineInputBorder(),
                         filled: true,
-                        fillColor: const Color(0xFFFDF9FA),
+                        fillColor: AppTheme.instance.backgroundColor,
                         suffixIcon: _isLookingUp
                             ? const SizedBox(
                                 width: 20,
@@ -181,10 +181,10 @@ class _ProductFormState extends State<ProductForm> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFE8E8E8)),
+                        border: Border.all(color: AppTheme.instance.borderColor),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.qr_code_scanner, color: Color(0xFF8A8A8A)),
+                      child: Icon(Icons.qr_code_scanner, color: AppTheme.instance.textLightColor),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -200,8 +200,8 @@ class _ProductFormState extends State<ProductForm> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _lookupResult!.startsWith('Найден') 
-                        ? const Color(0xFFF0F7F2)
-                        : const Color(0xFFFDF5F0),
+                        ? AppTheme.instance.okBgColor
+                        : AppTheme.instance.warningBgColor,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
@@ -210,8 +210,8 @@ class _ProductFormState extends State<ProductForm> {
                         _lookupResult!.startsWith('Найден') ? Icons.check_circle : Icons.warning,
                         size: 16,
                         color: _lookupResult!.startsWith('Найден') 
-                            ? const Color(0xFF5A9E6F)
-                            : const Color(0xFFC47B3D),
+                            ? AppTheme.instance.okColor
+                            : AppTheme.instance.warningColor,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -220,8 +220,8 @@ class _ProductFormState extends State<ProductForm> {
                           style: TextStyle(
                             fontSize: 13,
                             color: _lookupResult!.startsWith('Найден') 
-                                ? const Color(0xFF5A9E6F)
-                                : const Color(0xFFC47B3D),
+                                ? AppTheme.instance.okColor
+                                : AppTheme.instance.warningColor,
                           ),
                         ),
                       ),

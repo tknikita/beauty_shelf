@@ -49,6 +49,34 @@ class AppTheme extends ChangeNotifier {
       // localStorage not available
     }
   }
+
+  // View mode persistence
+  bool isTableView = false;
+
+  void setTableView(bool value) {
+    isTableView = value;
+    _saveViewMode();
+    notifyListeners();
+  }
+
+  void _saveViewMode() {
+    try {
+      html.window.localStorage['beauty_shelf_view'] = isTableView ? 'table' : 'card';
+    } catch (e) {
+      // localStorage not available
+    }
+  }
+}
+
+void loadViewMode() {
+  try {
+    final saved = html.window.localStorage['beauty_shelf_view'];
+    if (saved == 'table') {
+      AppTheme.instance.isTableView = true;
+    }
+  } catch (e) {
+    // localStorage not available
+  }
 }
 
 void loadThemeFromStorage() {

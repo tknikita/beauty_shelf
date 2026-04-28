@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   
   String _filter = 'all';
   String _searchQuery = '';
-  bool _isTableView = false;
+  bool get _isTableView => AppTheme.instance.isTableView;
 
   @override
   void initState() {
@@ -89,9 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _toggleView() {
-    setState(() {
-      _isTableView = !_isTableView;
-    });
+    AppTheme.instance.setTableView(!AppTheme.instance.isTableView);
   }
 
   void _showAddModal() {
@@ -356,13 +354,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTableView() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: ProductTable(
-        products: _filteredProducts,
-        onEdit: _showEditModal,
-        onDelete: _confirmDelete,
-      ),
+    return Column(
+      children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: ProductTable(
+              products: _filteredProducts,
+              onEdit: _showEditModal,
+              onDelete: _confirmDelete,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

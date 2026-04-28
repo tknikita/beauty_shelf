@@ -5,6 +5,7 @@ import 'theme/app_theme.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   loadThemeFromStorage();
+  loadViewMode();
   runApp(const BeautyShelfApp());
 }
 

@@ -10,8 +10,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
+      context: ./beauty_shelf_app
+      dockerfile: Dockerfile
     ports:
       - "8080:80"
     depends_on:

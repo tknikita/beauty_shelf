@@ -57,7 +57,8 @@
         }
         
         .logo-icon {
-            font-size: 24px;
+            width: 28px;
+            height: 28px;
         }
         
         .header-actions {
@@ -139,6 +140,13 @@
             font-size: 13px;
             cursor: pointer;
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .filter-btn svg {
+            flex-shrink: 0;
         }
         
         .filter-btn:hover {
@@ -234,9 +242,11 @@
             background: transparent;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 16px;
             opacity: 0.5;
             transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .menu-btn:hover {
@@ -696,6 +706,10 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
+        .view-toggle-btn.active svg {
+            color: var(--primary-dark);
+        }
+        
         /* Dropdown */
         .dropdown {
             position: relative;
@@ -720,12 +734,14 @@
         }
         
         .dropdown-btn::after {
-            content: '▼';
+            content: '';
             position: absolute;
             right: 12px;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 8px;
+            width: 12px;
+            height: 12px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8A8A' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat center;
             opacity: 0.5;
         }
         
@@ -749,7 +765,9 @@
         }
         
         .dropdown-item {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             width: 100%;
             padding: 10px 16px;
             border: none;
@@ -758,6 +776,10 @@
             cursor: pointer;
             font-size: 13px;
             transition: background 0.2s;
+        }
+        
+        .dropdown-item svg {
+            flex-shrink: 0;
         }
         
         .dropdown-item:hover {
@@ -866,8 +888,10 @@
             background: transparent;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
             transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .action-btn:hover {
@@ -1054,7 +1078,11 @@
 <body>
     <header>
         <div class="logo">
-            <span class="logo-icon">💄</span>
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/>
+                <path d="M5 19l1 3 3-1-1-3-3 1z"/>
+                <path d="M19 19l-1 3-3-1 1-3 3 1z"/>
+            </svg>
             <span>Beauty Shelf</span>
         </div>
         <div class="header-actions">
@@ -1086,8 +1114,14 @@
     
     <div class="filters">
         <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">Все</button>
-        <button class="filter-btn" data-filter="care" onclick="setFilter('care')">🧴 Уход</button>
-        <button class="filter-btn" data-filter="decorative" onclick="setFilter('decorative')">💄 Декоративная</button>
+        <button class="filter-btn" data-filter="care" onclick="setFilter('care')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6m0 0c-2 0-4 1.5-4 4 0 3 2 6 4 10 2-4 4-7 4-10 0-2.5-2-4-4-4z"/></svg>
+            Уход
+        </button>
+        <button class="filter-btn" data-filter="decorative" onclick="setFilter('decorative')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/></svg>
+            Декоративная
+        </button>
         
         <div class="dropdown" id="categoryDropdown">
             <button class="dropdown-btn" onclick="toggleDropdown('categoryDropdown'); updateCategoryDropdown();">
@@ -1104,10 +1138,22 @@
             </button>
             <div class="dropdown-menu" id="expiryMenu">
                 <button class="dropdown-item active" data-expiry="all" onclick="setExpiryFilter('all')">Все</button>
-                <button class="dropdown-item" data-expiry="ok" onclick="setExpiryFilter('ok')">✓ OK (>60 дн.)</button>
-                <button class="dropdown-item" data-expiry="warning" onclick="setExpiryFilter('warning')">⚠ Скоро (<60 дн.)</button>
-                <button class="dropdown-item" data-expiry="danger" onclick="setExpiryFilter('danger')">🔴 Очень скоро (<30 дн.)</button>
-                <button class="dropdown-item" data-expiry="expired" onclick="setExpiryFilter('expired')">✗ Просрочено</button>
+                <button class="dropdown-item" data-expiry="ok" onclick="setExpiryFilter('ok')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A9E6F" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    OK (>60 дн.)
+                </button>
+                <button class="dropdown-item" data-expiry="warning" onclick="setExpiryFilter('warning')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C47B3D" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Скоро (<60 дн.)
+                </button>
+                <button class="dropdown-item" data-expiry="danger" onclick="setExpiryFilter('danger')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B85C6A" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Очень скоро (<30 дн.)
+                </button>
+                <button class="dropdown-item" data-expiry="expired" onclick="setExpiryFilter('expired')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D9848C" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    Просрочено
+                </button>
             </div>
         </div>
     </div>
@@ -1161,8 +1207,8 @@
                         <div class="form-group">
                             <label class="form-label">Тип</label>
                             <select class="form-select" id="type" required onchange="updateCategories()">
-                                <option value="care">🧴 Уходовая</option>
-                                <option value="decorative">💄 Декоративная</option>
+                                <option value="care">Уходовая</option>
+                                <option value="decorative">Декоративная</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -1353,7 +1399,16 @@
                 applyFilters();
             } catch (err) {
                 showToast('Ошибка загрузки данных');
-                content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">😕</div><h3>Не удалось загрузить</h3><p>Попробуйте обновить страницу</p></div>';
+                content.innerHTML = `<div class="empty-state">
+                    <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-light);">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M16 16s-1.5-2-4-2-4 2-4 2"/>
+                        <line x1="9" y1="9" x2="9.01" y2="9"/>
+                        <line x1="15" y1="9" x2="15.01" y2="9"/>
+                    </svg>
+                    <h3>Не удалось загрузить</h3>
+                    <p>Попробуйте обновить страницу</p>
+                </div>`;
             }
         }
         
@@ -1472,9 +1527,8 @@
                 btn.textContent = 'Все категории';
             } else {
                 const [type, cat] = category.split(':');
-                const typeName = type === 'care' ? '🧴' : '💄';
                 const catName = CATEGORIES[type]?.[cat] || cat;
-                btn.textContent = `${typeName} ${catName}`;
+                btn.textContent = catName;
             }
             
             closeAllDropdowns();
@@ -1491,10 +1545,10 @@
             
             const labels = {
                 'all': 'Все',
-                'ok': '✓ OK',
-                'warning': '⚠ Скоро',
-                'danger': '🔴 Очень скоро',
-                'expired': '✗ Просрочено'
+                'ok': 'OK',
+                'warning': 'Скоро',
+                'danger': 'Очень скоро',
+                'expired': 'Просрочено'
             };
             
             const btn = document.querySelector('#expiryDropdown .dropdown-btn');
@@ -1510,7 +1564,11 @@
             if (products.length === 0) {
                 content.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">💄</div>
+                        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--primary);">
+                            <rect x="3" y="8" width="18" height="12" rx="2"/>
+                            <path d="M7 8V6a2 2 0 012-2h6a2 2 0 012 2v2"/>
+                            <line x1="12" y1="12" x2="12" y2="16"/>
+                        </svg>
                         <h3>Полка пуста</h3>
                         <p>Нажмите + чтобы добавить первый продукт</p>
                     </div>
@@ -1521,7 +1579,11 @@
             if (filteredProducts.length === 0) {
                 content.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">🔍</div>
+                        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-light);">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.3-4.3"/>
+                            <line x1="8" y1="11" x2="14" y2="11"/>
+                        </svg>
                         <h3>Ничего не найдено</h3>
                         <p>Попробуйте изменить фильтры</p>
                     </div>
@@ -1553,36 +1615,38 @@
                     return `<th>${h.label}</th>`;
                 }
                 const isSorted = sortColumn === h.key;
-                const icon = isSorted 
-                    ? (sortDirection === 'asc' ? '▲' : '▼')
+                const iconSvg = isSorted 
+                    ? (sortDirection === 'asc' 
+                        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>'
+                        : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>')
                     : '';
-                return `<th class="${isSorted ? 'sorted' : ''}" onclick="handleSort('${h.key}')">${h.label}<span class="sort-icon">${icon}</span></th>`;
+                return `<th class="${isSorted ? 'sorted' : ''}" onclick="handleSort('${h.key}')">${h.label}<span class="sort-icon">${iconSvg}</span></th>`;
             }).join('');
             
             const rowsHtml = items.map(p => {
-                const typeIcons = { care: '🧴', decorative: '💄' };
+                const typeLabels = { care: 'Уход', decorative: 'Декор.' };
                 const status = getStatus(p);
                 const statusLabels = {
-                    ok: { text: '✓ OK', class: 'ok' },
-                    warning: { text: '⚠ Скоро', class: 'warning' },
-                    danger: { text: '🔴 <30 дн.', class: 'danger' },
-                    expired: { text: '✗ Просрочено', class: 'expired' }
+                    ok: { text: 'OK', class: 'ok' },
+                    warning: { text: 'Скоро', class: 'warning' },
+                    danger: { text: '<30 дн.', class: 'danger' },
+                    expired: { text: 'Просрочено', class: 'expired' }
                 };
                 const statusInfo = statusLabels[status];
                 const categoryName = CATEGORIES[p.type]?.[p.category] || p.category?.replace(/_/g, ' ') || 'Другое';
-                const openedInfo = p.is_opened === 1 ? `<br><small class="opened-text">📅 ${getOpenedDaysAgo(p)} дн.</small>` : '';
+                const openedInfo = p.is_opened === 1 ? `<br><small class="opened-text"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${getOpenedDaysAgo(p)} дн.</small>` : '';
                 
                 return `
                     <tr>
                         <td class="product-name-cell">${escapeHtml(p.name)}</td>
-                        <td>${typeIcons[p.type]} ${p.type === 'care' ? 'Уход' : 'Декор.'}</td>
+                        <td>${typeLabels[p.type]}</td>
                         <td>${categoryName}</td>
                         <td>${formatDate(getProductExpiryDate(p))}${openedInfo}</td>
                         <td><span class="status-badge ${statusInfo.class}">${statusInfo.text}</span></td>
                         <td>
                             <div class="product-actions">
-                                <button class="action-btn" onclick="openEditModal(${p.id})" title="Изменить">✏️</button>
-                                <button class="action-btn danger" onclick="openConfirmModal(${p.id})" title="Удалить">🗑️</button>
+                                <button class="action-btn" onclick="openEditModal(${p.id})" title="Изменить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+                                <button class="action-btn danger" onclick="openConfirmModal(${p.id})" title="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
                             </div>
                         </td>
                     </tr>
@@ -1613,14 +1677,13 @@
         function createProductCard(product) {
             const status = getStatus(product);
             const statusLabels = {
-                ok: { text: '✓ OK', class: 'ok' },
-                warning: { text: '⚠ Скоро', class: 'warning' },
-                danger: { text: '⚠ Скоро', class: 'danger' },
-                expired: { text: '✗ Просрочено', class: 'expired' }
+                ok: { text: 'OK', class: 'ok' },
+                warning: { text: 'Скоро', class: 'warning' },
+                danger: { text: 'Скоро', class: 'danger' },
+                expired: { text: 'Просрочено', class: 'expired' }
             };
             const statusInfo = statusLabels[status];
             
-            const typeIcons = { care: '🧴', decorative: '💄' };
             const typeLabels = { care: 'Уходовая', decorative: 'Декоративная' };
             
             const categoryName = CATEGORIES[product.type]?.[product.category] || product.category?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Другое';
@@ -1633,7 +1696,7 @@
             
             // Opened badge
             const openedInfo = product.is_opened === 1 
-                ? `<div class="opened-badge">📅 Вскрыто ${getOpenedDaysAgo(product)} дн. назад</div>`
+                ? `<div class="opened-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Вскрыто ${getOpenedDaysAgo(product)} дн. назад</div>`
                 : '';
             
             return `
@@ -1641,15 +1704,21 @@
                     <div class="product-header">
                         <div class="product-info">
                             <div class="product-name">${escapeHtml(product.name)}</div>
-                            <div class="product-type">
-                                ${typeIcons[product.type]} ${typeLabels[product.type]}
-                            </div>
+                            <div class="product-type">${typeLabels[product.type]}</div>
                         </div>
                         <div class="product-menu">
-                            <button class="menu-btn" onclick="toggleMenu(this)">⋮</button>
+                            <button class="menu-btn" onclick="toggleMenu(this)">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                            </button>
                             <div class="menu-dropdown">
-                                <button class="menu-item" onclick="openEditModal(${product.id})">✏️ Изменить</button>
-                                <button class="menu-item danger" onclick="openConfirmModal(${product.id})">🗑️ Удалить</button>
+                                <button class="menu-item" onclick="openEditModal(${product.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 6px;"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                                    Изменить
+                                </button>
+                                <button class="menu-item danger" onclick="openConfirmModal(${product.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 6px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                    Удалить
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1727,8 +1796,8 @@
             
             menu.innerHTML = `
                 <button class="dropdown-item active" data-category="all" onclick="setCategory('all')">Все категории</button>
-                ${currentFilter === 'all' || currentFilter === 'care' ? `<div class="dropdown-group">🧴 Уходовая</div>${careCats}` : ''}
-                ${currentFilter === 'all' || currentFilter === 'decorative' ? `<div class="dropdown-group">💄 Декоративная</div>${decorativeCats}` : ''}
+                ${currentFilter === 'all' || currentFilter === 'care' ? `<div class="dropdown-group">Уходовая</div>${careCats}` : ''}
+                ${currentFilter === 'all' || currentFilter === 'decorative' ? `<div class="dropdown-group">Декоративная</div>${decorativeCats}` : ''}
             `;
         }
         
@@ -1894,7 +1963,10 @@
                 if (product) {
                     // Fill form with found data
                     fillFormFromProduct(product);
-                    resultDiv.innerHTML = `<div class="lookup-success">✓ Найден: ${escapeHtml(product.product_name || product.name)}</div>`;
+                    resultDiv.innerHTML = `<div class="lookup-success">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -3px; margin-right: 6px;"><polyline points="20 6 9 17 4 12"/></svg>
+                        Найден: ${escapeHtml(product.product_name || product.name)}
+                    </div>`;
                 } else {
                     // Auto-fill barcode, user can complete manually
                     document.getElementById('barcode').value = barcode;

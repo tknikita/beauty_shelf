@@ -15,10 +15,10 @@
   - [x] Validate color format (#RRGGBB)
 
 ### Medium Priority
-- [ ] Compact settings screen layout
-  - Current 2-column grid takes too much vertical space
-  - Consider horizontal scrollable presets
-  - Or smaller preset cards with color swatches only
+- [x] Compact settings screen layout
+  - [x] Horizontal scrollable presets
+  - [x] Smaller preset cards (64px circular swatches)
+  - [x] Compact HEX inputs side by side
 
 ### Low Priority / Ideas
 - [ ] Camera-based barcode scanning (Web BarcodeDetector API)

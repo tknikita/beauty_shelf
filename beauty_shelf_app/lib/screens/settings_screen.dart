@@ -4,6 +4,15 @@ import '../theme/app_theme.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
+  static const _presets = [
+    {'name': 'Розовый', 'primary': 0xFFE8B4BC, 'bg': 0xFFFDF9FA},
+    {'name': 'Лаванда', 'primary': 0xFFB4A7E8, 'bg': 0xFFF5F3FA},
+    {'name': 'Мята', 'primary': 0xFFA7E8C4, 'bg': 0xFFF3FAF5},
+    {'name': 'Персик', 'primary': 0xFFE8C4A7, 'bg': 0xFFFAF5F3},
+    {'name': 'Голубой', 'primary': 0xFFA7C4E8, 'bg': 0xFFF3F5FA},
+    {'name': 'Монохром', 'primary': 0xFF666666, 'bg': 0xFFFAFAFA},
+  ];
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -24,82 +33,87 @@ class SettingsScreen extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Presets - horizontal scroll
               Text(
                 'Цветовая тема',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Выберите цветовую схему',
-                style: TextStyle(fontSize: 14, color: theme.textLightColor),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 80,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _presets.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final preset = _presets[index];
+                    final primary = Color(preset['primary'] as int);
+                    final bg = Color(preset['bg'] as int);
+                    final isSelected = theme.primaryColor.value == primary.value;
+                    
+                    return _PresetChip(
+                      name: preset['name'] as String,
+                      primary: primary,
+                      background: bg,
+                      isSelected: isSelected,
+                    );
+                  },
+                ),
               ),
-              const SizedBox(height: 16),
               
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _PresetCard(name: 'Розовый', primary: const Color(0xFFE8B4BC), background: const Color(0xFFFDF9FA)),
-                  _PresetCard(name: 'Лаванда', primary: const Color(0xFFB4A7E8), background: const Color(0xFFF5F3FA)),
-                  _PresetCard(name: 'Мята', primary: const Color(0xFFA7E8C4), background: const Color(0xFFF3FAF5)),
-                  _PresetCard(name: 'Персик', primary: const Color(0xFFE8C4A7), background: const Color(0xFFFAF5F3)),
-                  _PresetCard(name: 'Голубой', primary: const Color(0xFFA7C4E8), background: const Color(0xFFF3F5FA)),
-                  _PresetCard(name: 'Монохром', primary: const Color(0xFF666666), background: const Color(0xFFFAFAFA)),
-                ],
-              ),
+              const SizedBox(height: 24),
               
-              const SizedBox(height: 32),
-              
+              // Custom colors - compact
               Text(
                 'Свой цвет',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Введите HEX-код цвета',
-                style: TextStyle(fontSize: 14, color: theme.textLightColor),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.borderColor),
                 ),
-                child: Column(
+                child: Row(
                   children: [
-                    _HexColorInput(
-                      label: 'Основной цвет',
-                      currentColor: theme.primaryColor,
-                      onColorChanged: (color) {
-                        if (color != null) {
-                          AppTheme.instance.setCustomColors(color, theme.backgroundColor);
-                        }
-                      },
+                    Expanded(
+                      child: _HexColorInput(
+                        label: 'Основной',
+                        currentColor: theme.primaryColor,
+                        onColorChanged: (color) {
+                          if (color != null) {
+                            AppTheme.instance.setCustomColors(color, theme.backgroundColor);
+                          }
+                        },
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    _HexColorInput(
-                      label: 'Цвет фона',
-                      currentColor: theme.backgroundColor,
-                      onColorChanged: (color) {
-                        if (color != null) {
-                          AppTheme.instance.setCustomColors(theme.primaryColor, color);
-                        }
-                      },
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _HexColorInput(
+                        label: 'Фон',
+                        currentColor: theme.backgroundColor,
+                        onColorChanged: (color) {
+                          if (color != null) {
+                            AppTheme.instance.setCustomColors(theme.primaryColor, color);
+                          }
+                        },
+                      ),
                     ),
                   ],
                 ),
               ),
               
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               
+              // Preview
               Text(
                 'Превью',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               
               Container(
                 padding: const EdgeInsets.all(16),
@@ -108,38 +122,33 @@ class SettingsScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.borderColor),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: theme.primaryColor,
-                            borderRadius: BorderRadius.circular(8),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: theme.primaryColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Beauty Shelf',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
                           ),
-                          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Beauty Shelf',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
-                        ),
-                      ],
+                          Text(
+                            'Тестовый продукт • OK · 120 дн.',
+                            style: TextStyle(fontSize: 12, color: theme.textLightColor),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Тестовый продукт',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Уходовая косметика',
-                      style: TextStyle(fontSize: 12, color: theme.textLightColor),
-                    ),
-                    const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
@@ -147,7 +156,7 @@ class SettingsScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'OK · 120 дн.',
+                        'OK',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.okColor),
                       ),
                     ),
@@ -155,13 +164,14 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               
+              // About
               Text(
                 'О приложении',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -169,17 +179,22 @@ class SettingsScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.borderColor),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      'Beauty Shelf',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Версия 1.0.0',
-                      style: TextStyle(fontSize: 14, color: theme.textLightColor),
+                    Icon(Icons.spa, color: theme.primaryColor, size: 32),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Beauty Shelf',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
+                        ),
+                        Text(
+                          'Версия 1.0.0',
+                          style: TextStyle(fontSize: 14, color: theme.textLightColor),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -188,6 +203,73 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _PresetChip extends StatelessWidget {
+  const _PresetChip({
+    required this.name,
+    required this.primary,
+    required this.background,
+    required this.isSelected,
+  });
+
+  final String name;
+  final Color primary;
+  final Color background;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+    
+    return GestureDetector(
+      onTap: () {
+        theme.applyPreset(primary, background);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Применён: $name'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      },
+      child: Container(
+        width: 64,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? primary : theme.borderColor,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: primary,
+                shape: BoxShape.circle,
+                border: Border.all(color: background, width: 2),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: theme.textColor,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -256,119 +338,56 @@ class _HexColorInputState extends State<_HexColorInput> {
       children: [
         Text(
           widget.label,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: theme.textColor),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.textColor),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 28,
+              height: 28,
               decoration: BoxDecoration(
                 color: color ?? widget.currentColor,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: theme.borderColor),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: TextField(
                 controller: _controller,
                 onChanged: _onChanged,
                 decoration: InputDecoration(
                   hintText: '#E8B4BC',
-                  hintStyle: TextStyle(color: theme.textLightColor),
+                  hintStyle: TextStyle(color: theme.textLightColor, fontSize: 12),
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                     borderSide: BorderSide(color: theme.borderColor),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                     borderSide: BorderSide(
                       color: _isValid ? theme.borderColor : theme.dangerColor,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                     borderSide: BorderSide(
                       color: _isValid ? theme.primaryColor : theme.dangerColor,
                       width: 2,
                     ),
                   ),
-                  errorText: _isValid ? null : 'Неверный формат',
+                  errorText: _isValid ? null : '!',
+                  errorStyle: const TextStyle(fontSize: 0, height: 0),
                 ),
-                style: TextStyle(fontFamily: 'monospace', fontSize: 14, color: theme.textColor),
+                style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: theme.textColor),
               ),
             ),
           ],
         ),
       ],
-    );
-  }
-}
-
-class _PresetCard extends StatelessWidget {
-  final String name;
-  final Color primary;
-  final Color background;
-
-  const _PresetCard({
-    required this.name,
-    required this.primary,
-    required this.background,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = AppTheme.instance;
-    final isSelected = theme.primaryColor.value == primary.value;
-
-    return GestureDetector(
-      onTap: () {
-        theme.applyPreset(primary, background);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Применён: $name'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 1),
-          ),
-        );
-      },
-      child: Container(
-        width: 100,
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? primary : theme.borderColor,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              height: 30,
-              decoration: BoxDecoration(
-                color: primary,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(
-                name,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  color: theme.textColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

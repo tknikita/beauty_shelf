@@ -3,7 +3,10 @@
 ## Быстрый старт (Docker)
 
 ```bash
-# 1. Собрать и запустить
+# 1. Собрать Flutter и запустить
+cd beauty_shelf_app && flutter build web
+cd ..
+docker-compose build frontend
 docker-compose up -d --build
 
 # 2. Открыть
@@ -23,11 +26,16 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-### Frontend (Desktop)
+### Frontend (Flutter)
 ```bash
-cd frontend
-source venv/bin/activate
-python main.py
+cd beauty_shelf_app
+
+# Запуск в Chrome
+flutter run -d chrome
+
+# Или с выбором устройства
+flutter devices
+flutter run -d <device_id>
 ```
 
 ## Тесты
@@ -71,6 +79,7 @@ docker-compose up -d --build
 │                   nginx:alpine                  │
 │  Frontend (port 8080)                         │
 │  ┌─────────────────────────────────────────┐ │
+│  │  Flutter Web App                         │ │
 │  │  SPA routing + API proxy (/api → backend) │ │
 │  └─────────────────────────────────────────┘ │
 └─────────────────────┬───────────────────────┘ │
@@ -102,12 +111,19 @@ docker-compose up -d --build
 
 ### Локально (Docker)
 ```bash
-./deploy.sh
+# Flutter build
+cd beauty_shelf_app && flutter build web && cd ..
+
+# Docker deploy
+docker-compose build frontend
+docker-compose up -d frontend
 ```
 
 ### На сервере
 ```bash
 git pull
+cd beauty_shelf_app && flutter build web && cd ..
+docker-compose build frontend
 docker-compose up -d --build
 ```
 
@@ -128,14 +144,40 @@ beauty_shelf/
 │   ├── main.py           # FastAPI app
 │   ├── Dockerfile
 │   └── requirements.txt
-├── frontend/
-│   ├── main.py          # Flet UI
-│   ├── api.py           # API client
-│   └── requirements.txt
+├── beauty_shelf_app/     # Flutter web app
+│   ├── lib/
+│   │   ├── main.dart
+│   │   ├── models/
+│   │   ├── services/
+│   │   ├── screens/
+│   │   ├── theme/
+│   │   └── widgets/
+│   ├── pubspec.yaml
+│   └── Dockerfile
 ├── tests/
 │   └── test_api.py      # pytest tests
 ├── docker-compose.yml
-├── Dockerfile.frontend
 ├── nginx.conf
 └── deploy.sh
+```
+
+## Flutter структура
+
+```
+beauty_shelf_app/lib/
+├── main.dart              # App entry point + theme provider
+├── models/
+│   └── product.dart      # Product model + categories
+├── services/
+│   └── api_service.dart  # HTTP API client
+├── screens/
+│   ├── home_screen.dart      # Main product list
+│   └── settings_screen.dart   # Theme settings
+├── theme/
+│   └── app_theme.dart    # Theme singleton + localStorage
+└── widgets/
+    ├── product_card.dart     # Product card widget
+    ├── product_table.dart   # Product table widget
+    ├── product_form.dart    # Add/Edit form
+    └── barcode_scanner.dart # Barcode input widget
 ```

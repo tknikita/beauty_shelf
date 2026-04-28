@@ -22,12 +22,12 @@ class AppTheme extends ChangeNotifier {
   void applyPreset(Color primary, Color background) {
     primaryColor = primary;
     backgroundColor = background;
-    _adjustColors();
-    _saveToStorage();
+    adjustColors();
+    saveToStorage();
     notifyListeners();
   }
 
-  void _adjustColors() {
+  void adjustColors() {
     final hsl = HSLColor.fromColor(primaryColor);
     primaryDarkColor = HSLColor.fromAHSL(
       1.0, hsl.hue, hsl.saturation, 
@@ -35,12 +35,7 @@ class AppTheme extends ChangeNotifier {
     ).toColor();
   }
 
-  void loadFromStorage() {
-    // Called from main.dart after Flutter initializes
-    // We'll load via JS interop there
-  }
-
-  void _saveToStorage() {
-    // Simple storage using window.localStorage
-  }
+  void loadFromStorage() {}
+  
+  void saveToStorage() {}
 }

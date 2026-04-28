@@ -118,6 +118,26 @@ class AppTheme extends ChangeNotifier {
       1.0, hsl.hue, hsl.saturation,
       (hsl.lightness - 0.1).clamp(0.0, 1.0)
     ).toColor();
+    
+    // Calculate text color based on primary (darker for light mode, lighter for dark)
+    if (!_isDarkMode) {
+      // For light mode: text is darker than primary
+      final textHsl = HSLColor.fromAHSL(
+        1.0, hsl.hue, 
+        (hsl.saturation * 0.3).clamp(0.0, 1.0), // Reduce saturation
+        0.2 // Dark text
+      );
+      textColor = textHsl.toColor();
+      textLightColor = HSLColor.fromAHSL(
+        1.0, hsl.hue,
+        (hsl.saturation * 0.2).clamp(0.0, 1.0),
+        0.5
+      ).toColor();
+    } else {
+      // For dark mode: text is lighter
+      textColor = const Color(0xFFF5F5F5);
+      textLightColor = const Color(0xFFAAAAAA);
+    }
   }
 
   void _saveToStorage() {

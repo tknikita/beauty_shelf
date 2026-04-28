@@ -49,6 +49,9 @@ class AppTheme extends ChangeNotifier {
   Map<String, Map<String, String>> customCategories = {};
 
   void toggleDarkMode() {
+    // Save primary before switching
+    _savedPrimaryColor = primaryColor;
+    AppTheme._instancePrimarySet = true;
     _isDarkMode = !_isDarkMode;
     _applyDarkMode();
     _saveDarkMode();
@@ -56,13 +59,10 @@ class AppTheme extends ChangeNotifier {
   }
 
   void _applyDarkMode() {
+    // Keep user's chosen primary color
     if (_isDarkMode) {
-      primaryColor = _darkPrimary;
-      primaryDarkColor = _darkPrimaryDark;
       backgroundColor = _darkBackground;
       surfaceColor = const Color(0xFF2A2A2A);
-      textColor = _darkText;
-      textLightColor = _darkTextLight;
       borderColor = _darkBorder;
       // Brighter badge colors for dark mode visibility
       okBgColor = const Color(0xFF1B3D22);
@@ -74,12 +74,8 @@ class AppTheme extends ChangeNotifier {
       selectionColor = const Color(0xFFE8B4BC);
       inputFocusColor = const Color(0xFFE8B4BC);
     } else {
-      primaryColor = _lightPrimary;
-      primaryDarkColor = _lightPrimaryDark;
       backgroundColor = _lightBackground;
       surfaceColor = Colors.white;
-      textColor = _lightText;
-      textLightColor = _lightTextLight;
       borderColor = _lightBorder;
       okBgColor = const Color(0xFFF0F7F2);
       warningBgColor = const Color(0xFFFDF5F0);
@@ -87,7 +83,12 @@ class AppTheme extends ChangeNotifier {
       selectionColor = const Color(0xFFE8B4BC);
       inputFocusColor = const Color(0xFFE8B4BC);
     }
+    // Recalculate text colors from primary
+    adjustColors();
   }
+  
+  static bool _instancePrimarySet = false;
+  Color _savedPrimaryColor = _lightPrimary;
 
   void _saveDarkMode() {
     try {
@@ -99,6 +100,7 @@ class AppTheme extends ChangeNotifier {
 
   void applyPreset(Color primary, Color background) {
     primaryColor = primary;
+    _savedPrimaryColor = primary;
     // In dark mode, don't change background/surface colors
     if (!_isDarkMode) {
       backgroundColor = background;
@@ -119,31 +121,38 @@ class AppTheme extends ChangeNotifier {
       (hsl.lightness - 0.1).clamp(0.0, 1.0)
     ).toColor();
     
-    // Calculate text color based on primary (darker for light mode, lighter for dark)
-    if (!_isDarkMode) {
-      // For light mode: text is darker than primary
-      final textHsl = HSLColor.fromAHSL(
+    // Text color tinted with primary (more saturated, readable lightness)
+    if (_isDarkMode) {
+      // Dark mode: light text with primary tint
+      textColor = HSLColor.fromAHSL(
         1.0, hsl.hue, 
-        (hsl.saturation * 0.3).clamp(0.0, 1.0), // Reduce saturation
-        0.2 // Dark text
-      );
-      textColor = textHsl.toColor();
+        (hsl.saturation * 0.5).clamp(0.0, 1.0),
+        0.85
+      ).toColor();
       textLightColor = HSLColor.fromAHSL(
         1.0, hsl.hue,
-        (hsl.saturation * 0.2).clamp(0.0, 1.0),
-        0.5
+        (hsl.saturation * 0.3).clamp(0.0, 1.0),
+        0.7
       ).toColor();
     } else {
-      // For dark mode: text is lighter
-      textColor = const Color(0xFFF5F5F5);
-      textLightColor = const Color(0xFFAAAAAA);
+      // Light mode: dark text with primary tint
+      textColor = HSLColor.fromAHSL(
+        1.0, hsl.hue, 
+        (hsl.saturation * 0.6).clamp(0.0, 1.0),
+        0.25
+      ).toColor();
+      textLightColor = HSLColor.fromAHSL(
+        1.0, hsl.hue,
+        (hsl.saturation * 0.4).clamp(0.0, 1.0),
+        0.5
+      ).toColor();
     }
   }
 
   void _saveToStorage() {
     try {
       html.window.localStorage['beauty_shelf_theme'] =
-        '${primaryColor.value},${backgroundColor.value}';
+        '${primaryColor.value},${backgroundColor.value},${_savedPrimaryColor.value}';
     } catch (e) {
       // localStorage not available
     }
@@ -325,6 +334,8 @@ void loadThemeFromStorage() {
         if (primary != null && bg != null) {
           AppTheme.instance.primaryColor = Color(primary);
           AppTheme.instance.backgroundColor = Color(bg);
+          AppTheme.instance._savedPrimaryColor = Color(primary);
+          AppTheme._instancePrimarySet = true;
           AppTheme.instance.adjustColors();
         }
       }

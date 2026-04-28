@@ -23,7 +23,7 @@ class SettingsScreen extends StatelessWidget {
         return Scaffold(
           backgroundColor: theme.backgroundColor,
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: theme.surfaceColor,
             title: Text('Настройки', style: TextStyle(color: theme.textColor)),
             leading: IconButton(
               icon: Icon(Icons.arrow_back, color: theme.textColor),
@@ -33,6 +33,54 @@ class SettingsScreen extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Dark mode toggle
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.surfaceColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.borderColor),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      theme.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                      color: theme.primaryColor,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Тёмная тема',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: theme.textColor,
+                            ),
+                          ),
+                          Text(
+                            theme.isDarkMode ? 'Включена' : 'Выключена',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.textLightColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: theme.isDarkMode,
+                      onChanged: (_) => theme.toggleDarkMode(),
+                      activeColor: theme.primaryColor,
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
               // Presets - horizontal scroll
               Text(
                 'Цветовая тема',

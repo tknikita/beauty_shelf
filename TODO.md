@@ -26,7 +26,10 @@
   - [x] Manual barcode input
   - [x] Auto-lookup on submit
 - [ ] Camera-based barcode scanning (Web BarcodeDetector API)
-- [ ] Dark mode support
+- [x] Dark mode support
+  - [x] Toggle switch in Settings
+  - [x] Dark colors for background, text, borders
+  - [x] Persisted in localStorage
 - [ ] Product categories custom management
 - [ ] Export/Import data (JSON/CSV)
 - [ ] Notifications for expiring products

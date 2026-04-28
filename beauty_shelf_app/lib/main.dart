@@ -6,6 +6,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   loadThemeFromStorage();
   loadViewMode();
+  loadDarkMode();
   loadCategories();
   runApp(const BeautyShelfApp());
 }

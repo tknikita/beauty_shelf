@@ -8,12 +8,29 @@ class AppTheme extends ChangeNotifier {
   factory AppTheme() => _instance;
   AppTheme._();
 
-  Color primaryColor = const Color(0xFFE8B4BC);
-  Color primaryDarkColor = const Color(0xFFD49BA5);
-  Color backgroundColor = const Color(0xFFFDF9FA);
-  Color textColor = const Color(0xFF333333);
-  Color textLightColor = const Color(0xFF8A8A8A);
-  Color borderColor = const Color(0xFFE8E8E8);
+  // Light theme colors
+  static const _lightPrimary = Color(0xFFE8B4BC);
+  static const _lightPrimaryDark = Color(0xFFD49BA5);
+  static const _lightBackground = Color(0xFFFDF9FA);
+  static const _lightText = Color(0xFF333333);
+  static const _lightTextLight = Color(0xFF8A8A8A);
+  static const _lightBorder = Color(0xFFE8E8E8);
+
+  // Dark theme colors
+  static const _darkPrimary = Color(0xFFE8B4BC);
+  static const _darkPrimaryDark = Color(0xFFD49BA5);
+  static const _darkBackground = Color(0xFF1A1A1A);
+  static const _darkText = Color(0xFFF5F5F5);
+  static const _darkTextLight = Color(0xFFAAAAAA);
+  static const _darkBorder = Color(0xFF333333);
+
+  Color primaryColor = _lightPrimary;
+  Color primaryDarkColor = _lightPrimaryDark;
+  Color backgroundColor = _lightBackground;
+  Color surfaceColor = Colors.white;
+  Color textColor = _lightText;
+  Color textLightColor = _lightTextLight;
+  Color borderColor = _lightBorder;
   Color okColor = const Color(0xFF8FC9A3);
   Color okBgColor = const Color(0xFFF0F7F2);
   Color warningColor = const Color(0xFFE8A87C);
@@ -21,8 +38,52 @@ class AppTheme extends ChangeNotifier {
   Color dangerColor = const Color(0xFFD9848C);
   Color dangerBgColor = const Color(0xFFFDF0F2);
 
+  bool _isDarkMode = false;
+  bool get isDarkMode => _isDarkMode;
+
   // Custom categories
   Map<String, Map<String, String>> customCategories = {};
+
+  void toggleDarkMode() {
+    _isDarkMode = !_isDarkMode;
+    _applyDarkMode();
+    _saveDarkMode();
+    notifyListeners();
+  }
+
+  void _applyDarkMode() {
+    if (_isDarkMode) {
+      primaryColor = _darkPrimary;
+      primaryDarkColor = _darkPrimaryDark;
+      backgroundColor = _darkBackground;
+      surfaceColor = const Color(0xFF2A2A2A);
+      textColor = _darkText;
+      textLightColor = _darkTextLight;
+      borderColor = _darkBorder;
+      okBgColor = const Color(0xFF1A2E1B);
+      warningBgColor = const Color(0xFF2E2A1B);
+      dangerBgColor = const Color(0xFF2E1A1B);
+    } else {
+      primaryColor = _lightPrimary;
+      primaryDarkColor = _lightPrimaryDark;
+      backgroundColor = _lightBackground;
+      surfaceColor = Colors.white;
+      textColor = _lightText;
+      textLightColor = _lightTextLight;
+      borderColor = _lightBorder;
+      okBgColor = const Color(0xFFF0F7F2);
+      warningBgColor = const Color(0xFFFDF5F0);
+      dangerBgColor = const Color(0xFFFDF0F2);
+    }
+  }
+
+  void _saveDarkMode() {
+    try {
+      html.window.localStorage['beauty_shelf_dark'] = _isDarkMode ? '1' : '0';
+    } catch (e) {
+      // localStorage not available
+    }
+  }
 
   void applyPreset(Color primary, Color background) {
     primaryColor = primary;
@@ -188,6 +249,18 @@ void loadViewMode() {
     final saved = html.window.localStorage['beauty_shelf_view'];
     if (saved == 'table') {
       AppTheme.instance.isTableView = true;
+    }
+  } catch (e) {
+    // localStorage not available
+  }
+}
+
+void loadDarkMode() {
+  try {
+    final saved = html.window.localStorage['beauty_shelf_dark'];
+    if (saved == '1') {
+      AppTheme.instance._isDarkMode = true;
+      AppTheme.instance._applyDarkMode();
     }
   } catch (e) {
     // localStorage not available

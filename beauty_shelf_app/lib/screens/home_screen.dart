@@ -210,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: !_isTableView ? AppTheme.primaryDarkColor : Colors.grey[400],
                     size: 20,
                   ),
-                  onPressed: _isTableView ? _toggleView : null,
+                  onPressed: _toggleView,
                 ),
                 IconButton(
                   icon: Icon(
@@ -218,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: _isTableView ? AppTheme.primaryDarkColor : Colors.grey[400],
                     size: 20,
                   ),
-                  onPressed: !_isTableView ? _toggleView : null,
+                  onPressed: _toggleView,
                 ),
               ],
             ),

@@ -237,10 +237,12 @@ class _HomeScreenState extends State<HomeScreen> {
     
     showModalBottomSheet(
       context: context,
+      backgroundColor: theme.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => Container(
+        color: theme.surfaceColor,
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,

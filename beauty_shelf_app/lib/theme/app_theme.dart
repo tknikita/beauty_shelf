@@ -99,11 +99,9 @@ class AppTheme extends ChangeNotifier {
 
   void applyPreset(Color primary, Color background) {
     primaryColor = primary;
-    backgroundColor = background;
-    // In dark mode, only change primary/accent, keep dark surface/text
-    if (_isDarkMode) {
-      surfaceColor = const Color(0xFF2A2A2A);
-      borderColor = _darkBorder;
+    // In dark mode, don't change background/surface colors
+    if (!_isDarkMode) {
+      backgroundColor = background;
     }
     adjustColors();
     _saveToStorage();

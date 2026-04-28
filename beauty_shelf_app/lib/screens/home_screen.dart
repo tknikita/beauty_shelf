@@ -574,7 +574,7 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? color : Colors.white,
+          color: selected ? color : AppTheme.instance.surfaceColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? color : AppTheme.instance.borderColor,
@@ -584,7 +584,7 @@ class _FilterChip extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 13,
-            color: selected ? Colors.white : AppTheme.instance.textColor,
+            color: selected ? AppTheme.instance.surfaceColor : AppTheme.instance.textColor,
           ),
         ),
       ),
@@ -612,7 +612,7 @@ class _MiniFilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
-          color: selected ? color.withAlpha(30) : Colors.white,
+          color: selected ? color.withAlpha(30) : AppTheme.instance.surfaceColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: selected ? color : AppTheme.instance.borderColor,

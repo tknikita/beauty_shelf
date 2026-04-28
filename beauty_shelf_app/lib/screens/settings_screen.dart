@@ -197,7 +197,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.surfaceColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.borderColor),
                 ),
@@ -777,7 +777,7 @@ class _CategoryTabState extends State<_CategoryTab> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.drag_handle, size: 18, color: Colors.grey),
+                      Icon(Icons.drag_handle, size: 18, color: theme.textLightColor),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(name, style: TextStyle(color: theme.textColor)),

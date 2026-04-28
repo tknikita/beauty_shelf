@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
+import '../services/api_service.dart';
 
 class ProductForm extends StatefulWidget {
   final Product? product;
@@ -17,6 +18,9 @@ class ProductForm extends StatefulWidget {
 
 class _ProductFormState extends State<ProductForm> {
   final _formKey = GlobalKey<FormState>();
+  final _api = ApiService();
+  
+  late TextEditingController _barcodeController;
   late TextEditingController _nameController;
   late TextEditingController _purposeController;
   late String _type;
@@ -25,11 +29,15 @@ class _ProductFormState extends State<ProductForm> {
   late bool _isOpened;
   DateTime? _openedDate;
   late int _expiryDaysAfterOpen;
+  
+  bool _isLookingUp = false;
+  String? _lookupResult;
 
   @override
   void initState() {
     super.initState();
     final p = widget.product;
+    _barcodeController = TextEditingController(text: '');
     _nameController = TextEditingController(text: p?.name ?? '');
     _purposeController = TextEditingController(text: p?.purpose ?? '');
     _type = p?.type ?? 'care';
@@ -42,9 +50,49 @@ class _ProductFormState extends State<ProductForm> {
 
   @override
   void dispose() {
+    _barcodeController.dispose();
     _nameController.dispose();
     _purposeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _lookupBarcode() async {
+    final barcode = _barcodeController.text.trim();
+    if (barcode.length < 8) return;
+    
+    setState(() {
+      _isLookingUp = true;
+      _lookupResult = null;
+    });
+    
+    try {
+      final product = await _api.lookupBarcode(barcode);
+      if (product.isNotEmpty) {
+        final name = product['product_name'] ?? product['product_name_fr'] ?? product['name'];
+        if (name != null && _nameController.text.isEmpty) {
+          _nameController.text = name;
+        }
+        final brands = product['brands'];
+        if (brands != null && _purposeController.text.isEmpty) {
+          _purposeController.text = brands;
+        }
+        setState(() {
+          _lookupResult = 'Найден: $name';
+        });
+      } else {
+        setState(() {
+          _lookupResult = 'Продукт не найден';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _lookupResult = 'Ошибка поиска';
+      });
+    } finally {
+      setState(() {
+        _isLookingUp = false;
+      });
+    }
   }
 
   void _submit() {
@@ -88,6 +136,96 @@ class _ProductFormState extends State<ProductForm> {
               ),
               const SizedBox(height: 24),
               
+              // Barcode
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _barcodeController,
+                      decoration: InputDecoration(
+                        labelText: 'Штрихкод (EAN/UPC)',
+                        border: const OutlineInputBorder(),
+                        filled: true,
+                        fillColor: const Color(0xFFFDF9FA),
+                        suffixIcon: _isLookingUp
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            : null,
+                      ),
+                      keyboardType: TextInputType.number,
+                      onSubmitted: (_) => _lookupBarcode(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Сканирование камерой скоро будет'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    icon: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE8E8E8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.qr_code_scanner, color: Color(0xFF8A8A8A)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _lookupBarcode,
+                    child: const Text('Найти'),
+                  ),
+                ],
+              ),
+              if (_lookupResult != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _lookupResult!.startsWith('Найден') 
+                        ? const Color(0xFFF0F7F2)
+                        : const Color(0xFFFDF5F0),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _lookupResult!.startsWith('Найден') ? Icons.check_circle : Icons.warning,
+                        size: 16,
+                        color: _lookupResult!.startsWith('Найден') 
+                            ? const Color(0xFF5A9E6F)
+                            : const Color(0xFFC47B3D),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _lookupResult!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _lookupResult!.startsWith('Найден') 
+                                ? const Color(0xFF5A9E6F)
+                                : const Color(0xFFC47B3D),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+
               // Name
               TextFormField(
                 controller: _nameController,
@@ -218,7 +356,7 @@ class _ProductFormState extends State<ProductForm> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextFormField(
-                        controller: TextEditingController(text: _expiryDaysAfterOpen.toString()),
+                        initialValue: _expiryDaysAfterOpen.toString(),
                         decoration: const InputDecoration(
                           labelText: 'Срок после вскрытия (дней)',
                           border: OutlineInputBorder(),

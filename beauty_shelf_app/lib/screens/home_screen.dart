@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
 import '../widgets/product_card.dart';
+import '../widgets/product_table.dart';
 import '../widgets/product_form.dart';
+import '../theme/app_theme.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   
   String _filter = 'all';
   String _searchQuery = '';
+  bool _isTableView = false;
 
   @override
   void initState() {
@@ -70,6 +74,12 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _filter = filter;
       _applyFilters();
+    });
+  }
+
+  void _toggleView() {
+    setState(() {
+      _isTableView = !_isTableView;
     });
   }
 
@@ -130,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _showSnackBar('Ошибка удаления');
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD9848C)),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.dangerColor),
             child: const Text('Удалить'),
           ),
         ],
@@ -144,10 +154,21 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SettingsScreen(
+          onThemeChanged: () => setState(() {}),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF9FA),
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -157,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: const Color(0xFFE8B4BC),
+                color: AppTheme.primaryColor,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
@@ -174,9 +195,38 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          // View toggle
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFDF9FA),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.grid_view_rounded,
+                    color: !_isTableView ? AppTheme.primaryDarkColor : Colors.grey[400],
+                    size: 20,
+                  ),
+                  onPressed: _isTableView ? _toggleView : null,
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.table_rows_rounded,
+                    color: _isTableView ? AppTheme.primaryDarkColor : Colors.grey[400],
+                    size: 20,
+                  ),
+                  onPressed: !_isTableView ? _toggleView : null,
+                ),
+              ],
+            ),
+          ),
           IconButton(
-            icon: const Icon(Icons.add, color: Color(0xFFE8B4BC)),
-            onPressed: _showAddModal,
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: _openSettings,
+            color: Colors.grey[600],
           ),
         ],
       ),
@@ -212,18 +262,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: 'Все',
                   selected: _filter == 'all',
                   onTap: () => _setFilter('all'),
+                  color: AppTheme.primaryColor,
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
                   label: 'Уход',
                   selected: _filter == 'care',
                   onTap: () => _setFilter('care'),
+                  color: AppTheme.primaryColor,
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
                   label: 'Декоративная',
                   selected: _filter == 'decorative',
                   onTap: () => _setFilter('decorative'),
+                  color: AppTheme.primaryColor,
                 ),
               ],
             ),
@@ -238,13 +291,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? _buildError()
                     : _filteredProducts.isEmpty
                         ? _buildEmpty()
-                        : _buildProductList(),
+                        : _isTableView
+                            ? _buildTableView()
+                            : _buildProductList(),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddModal,
-        backgroundColor: const Color(0xFFE8B4BC),
+        backgroundColor: AppTheme.primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -291,6 +346,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildTableView() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: ProductTable(
+        products: _filteredProducts,
+        onEdit: _showEditModal,
+        onDelete: _confirmDelete,
+      ),
+    );
+  }
+
   Widget _buildProductList() {
     return RefreshIndicator(
       onRefresh: _loadProducts,
@@ -317,11 +383,13 @@ class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final Color color;
 
   const _FilterChip({
     required this.label,
     required this.selected,
     required this.onTap,
+    required this.color,
   });
 
   @override
@@ -331,10 +399,10 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE8B4BC) : Colors.white,
+          color: selected ? color : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? const Color(0xFFE8B4BC) : const Color(0xFFE8E8E8),
+            color: selected ? color : const Color(0xFFE8E8E8),
           ),
         ),
         child: Text(

@@ -180,6 +180,118 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildExpiringBanner() {
+    final theme = AppTheme.instance;
+    final expiringCount = _products.where((p) => p.daysLeft >= 0 && p.daysLeft <= 30).length;
+    final expiredCount = _products.where((p) => p.daysLeft < 0).length;
+    
+    if (expiringCount == 0 && expiredCount == 0) {
+      return const SizedBox.shrink();
+    }
+    
+    return GestureDetector(
+      onTap: () => _showExpiringProducts(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: expiredCount > 0 ? theme.dangerBgColor : theme.warningBgColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              expiredCount > 0 ? Icons.warning : Icons.access_time,
+              size: 18,
+              color: expiredCount > 0 ? theme.dangerColor : theme.warningColor,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                expiredCount > 0
+                    ? '$expiredCount просрочено'
+                    : '$expiringCount скоро истекает',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: expiredCount > 0 ? theme.dangerColor : theme.warningColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Text(
+              'Подробнее →',
+              style: TextStyle(
+                fontSize: 12,
+                color: expiredCount > 0 ? theme.dangerColor : theme.warningColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showExpiringProducts() {
+    final theme = AppTheme.instance;
+    final expiring = _products.where((p) => p.daysLeft <= 30).toList()
+      ..sort((a, b) => a.daysLeft.compareTo(b.daysLeft));
+    
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Истекающие продукты',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+            ),
+            const SizedBox(height: 16),
+            if (expiring.isEmpty)
+              Text('Нет продуктов для отображения', style: TextStyle(color: theme.textLightColor))
+            else
+              ...expiring.take(10).map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: p.daysLeft < 0 
+                            ? theme.dangerColor 
+                            : p.daysLeft <= 7 
+                                ? theme.warningColor 
+                                : theme.okColor,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(p.name, style: TextStyle(color: theme.textColor))),
+                    Text(
+                      p.daysLeft < 0 
+                          ? 'Просрочено' 
+                          : '${p.daysLeft} дн.',
+                      style: TextStyle(
+                        color: p.daysLeft < 0 
+                            ? theme.dangerColor 
+                            : theme.textLightColor,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCategoryChips() {
     final categories = AppTheme.instance.getCategoriesByType(_typeFilter);
     final sortedKeys = categories.keys.toList()
@@ -282,24 +394,31 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TextField(
-              onChanged: (v) {
-                setState(() {
-                  _searchQuery = v;
-                  _applyFilters();
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Поиск...',
-                prefixIcon: Icon(Icons.search, color: AppTheme.instance.textLightColor),
-                filled: true,
-                fillColor: AppTheme.instance.backgroundColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
+            child: Column(
+              children: [
+                // Expiring products banner
+                _buildExpiringBanner(),
+                const SizedBox(height: 8),
+                TextField(
+                  onChanged: (v) {
+                    setState(() {
+                      _searchQuery = v;
+                      _applyFilters();
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Поиск...',
+                    prefixIcon: Icon(Icons.search, color: AppTheme.instance.textLightColor),
+                    filled: true,
+                    fillColor: AppTheme.instance.backgroundColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              ),
+              ],
             ),
           ),
           Container(

@@ -34,7 +34,10 @@
 - [x] Export/Import data (JSON)
   - [x] Export all products to JSON file
   - [x] Import products from JSON file
-- [ ] Notifications for expiring products
+- [x] Notifications for expiring products
+  - [x] Banner with expiring count on home screen
+  - [x] Modal with list of expiring products
+  - [x] Sorted by days remaining
 - [ ] PWA support for offline mode
 - [ ] Mobile native app (iOS/Android)
 

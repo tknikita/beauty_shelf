@@ -2,7 +2,7 @@
 
 ## Overview
 
-Cross-platform cosmetics inventory tracker with web frontend and FastAPI backend.
+Cross-platform cosmetics inventory tracker with Flutter web frontend and FastAPI backend.
 
 ## Architecture
 
@@ -21,10 +21,14 @@ Cross-platform cosmetics inventory tracker with web frontend and FastAPI backend
 
 ### Frontend (Flutter Web)
 - Flutter 3.x with Material Design 3
-- Pink theme (E8B4BC)
+- Reactive theme system with localStorage persistence
+- 6 color presets: Розовый, Лаванда, Мята, Персик, Голубой, Монохром
 - Product cards with status badges
-- Filter by type with search
+- Table view with sortable columns
+- Filter by type (All / Care / Decorative)
+- Search by name or purpose
 - Add/Edit/Delete products
+- Barcode lookup via Open Beauty Facts API
 - Directory: `beauty_shelf_app/`
 
 ### Backend (FastAPI)
@@ -59,30 +63,7 @@ CREATE TABLE products (
 
 ### Services
 1. **backend** - Python + FastAPI + SQLite
-2. **frontend** - Nginx Alpine + Static HTML
-
-### Nginx Configuration (nginx.conf)
-```nginx
-server {
-    listen 80;
-    root /usr/share/nginx/html;
-    
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-    
-    location /api/ {
-        proxy_pass http://backend:8000;
-    }
-    
-    location /ws {
-        proxy_pass http://backend:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-}
-```
+2. **frontend** - Nginx Alpine + Flutter web build
 
 ### Docker Commands
 ```bash
@@ -90,6 +71,7 @@ server {
 docker-compose up -d
 
 # Rebuild frontend
+cd beauty_shelf_app && flutter build web
 docker-compose build frontend
 docker-compose up -d frontend
 
@@ -101,19 +83,27 @@ docker-compose logs -f frontend
 ## Features
 
 ### Frontend Features
-- Product cards with expiry status (OK/Warning/Expired)
+- **Reactive Theme System** - 6 color presets with localStorage persistence
+- Product cards with expiry status badges
 - **Table view** with sortable columns (Name, Type, Category, Expiry, Status)
 - Filter by type (All / Care / Decorative)
-- **Filter by category** (dropdown with all categories grouped by type)
-- **Filter by expiry status** (All / OK / Soon / Very Soon / Expired)
+- Filter by category (dropdown with all categories grouped by type)
+- Filter by expiry status (All / OK / Soon / Very Soon / Expired)
 - View toggle (cards ↔ table)
 - Search by name or purpose
 - Add/Edit/Delete products
 - **Opened product tracking** (date opened + expiry after opening)
-- **Barcode scanner** with camera and manual input
+- **Barcode scanner** with manual input
 - **Auto-fill from Open Beauty Facts / Open Food Facts API**
 - Responsive design (mobile + desktop)
 - Combined filtering (filters work together)
+
+### Theme System
+The app uses a reactive theme system:
+- Static singleton `AppTheme` class extending `ChangeNotifier`
+- Theme changes trigger rebuild of all listening widgets
+- Settings saved to `localStorage` and restored on app start
+- 6 preset themes available in Settings screen
 
 ### Categories
 
@@ -149,21 +139,20 @@ docker-compose logs -f frontend
 | nails | Ногти |
 
 ### Expiry Status Logic
-- **OK** (>60 days): Green badge ✓ OK
-- **Warning** (30-60 days): Orange badge ⚠
-- **Danger** (<30 days): Red badge ⚠
-- **Expired** (<0 days): Red badge ✗
+- **OK** (>60 days): Green badge
+- **Warning** (30-60 days): Orange badge
+- **Danger** (<30 days): Red badge
+- **Expired** (<0 days): Red badge with "Просрочено"
 
 ### Opened Product Tracking
 When a product is marked as "opened":
 - Store `opened_date` and `expiry_days_after_open` (default 30 days)
 - Calculate effective expiry: `opened_date + expiry_days_after_open`
 - If no `opened_date`, fall back to original `expiry_date`
-- Display "📅 Вскрыто X дн. назад" badge on product cards
+- Display "Вскрыто X дн. назад" badge on product cards
 
 ### Barcode Scanner
-- Camera-based scanning using BarcodeDetector API
-- Manual barcode input with Enter key or blur trigger
+- Manual barcode input with lookup trigger
 - Auto-fill from Open Beauty Facts API (https://world.openbeautyfacts.org/api/v2/)
 - Fallback to Open Food Facts API (https://world.openfoodfacts.org/api/v2/)
 - Auto-detect product type (care/decorative) from categories
@@ -174,29 +163,58 @@ When a product is marked as "opened":
 beauty_shelf/
 ├── SPEC.md                 # This file
 ├── docker-compose.yml      # Container orchestration
-├── Dockerfile.frontend      # Frontend container
 ├── nginx.conf             # Nginx config
 ├── backend/
 │   ├── main.py            # FastAPI application
 │   ├── requirements.txt   # Python deps
 │   └── Dockerfile          # Backend container
-├── frontend/
-│   └── index.html         # Static frontend (HTML/CSS/JS)
+├── beauty_shelf_app/       # Flutter web app
+│   ├── lib/
+│   │   ├── main.dart
+│   │   ├── models/product.dart
+│   │   ├── services/api_service.dart
+│   │   ├── screens/
+│   │   │   ├── home_screen.dart
+│   │   │   └── settings_screen.dart
+│   │   ├── theme/app_theme.dart
+│   │   └── widgets/
+│   │       ├── product_card.dart
+│   │       ├── product_table.dart
+│   │       ├── product_form.dart
+│   │       └── barcode_scanner.dart
+│   └── pubspec.yaml
 └── backend.db             # SQLite database (in container)
 ```
 
 ## Development
 
 ```bash
-# Edit frontend
-vim frontend/index.html
+# Install Flutter
+brew install flutter
 
-# Rebuild and deploy
+# Edit frontend
+cd beauty_shelf_app
+
+# Run locally
+flutter run -d chrome
+
+# Build web
+flutter build web
+
+# Deploy
 docker-compose build frontend
 docker-compose up -d frontend
 ```
 
 ## Changelog
+
+### 2026-04-28
+- **Replaced HTML frontend** with Flutter web app
+  - Material Design 3 UI with reactive theme system
+  - Theme colors saved to localStorage and restored on reload
+  - 6 color presets available in Settings screen
+  - Table view with sortable columns
+  - Barcode lookup with Open Beauty Facts API
 
 ### 2026-04-27
 - **Replaced Flet frontend** with pure HTML/CSS/JS

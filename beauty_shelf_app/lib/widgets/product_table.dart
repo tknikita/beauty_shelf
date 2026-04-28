@@ -65,39 +65,18 @@ class ProductTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
 
-    if (products.isEmpty) {
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.borderColor),
-        ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Text(
-              'Нет продуктов',
-              style: TextStyle(color: theme.textLightColor),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.borderColor),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
+    return ListView.builder(
+      itemCount: products.length + 1, // +1 for header
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          // Header row
+          return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: theme.backgroundColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              border: Border(
+                bottom: BorderSide(color: theme.borderColor),
+              ),
             ),
             child: Row(
               children: [
@@ -108,12 +87,12 @@ class ProductTable extends StatelessWidget {
                 const SizedBox(width: 80),
               ],
             ),
-          ),
-          const Divider(height: 1),
-          // Rows
-          ...products.map((p) => _buildRow(p)).toList(),
-        ],
-      ),
+          );
+        }
+
+        final p = products[index - 1];
+        return _buildRow(p, theme);
+      },
     );
   }
 
@@ -131,110 +110,108 @@ class ProductTable extends StatelessWidget {
     );
   }
 
-  Widget _buildRow(Product p) {
-    final theme = AppTheme.instance;
-
-    return InkWell(
-      onTap: () => onEdit(p),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: theme.borderColor, width: 0.5)),
+  Widget _buildRow(Product p, dynamic theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: theme.borderColor, width: 0.5),
         ),
-        child: Row(
-          children: [
-            // Name
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    p.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: theme.textColor,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    Categories.getCategoryName(p.type, p.category),
-                    style: TextStyle(fontSize: 12, color: theme.textLightColor),
-                  ),
-                ],
-              ),
-            ),
-            // Type
-            Expanded(
-              flex: 1,
-              child: Text(
-                p.type == 'care' ? 'Уход' : 'Декор.',
-                style: TextStyle(fontSize: 13, color: theme.textLightColor),
-              ),
-            ),
-            // Expiry
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _formatDate(p.effectiveExpiryDate),
-                    style: TextStyle(fontSize: 13, color: theme.textColor),
-                  ),
-                  if (p.isOpened)
-                    Text(
-                      'Вскрыто ${_getOpenedDaysAgo(p)} дн.',
-                      style: TextStyle(fontSize: 11, color: theme.textLightColor),
-                    ),
-                ],
-              ),
-            ),
-            // Status
-            Expanded(
-              flex: 1,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _getStatusBgColor(p.status),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _getStatusText(p.status),
+      ),
+      child: Row(
+        children: [
+          // Name
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  p.name,
                   style: TextStyle(
-                    fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: _getStatusColor(p.status),
+                    color: theme.textColor,
                   ),
-                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                Text(
+                  Categories.getCategoryName(p.type, p.category),
+                  style: TextStyle(fontSize: 12, color: theme.textLightColor),
+                ),
+              ],
+            ),
+          ),
+          // Type
+          Expanded(
+            flex: 1,
+            child: Text(
+              p.type == 'care' ? 'Уход' : 'Декор.',
+              style: TextStyle(fontSize: 13, color: theme.textLightColor),
+            ),
+          ),
+          // Expiry
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _formatDate(p.effectiveExpiryDate),
+                  style: TextStyle(fontSize: 13, color: theme.textColor),
+                ),
+                if (p.isOpened)
+                  Text(
+                    'Вскрыто ${_getOpenedDaysAgo(p)} дн.',
+                    style: TextStyle(fontSize: 11, color: theme.textLightColor),
+                  ),
+              ],
+            ),
+          ),
+          // Status
+          Expanded(
+            flex: 1,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getStatusBgColor(p.status),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _getStatusText(p.status),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: _getStatusColor(p.status),
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
-            // Actions
-            SizedBox(
-              width: 80,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    onPressed: () => onEdit(p),
-                    color: theme.textLightColor,
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    padding: EdgeInsets.zero,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    onPressed: () => onDelete(p),
-                    color: theme.dangerColor,
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    padding: EdgeInsets.zero,
-                  ),
-                ],
-              ),
+          ),
+          // Actions
+          SizedBox(
+            width: 80,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  onPressed: () => onEdit(p),
+                  color: theme.textLightColor,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  padding: EdgeInsets.zero,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  onPressed: () => onDelete(p),
+                  color: theme.dangerColor,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

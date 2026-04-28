@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../theme/app_theme.dart';
 
-class ProductTable extends StatelessWidget {
+enum SortField { name, expiry, category }
+enum SortOrder { asc, desc }
+
+class ProductTable extends StatefulWidget {
   final List<Product> products;
   final Function(Product) onEdit;
   final Function(Product) onDelete;
@@ -13,6 +16,52 @@ class ProductTable extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
   });
+
+  @override
+  State<ProductTable> createState() => _ProductTableState();
+}
+
+class _ProductTableState extends State<ProductTable> {
+  SortField _sortField = SortField.expiry;
+  SortOrder _sortOrder = SortOrder.asc;
+
+  List<Product> get _sortedProducts {
+    final sorted = List<Product>.from(widget.products);
+    sorted.sort((a, b) {
+      int cmp;
+      switch (_sortField) {
+        case SortField.name:
+          cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          break;
+        case SortField.expiry:
+          cmp = a.daysLeft.compareTo(b.daysLeft);
+          break;
+        case SortField.category:
+          final catA = Categories.getCategoryName(a.type, a.category).toLowerCase();
+          final catB = Categories.getCategoryName(b.type, b.category).toLowerCase();
+          cmp = catA.compareTo(catB);
+          break;
+      }
+      return _sortOrder == SortOrder.asc ? cmp : -cmp;
+    });
+    return sorted;
+  }
+
+  void _toggleSort(SortField field) {
+    setState(() {
+      if (_sortField == field) {
+        _sortOrder = _sortOrder == SortOrder.asc ? SortOrder.desc : SortOrder.asc;
+      } else {
+        _sortField = field;
+        _sortOrder = SortOrder.asc;
+      }
+    });
+  }
+
+  IconData _getSortIcon(SortField field) {
+    if (_sortField != field) return Icons.unfold_more;
+    return _sortOrder == SortOrder.asc ? Icons.arrow_upward : Icons.arrow_downward;
+  }
 
   Color _getStatusColor(Product p) {
     switch (p.status) {
@@ -29,6 +78,7 @@ class ProductTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
+    final products = _sortedProducts;
     
     if (products.isEmpty) {
       return Center(
@@ -42,18 +92,113 @@ class ProductTable extends StatelessWidget {
       );
     }
     
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        final p = products[index];
-        return _TableRow(
-          product: p,
-          statusColor: _getStatusColor(p),
-          onEdit: () => onEdit(p),
-          onDelete: () => onDelete(p),
-        );
-      },
+    return Column(
+      children: [
+        // Sort header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: theme.surfaceColor,
+            border: Border(bottom: BorderSide(color: theme.borderColor)),
+          ),
+          child: Row(
+            children: [
+              const SizedBox(width: 46), // Image space
+              Expanded(
+                flex: 3,
+                child: _SortButton(
+                  label: 'Название',
+                  icon: _getSortIcon(SortField.name),
+                  onTap: () => _toggleSort(SortField.name),
+                  isActive: _sortField == SortField.name,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: _SortButton(
+                  label: 'Категория',
+                  icon: _getSortIcon(SortField.category),
+                  onTap: () => _toggleSort(SortField.category),
+                  isActive: _sortField == SortField.category,
+                ),
+              ),
+              SizedBox(
+                width: 60,
+                child: Text(
+                  'Тип',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: theme.textLightColor),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: _SortButton(
+                  label: 'Срок',
+                  icon: _getSortIcon(SortField.expiry),
+                  onTap: () => _toggleSort(SortField.expiry),
+                  isActive: _sortField == SortField.expiry,
+                ),
+              ),
+              const SizedBox(width: 50), // Actions space
+            ],
+          ),
+        ),
+        // Product list
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final p = products[index];
+              return _TableRow(
+                product: p,
+                statusColor: _getStatusColor(p),
+                onEdit: () => widget.onEdit(p),
+                onDelete: () => widget.onDelete(p),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SortButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isActive;
+
+  const _SortButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    required this.isActive,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+    return InkWell(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                color: isActive ? theme.primaryColor : theme.textLightColor,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 2),
+          Icon(icon, size: 14, color: isActive ? theme.primaryColor : theme.textLightColor),
+        ],
+      ),
     );
   }
 }
@@ -81,7 +226,7 @@ class _TableRow extends StatelessWidget {
             : '${product.daysLeft} дн.';
     
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
@@ -91,65 +236,86 @@ class _TableRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Image or icon
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: theme.primaryColor.withAlpha(25),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: product.imageUrl != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.network(
-                        product.imageUrl!.startsWith('/') 
-                            ? '/api${product.imageUrl}' 
-                            : product.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(
+            // Image or icon with opened indicator
+            Stack(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withAlpha(25),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: product.imageUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.network(
+                            product.imageUrl!.startsWith('/') 
+                                ? '/api${product.imageUrl}' 
+                                : product.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.inventory_2_outlined,
+                              size: 18,
+                              color: theme.primaryColor,
+                            ),
+                          ),
+                        )
+                      : Icon(
                           Icons.inventory_2_outlined,
                           size: 18,
                           color: theme.primaryColor,
                         ),
+                ),
+                if (product.isOpened)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: theme.warningColor,
+                        shape: BoxShape.circle,
                       ),
-                    )
-                  : Icon(
-                      Icons.inventory_2_outlined,
-                      size: 18,
-                      color: theme.primaryColor,
+                      child: const Icon(
+                        Icons.open_in_new,
+                        size: 8,
+                        color: Colors.white,
+                      ),
                     ),
+                  ),
+              ],
             ),
             const SizedBox(width: 10),
-            // Name & category
+            // Name
             Expanded(
               flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: theme.textColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    Categories.getCategoryName(product.type, product.category),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.textLightColor,
-                    ),
-                  ),
-                ],
+              child: Text(
+                product.name,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: theme.textColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            // Category
+            Expanded(
+              flex: 2,
+              child: Text(
+                Categories.getCategoryName(product.type, product.category),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: theme.textLightColor,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             // Type badge
-            Expanded(
-              flex: 1,
+            SizedBox(
+              width: 60,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
@@ -168,7 +334,6 @@ class _TableRow extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
             // Status
             Expanded(
               flex: 1,
@@ -198,7 +363,6 @@ class _TableRow extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 4),
             // Actions
             Row(
               mainAxisSize: MainAxisSize.min,

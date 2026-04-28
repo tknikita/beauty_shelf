@@ -359,33 +359,34 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: AppTheme.instance.backgroundColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.grid_view_rounded,
-                    color: !_isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
-                    size: 20,
-                  ),
-                  onPressed: _toggleView,
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.table_rows_rounded,
-                    color: _isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
-                    size: 20,
-                  ),
-                  onPressed: _toggleView,
-                ),
-              ],
-            ),
-          ),
+          // TODO: Re-enable view toggle when card view is ready
+          // Container(
+          //   margin: const EdgeInsets.only(right: 8),
+          //   decoration: BoxDecoration(
+          //     color: AppTheme.instance.backgroundColor,
+          //     borderRadius: BorderRadius.circular(8),
+          //   ),
+          //   child: Row(
+          //     children: [
+          //       IconButton(
+          //         icon: Icon(
+          //           Icons.grid_view_rounded,
+          //           color: !_isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
+          //           size: 20,
+          //         ),
+          //         onPressed: _toggleView,
+          //       ),
+          //       IconButton(
+          //         icon: Icon(
+          //           Icons.table_rows_rounded,
+          //           color: _isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
+          //           size: 20,
+          //         ),
+          //         onPressed: _toggleView,
+          //       ),
+          //     ],
+          //   ),
+          // ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: _openSettings,

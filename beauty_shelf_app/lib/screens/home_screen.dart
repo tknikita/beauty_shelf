@@ -392,7 +392,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Column(
         children: [
           Container(
-            color: Colors.white,
+            color: AppTheme.instance.surfaceColor,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Column(
               children: [
@@ -422,7 +422,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Container(
-            color: Colors.white,
+            color: AppTheme.instance.surfaceColor,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

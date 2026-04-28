@@ -52,7 +52,7 @@ class _BeautyShelfAppState extends State<BeautyShelfApp> {
         primaryColor: theme.primaryColor,
         scaffoldBackgroundColor: theme.backgroundColor,
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.white,
+          backgroundColor: theme.surfaceColor,
           foregroundColor: theme.textColor,
           elevation: 0,
         ),

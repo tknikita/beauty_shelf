@@ -178,7 +178,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.surfaceColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.borderColor),
                 ),
@@ -253,7 +253,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.surfaceColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.borderColor),
                 ),
@@ -320,7 +320,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.surfaceColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.borderColor),
                 ),

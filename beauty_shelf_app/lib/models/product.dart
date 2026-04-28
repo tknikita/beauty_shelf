@@ -10,6 +10,7 @@ class Product {
   final bool isOpened;
   final DateTime? openedDate;
   final int expiryDaysAfterOpen;
+  final String? imageUrl;
 
   Product({
     this.id,
@@ -21,6 +22,7 @@ class Product {
     this.isOpened = false,
     this.openedDate,
     this.expiryDaysAfterOpen = 30,
+    this.imageUrl,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -36,6 +38,7 @@ class Product {
           ? DateTime.parse(json['opened_date'] as String)
           : null,
       expiryDaysAfterOpen: json['expiry_days_after_open'] as int? ?? 30,
+      imageUrl: json['image_url'] as String?,
     );
   }
 
@@ -50,6 +53,7 @@ class Product {
       'is_opened': isOpened ? 1 : 0,
       'opened_date': openedDate?.toIso8601String().split('T')[0],
       'expiry_days_after_open': expiryDaysAfterOpen,
+      'image_url': imageUrl,
     };
   }
 
@@ -89,6 +93,7 @@ class Product {
     bool? isOpened,
     DateTime? openedDate,
     int? expiryDaysAfterOpen,
+    String? imageUrl,
   }) {
     return Product(
       id: id ?? this.id,
@@ -100,6 +105,7 @@ class Product {
       isOpened: isOpened ?? this.isOpened,
       openedDate: openedDate ?? this.openedDate,
       expiryDaysAfterOpen: expiryDaysAfterOpen ?? this.expiryDaysAfterOpen,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 }

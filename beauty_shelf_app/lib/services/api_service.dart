@@ -134,4 +134,37 @@ class ApiService {
     
     return null;
   }
+
+  // Upload image and get URL
+  Future<String?> uploadImage() async {
+    final input = html.FileUploadInputElement()
+      ..accept = 'image/*';
+    input.click();
+    
+    await input.onChange.first;
+    
+    if (input.files?.isNotEmpty == true) {
+      final file = input.files!.first;
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      
+      await reader.onLoadEnd.first;
+      
+      final bytes = reader.result;
+      if (bytes != null) {
+        final response = await http.post(
+          Uri.parse('$baseUrl/images/upload'),
+          body: bytes,
+          headers: {'Content-Type': file.type},
+        );
+        
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          return data['url'] as String?;
+        }
+      }
+    }
+    
+    return null;
+  }
 }

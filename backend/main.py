@@ -1,7 +1,7 @@
 """
 Beauty Shelf - Backend API (FastAPI + SQLite)
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -9,6 +9,7 @@ from datetime import date, datetime
 import sqlite3
 from pathlib import Path
 import os
+import uuid
 
 app = FastAPI(title="Beauty Shelf API", version="0.1.0")
 
@@ -24,6 +25,10 @@ app.add_middleware(
 # DB path - support both local and Docker
 DB_DIR = Path("/app/data") if os.path.exists("/app") else Path(__file__).parent
 DB_PATH = DB_DIR / "beauty_shelf.db"
+
+# Image storage
+IMG_DIR = DB_DIR / "images"
+IMG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def get_db():
@@ -52,6 +57,7 @@ def init_db():
                 is_opened INTEGER DEFAULT 0,
                 opened_date DATE,
                 expiry_days_after_open INTEGER DEFAULT 30,
+                image_url TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -68,6 +74,10 @@ def init_db():
             pass
         try:
             conn.execute("ALTER TABLE products ADD COLUMN expiry_days_after_open INTEGER DEFAULT 30")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            conn.execute("ALTER TABLE products ADD COLUMN image_url TEXT")
         except sqlite3.OperationalError:
             pass
         
@@ -92,6 +102,7 @@ class ProductCreate(BaseModel):
     is_opened: bool = False
     opened_date: Optional[date] = None
     expiry_days_after_open: int = 30
+    image_url: Optional[str] = None
 
 
 class ProductUpdate(BaseModel):
@@ -103,6 +114,7 @@ class ProductUpdate(BaseModel):
     is_opened: Optional[bool] = None
     opened_date: Optional[date] = None
     expiry_days_after_open: Optional[int] = None
+    image_url: Optional[str] = None
 
 
 class Product(BaseModel):
@@ -115,6 +127,7 @@ class Product(BaseModel):
     is_opened: int
     opened_date: Optional[str]
     expiry_days_after_open: int
+    image_url: Optional[str]
     created_at: Optional[str]
     updated_at: Optional[str]
 
@@ -153,8 +166,8 @@ def create_product(product: ProductCreate):
     """Create a new product."""
     conn = get_db()
     cursor = conn.execute(
-        """INSERT INTO products (name, type, category, purpose, expiry_date, is_opened, opened_date, expiry_days_after_open)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO products (name, type, category, purpose, expiry_date, is_opened, opened_date, expiry_days_after_open, image_url)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             product.name,
             product.type,
@@ -163,7 +176,8 @@ def create_product(product: ProductCreate):
             product.expiry_date.isoformat(),
             1 if product.is_opened else 0,
             product.opened_date.isoformat() if product.opened_date else None,
-            product.expiry_days_after_open
+            product.expiry_days_after_open,
+            product.image_url
         )
     )
     conn.commit()
@@ -208,6 +222,9 @@ def update_product(product_id: int, product: ProductUpdate):
     if product.expiry_days_after_open is not None:
         updates.append("expiry_days_after_open = ?")
         values.append(product.expiry_days_after_open)
+    if product.image_url is not None:
+        updates.append("image_url = ?")
+        values.append(product.image_url)
     
     updates.append("updated_at = CURRENT_TIMESTAMP")
     values.append(product_id)
@@ -266,3 +283,36 @@ def get_expiring(days: int = 7):
 def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "version": "0.1.0"}
+
+
+# Image endpoints
+@app.post("/api/images/upload")
+async def upload_image(file: UploadFile = File(...)):
+    """Upload an image and return its URL."""
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: jpeg, png, gif, webp")
+    
+    # Generate unique filename
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    filepath = IMG_DIR / filename
+    
+    # Save file
+    contents = await file.read()
+    with open(filepath, "wb") as f:
+        f.write(contents)
+    
+    # Return URL
+    return {"url": f"/api/images/{filename}"}
+
+
+@app.get("/api/images/{filename}")
+async def get_image(filename: str):
+    """Serve uploaded images."""
+    filepath = IMG_DIR / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+    from fastapi.responses import FileResponse
+    return FileResponse(filepath)

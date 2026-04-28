@@ -82,6 +82,28 @@ class ProductCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (product.imageUrl != null) ...[
+                  Container(
+                    width: 56,
+                    height: 56,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppTheme.instance.borderColor),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: Image.network(
+                        product.imageUrl!.startsWith('/') ? '/api${product.imageUrl}' : product.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Icons.image_not_supported,
+                          color: AppTheme.instance.textLightColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,6 +115,8 @@ class ProductCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: AppTheme.instance.textColor,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(

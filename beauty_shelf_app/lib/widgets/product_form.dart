@@ -30,6 +30,8 @@ class _ProductFormState extends State<ProductForm> {
   late bool _isOpened;
   DateTime? _openedDate;
   late int _expiryDaysAfterOpen;
+  String? _imageUrl;
+  bool _isUploadingImage = false;
   
   bool _isLookingUp = false;
   String? _lookupResult;
@@ -47,6 +49,7 @@ class _ProductFormState extends State<ProductForm> {
     _isOpened = p?.isOpened ?? false;
     _openedDate = p?.openedDate;
     _expiryDaysAfterOpen = p?.expiryDaysAfterOpen ?? 30;
+    _imageUrl = p?.imageUrl;
   }
 
   @override
@@ -108,8 +111,29 @@ class _ProductFormState extends State<ProductForm> {
         isOpened: _isOpened,
         openedDate: _isOpened ? _openedDate : null,
         expiryDaysAfterOpen: _expiryDaysAfterOpen,
+        imageUrl: _imageUrl,
       );
       widget.onSave(product);
+    }
+  }
+
+  Future<void> _uploadImage() async {
+    setState(() => _isUploadingImage = true);
+    try {
+      final url = await _api.uploadImage();
+      if (url != null) {
+        setState(() => _imageUrl = url);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ошибка загрузки изображения')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+      }
     }
   }
 
@@ -229,6 +253,51 @@ class _ProductFormState extends State<ProductForm> {
                   ),
                 ),
               ],
+              const SizedBox(height: 16),
+
+              // Image picker
+              Row(
+                children: [
+                  if (_imageUrl != null) ...[
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppTheme.instance.borderColor),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7),
+                        child: Image.network(
+                          _imageUrl!.startsWith('/') ? '/api${_imageUrl}' : _imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  OutlinedButton.icon(
+                    onPressed: _isUploadingImage ? null : _uploadImage,
+                    icon: _isUploadingImage
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.image),
+                    label: Text(_imageUrl != null ? 'Заменить фото' : 'Добавить фото'),
+                  ),
+                  if (_imageUrl != null) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () => setState(() => _imageUrl = null),
+                      icon: const Icon(Icons.delete_outline),
+                      color: AppTheme.instance.warningColor,
+                    ),
+                  ],
+                ],
+              ),
               const SizedBox(height: 16),
 
               // Name

@@ -63,7 +63,7 @@ class SettingsScreen extends StatelessWidget {
               
               const SizedBox(height: 24),
               
-              // Custom colors - compact
+              // Custom colors
               Text(
                 'Свой цвет',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
@@ -77,33 +77,7 @@ class SettingsScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.borderColor),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _HexColorInput(
-                        label: 'Основной',
-                        currentColor: theme.primaryColor,
-                        onColorChanged: (color) {
-                          if (color != null) {
-                            AppTheme.instance.setCustomColors(color, theme.backgroundColor);
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _HexColorInput(
-                        label: 'Фон',
-                        currentColor: theme.backgroundColor,
-                        onColorChanged: (color) {
-                          if (color != null) {
-                            AppTheme.instance.setCustomColors(theme.primaryColor, color);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+                child: _CustomColorSection(),
               ),
               
               const SizedBox(height: 24),
@@ -207,6 +181,237 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
+class _CustomColorSection extends StatefulWidget {
+  const _CustomColorSection();
+
+  @override
+  State<_CustomColorSection> createState() => _CustomColorSectionState();
+}
+
+class _CustomColorSectionState extends State<_CustomColorSection> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: AppTheme.instance,
+      builder: (context, _) {
+        final theme = AppTheme.instance;
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TabBar(
+              controller: _tabController,
+              labelColor: theme.primaryColor,
+              unselectedLabelColor: theme.textLightColor,
+              indicatorColor: theme.primaryColor,
+              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: const TextStyle(fontSize: 12),
+              tabs: const [
+                Tab(text: 'Основной'),
+                Tab(text: 'Фон'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 100,
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _ColorPickerColumn(
+                    currentColor: theme.primaryColor,
+                    onColorSelected: (color) {
+                      AppTheme.instance.setCustomColors(color, theme.backgroundColor);
+                    },
+                  ),
+                  _ColorPickerColumn(
+                    currentColor: theme.backgroundColor,
+                    onColorSelected: (color) {
+                      AppTheme.instance.setCustomColors(theme.primaryColor, color);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ColorPickerColumn extends StatelessWidget {
+  const _ColorPickerColumn({
+    required this.currentColor,
+    required this.onColorSelected,
+  });
+
+  final Color currentColor;
+  final ValueChanged<Color> onColorSelected;
+
+  static const _palette = [
+    0xFFE8B4BC, 0xFFE8A7B4, 0xFFD9848C, 0xFFE88C8C,
+    0xFFB4A7E8, 0xFFA7B4E8, 0xFF9B8AD9, 0xFF8A7CC9,
+    0xFFA7C4E8, 0xFFA7D4E8, 0xFF8FC9A3, 0xFF7CB98C,
+    0xFFA7E8C4, 0xFFD4E8A7, 0xFFE8D4A7, 0xFFE8C4A7,
+    0xFF666666, 0xFF888888, 0xFFAAAAAA, 0xFFCCCCCC,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: currentColor,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: theme.borderColor),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CompactHexInput(
+                currentColor: currentColor,
+                onColorChanged: onColorSelected,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _palette.map((colorValue) {
+                final color = Color(colorValue);
+                final isSelected = currentColor.value == color.value;
+                
+                return GestureDetector(
+                  onTap: () => onColorSelected(color),
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? theme.textColor : theme.borderColor,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactHexInput extends StatefulWidget {
+  const _CompactHexInput({required this.currentColor, required this.onColorChanged});
+
+  final Color currentColor;
+  final ValueChanged<Color> onColorChanged;
+
+  @override
+  State<_CompactHexInput> createState() => _CompactHexInputState();
+}
+
+class _CompactHexInputState extends State<_CompactHexInput> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _colorToHex(widget.currentColor));
+  }
+
+  @override
+  void didUpdateWidget(_CompactHexInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentColor != widget.currentColor) {
+      _controller.text = _colorToHex(widget.currentColor);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String _colorToHex(Color color) {
+    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+  }
+
+  Color? _hexToColor(String hex) {
+    final cleaned = hex.replaceAll('#', '').toUpperCase();
+    if (cleaned.length != 6) return null;
+    final value = int.tryParse('FF$cleaned', radix: 16);
+    return value != null ? Color(value) : null;
+  }
+
+  void _onChanged(String value) {
+    final color = _hexToColor(value);
+    if (color != null) {
+      widget.onColorChanged(color);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+    
+    return TextField(
+      controller: _controller,
+      onChanged: _onChanged,
+      decoration: InputDecoration(
+        hintText: '#E8B4BC',
+        hintStyle: TextStyle(color: theme.textLightColor, fontSize: 12),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: BorderSide(color: theme.borderColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: BorderSide(color: theme.borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: BorderSide(color: theme.primaryColor, width: 2),
+        ),
+      ),
+      style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: theme.textColor),
+    );
+  }
+}
+
 class _PresetChip extends StatelessWidget {
   const _PresetChip({
     required this.name,
@@ -270,124 +475,6 @@ class _PresetChip extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _HexColorInput extends StatefulWidget {
-  const _HexColorInput({required this.label, required this.currentColor, required this.onColorChanged});
-
-  final String label;
-  final Color currentColor;
-  final ValueChanged<Color?> onColorChanged;
-
-  @override
-  State<_HexColorInput> createState() => _HexColorInputState();
-}
-
-class _HexColorInputState extends State<_HexColorInput> {
-  late TextEditingController _controller;
-  bool _isValid = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: _colorToHex(widget.currentColor));
-  }
-
-  @override
-  void didUpdateWidget(_HexColorInput oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentColor != widget.currentColor) {
-      _controller.text = _colorToHex(widget.currentColor);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  String _colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
-  }
-
-  Color? _hexToColor(String hex) {
-    final cleaned = hex.replaceAll('#', '').toUpperCase();
-    if (cleaned.length != 6) return null;
-    final value = int.tryParse('FF$cleaned', radix: 16);
-    return value != null ? Color(value) : null;
-  }
-
-  void _onChanged(String value) {
-    final color = _hexToColor(value);
-    setState(() {
-      _isValid = color != null || value.isEmpty;
-    });
-    widget.onColorChanged(color);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = AppTheme.instance;
-    final color = _hexToColor(_controller.text);
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.label,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.textColor),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: color ?? widget.currentColor,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: theme.borderColor),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                onChanged: _onChanged,
-                decoration: InputDecoration(
-                  hintText: '#E8B4BC',
-                  hintStyle: TextStyle(color: theme.textLightColor, fontSize: 12),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: theme.borderColor),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(
-                      color: _isValid ? theme.borderColor : theme.dangerColor,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(
-                      color: _isValid ? theme.primaryColor : theme.dangerColor,
-                      width: 2,
-                    ),
-                  ),
-                  errorText: _isValid ? null : '!',
-                  errorStyle: const TextStyle(fontSize: 0, height: 0),
-                ),
-                style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: theme.textColor),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

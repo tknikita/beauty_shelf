@@ -64,9 +64,13 @@ class AppTheme extends ChangeNotifier {
       textColor = _darkText;
       textLightColor = _darkTextLight;
       borderColor = _darkBorder;
-      okBgColor = const Color(0xFF1A2E1B);
-      warningBgColor = const Color(0xFF2E2A1B);
-      dangerBgColor = const Color(0xFF2E1A1B);
+      // Brighter badge colors for dark mode visibility
+      okBgColor = const Color(0xFF1B3D22);
+      okColor = const Color(0xFF7DD49A);
+      warningBgColor = const Color(0xFF3D2E1B);
+      warningColor = const Color(0xFFE8C77C);
+      dangerBgColor = const Color(0xFF3D1B1B);
+      dangerColor = const Color(0xFFE87C7C);
       selectionColor = const Color(0xFFE8B4BC);
       inputFocusColor = const Color(0xFFE8B4BC);
     } else {
@@ -96,6 +100,11 @@ class AppTheme extends ChangeNotifier {
   void applyPreset(Color primary, Color background) {
     primaryColor = primary;
     backgroundColor = background;
+    // In dark mode, only change primary/accent, keep dark surface/text
+    if (_isDarkMode) {
+      surfaceColor = const Color(0xFF2A2A2A);
+      borderColor = _darkBorder;
+    }
     adjustColors();
     _saveToStorage();
     notifyListeners();

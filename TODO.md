@@ -10,34 +10,23 @@
 
 ### High Priority
 - [x] Manual HEX color input in settings
-  - [x] Allow users to enter custom colors
-  - [x] Color picker or HEX input field
-  - [x] Validate color format (#RRGGBB)
-  - [x] Clickable color palette (tabs for primary/background)
+- [ ] Product images
+  - Add image upload to products
+  - Display image in cards
+  - Store images locally or via API
+- [ ] Font customization
+  - Font size selection (small/medium/large)
+  - Persist in localStorage
 
 ### Medium Priority
 - [x] Compact settings screen layout
-  - [x] Horizontal scrollable presets
-  - [x] Smaller preset cards (64px circular swatches)
-  - [x] Compact HEX inputs side by side
+- [x] Dark mode support
 
 ### Low Priority / Ideas
 - [x] Barcode entry dialog
-  - [x] Manual barcode input
-  - [x] Auto-lookup on submit
-- [ ] Camera-based barcode scanning (Web BarcodeDetector API)
-- [x] Dark mode support
-  - [x] Toggle switch in Settings
-  - [x] Dark colors for background, text, borders
-  - [x] Persisted in localStorage
-- [ ] Product categories custom management
 - [x] Export/Import data (JSON)
-  - [x] Export all products to JSON file
-  - [x] Import products from JSON file
 - [x] Notifications for expiring products
-  - [x] Banner with expiring count on home screen
-  - [x] Modal with list of expiring products
-  - [x] Sorted by days remaining
+- [ ] Camera-based barcode scanning
 - [ ] PWA support for offline mode
 - [ ] Mobile native app (iOS/Android)
 

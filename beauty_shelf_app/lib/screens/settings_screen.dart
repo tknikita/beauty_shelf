@@ -51,6 +51,51 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 32),
               
               Text(
+                'Свой цвет',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Введите HEX-код цвета',
+                style: TextStyle(fontSize: 14, color: theme.textLightColor),
+              ),
+              const SizedBox(height: 16),
+              
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.borderColor),
+                ),
+                child: Column(
+                  children: [
+                    _HexColorInput(
+                      label: 'Основной цвет',
+                      currentColor: theme.primaryColor,
+                      onColorChanged: (color) {
+                        if (color != null) {
+                          AppTheme.instance.setCustomColors(color, theme.backgroundColor);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _HexColorInput(
+                      label: 'Цвет фона',
+                      currentColor: theme.backgroundColor,
+                      onColorChanged: (color) {
+                        if (color != null) {
+                          AppTheme.instance.setCustomColors(theme.primaryColor, color);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 32),
+              
+              Text(
                 'Превью',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
               ),
@@ -143,6 +188,123 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _HexColorInput extends StatefulWidget {
+  const _HexColorInput({required this.label, required this.currentColor, required this.onColorChanged});
+
+  final String label;
+  final Color currentColor;
+  final ValueChanged<Color?> onColorChanged;
+
+  @override
+  State<_HexColorInput> createState() => _HexColorInputState();
+}
+
+class _HexColorInputState extends State<_HexColorInput> {
+  late TextEditingController _controller;
+  bool _isValid = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _colorToHex(widget.currentColor));
+  }
+
+  @override
+  void didUpdateWidget(_HexColorInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentColor != widget.currentColor) {
+      _controller.text = _colorToHex(widget.currentColor);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String _colorToHex(Color color) {
+    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+  }
+
+  Color? _hexToColor(String hex) {
+    final cleaned = hex.replaceAll('#', '').toUpperCase();
+    if (cleaned.length != 6) return null;
+    final value = int.tryParse('FF$cleaned', radix: 16);
+    return value != null ? Color(value) : null;
+  }
+
+  void _onChanged(String value) {
+    final color = _hexToColor(value);
+    setState(() {
+      _isValid = color != null || value.isEmpty;
+    });
+    widget.onColorChanged(color);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+    final color = _hexToColor(_controller.text);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.label,
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: theme.textColor),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color ?? widget.currentColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.borderColor),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                onChanged: _onChanged,
+                decoration: InputDecoration(
+                  hintText: '#E8B4BC',
+                  hintStyle: TextStyle(color: theme.textLightColor),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: theme.borderColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: _isValid ? theme.borderColor : theme.dangerColor,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: _isValid ? theme.primaryColor : theme.dangerColor,
+                      width: 2,
+                    ),
+                  ),
+                  errorText: _isValid ? null : 'Неверный формат',
+                ),
+                style: TextStyle(fontFamily: 'monospace', fontSize: 14, color: theme.textColor),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

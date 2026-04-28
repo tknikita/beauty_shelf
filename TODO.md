@@ -9,10 +9,10 @@
 ## Pending
 
 ### High Priority
-- [ ] Manual HEX color input in settings
-  - Allow users to enter custom colors
-  - Color picker or HEX input field
-  - Validate color format (#RRGGBB)
+- [x] Manual HEX color input in settings
+  - [x] Allow users to enter custom colors
+  - [x] Color picker or HEX input field
+  - [x] Validate color format (#RRGGBB)
 
 ### Medium Priority
 - [ ] Compact settings screen layout

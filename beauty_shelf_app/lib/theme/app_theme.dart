@@ -29,6 +29,10 @@ class AppTheme extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setCustomColors(Color primary, Color background) {
+    applyPreset(primary, background);
+  }
+
   void adjustColors() {
     final hsl = HSLColor.fromColor(primaryColor);
     primaryDarkColor = HSLColor.fromAHSL(

@@ -65,18 +65,21 @@ class ProductTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
 
-    return ListView.builder(
-      itemCount: products.length + 1, // +1 for header
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          // Header row
-          return Container(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.borderColor),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: theme.backgroundColor,
-              border: Border(
-                bottom: BorderSide(color: theme.borderColor),
-              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             ),
             child: Row(
               children: [
@@ -87,12 +90,20 @@ class ProductTable extends StatelessWidget {
                 const SizedBox(width: 80),
               ],
             ),
-          );
-        }
-
-        final p = products[index - 1];
-        return _buildRow(p, theme);
-      },
+          ),
+          // Rows
+          ...products.map((p) => _buildRow(p, theme)).toList(),
+          // Empty state
+          if (products.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                'Нет продуктов',
+                style: TextStyle(color: theme.textLightColor),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -114,105 +125,104 @@ class ProductTable extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
         border: Border(
           bottom: BorderSide(color: theme.borderColor, width: 0.5),
         ),
       ),
       child: Row(
         children: [
-          // Name
-          Expanded(
-            flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  p.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: theme.textColor,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  Categories.getCategoryName(p.type, p.category),
-                  style: TextStyle(fontSize: 12, color: theme.textLightColor),
-                ),
-              ],
-            ),
-          ),
-          // Type
-          Expanded(
-            flex: 1,
-            child: Text(
-              p.type == 'care' ? 'Уход' : 'Декор.',
-              style: TextStyle(fontSize: 13, color: theme.textLightColor),
-            ),
-          ),
-          // Expiry
-          Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _formatDate(p.effectiveExpiryDate),
-                  style: TextStyle(fontSize: 13, color: theme.textColor),
-                ),
-                if (p.isOpened)
-                  Text(
-                    'Вскрыто ${_getOpenedDaysAgo(p)} дн.',
-                    style: TextStyle(fontSize: 11, color: theme.textLightColor),
-                  ),
-              ],
-            ),
-          ),
-          // Status
-          Expanded(
-            flex: 1,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getStatusBgColor(p.status),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                _getStatusText(p.status),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: _getStatusColor(p.status),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-          // Actions
+          Expanded(flex: 3, child: _buildNameCell(p, theme)),
+          Expanded(flex: 1, child: _buildTypeCell(p, theme)),
+          Expanded(flex: 2, child: _buildExpiryCell(p, theme)),
+          Expanded(flex: 1, child: _buildStatusCell(p)),
           SizedBox(
             width: 80,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  onPressed: () => onEdit(p),
-                  color: theme.textLightColor,
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                  padding: EdgeInsets.zero,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  onPressed: () => onDelete(p),
-                  color: theme.dangerColor,
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                  padding: EdgeInsets.zero,
-                ),
-              ],
-            ),
+            child: _buildActionsCell(p, theme),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNameCell(Product p, dynamic theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          p.name,
+          style: TextStyle(fontWeight: FontWeight.w500, color: theme.textColor),
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          Categories.getCategoryName(p.type, p.category),
+          style: TextStyle(fontSize: 12, color: theme.textLightColor),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTypeCell(Product p, dynamic theme) {
+    return Text(
+      p.type == 'care' ? 'Уход' : 'Декор.',
+      style: TextStyle(fontSize: 13, color: theme.textLightColor),
+    );
+  }
+
+  Widget _buildExpiryCell(Product p, dynamic theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _formatDate(p.effectiveExpiryDate),
+          style: TextStyle(fontSize: 13, color: theme.textColor),
+        ),
+        if (p.isOpened)
+          Text(
+            'Вскрыто ${_getOpenedDaysAgo(p)} дн.',
+            style: TextStyle(fontSize: 11, color: theme.textLightColor),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildStatusCell(Product p) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: _getStatusBgColor(p.status),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        _getStatusText(p.status),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: _getStatusColor(p.status),
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildActionsCell(Product p, dynamic theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.edit_outlined, size: 18),
+          onPressed: () => onEdit(p),
+          color: theme.textLightColor,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          padding: EdgeInsets.zero,
+        ),
+        IconButton(
+          icon: const Icon(Icons.delete_outline, size: 18),
+          onPressed: () => onDelete(p),
+          color: theme.dangerColor,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          padding: EdgeInsets.zero,
+        ),
+      ],
     );
   }
 }

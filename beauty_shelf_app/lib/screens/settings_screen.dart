@@ -618,6 +618,10 @@ class _PresetChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
+    final isDark = theme.isDarkMode;
+    // In dark mode, use dark backgrounds for presets
+    final displayBg = isDark ? const Color(0xFF2A2A2A) : background;
+    final displayBorder = isDark ? theme.borderColor : theme.borderColor;
     
     return GestureDetector(
       onTap: () {
@@ -626,6 +630,7 @@ class _PresetChip extends StatelessWidget {
           SnackBar(
             content: Text('Применён: $name'),
             behavior: SnackBarBehavior.floating,
+            backgroundColor: isDark ? const Color(0xFF3A3A3A) : null,
             duration: const Duration(seconds: 1),
           ),
         );
@@ -633,10 +638,10 @@ class _PresetChip extends StatelessWidget {
       child: Container(
         width: 64,
         decoration: BoxDecoration(
-          color: background,
+          color: displayBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? primary : theme.borderColor,
+            color: isSelected ? primary : displayBorder,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -649,7 +654,7 @@ class _PresetChip extends StatelessWidget {
               decoration: BoxDecoration(
                 color: primary,
                 shape: BoxShape.circle,
-                border: Border.all(color: background, width: 2),
+                border: Border.all(color: displayBg, width: 2),
               ),
             ),
             const SizedBox(height: 6),

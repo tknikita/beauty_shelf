@@ -17,25 +17,25 @@ class ProductCard extends StatelessWidget {
   Color _getStatusColor() {
     switch (product.status) {
       case ProductStatus.ok:
-        return AppTheme.okColor;
+        return AppTheme.instance.okColor;
       case ProductStatus.warning:
-        return AppTheme.warningColor;
+        return AppTheme.instance.warningColor;
       case ProductStatus.danger:
-        return AppTheme.dangerColor;
+        return AppTheme.instance.dangerColor;
       case ProductStatus.expired:
-        return AppTheme.dangerColor;
+        return AppTheme.instance.dangerColor;
     }
   }
 
   Color _getStatusBgColor() {
     switch (product.status) {
       case ProductStatus.ok:
-        return AppTheme.okBgColor;
+        return AppTheme.instance.okBgColor;
       case ProductStatus.warning:
-        return AppTheme.warningBgColor;
+        return AppTheme.instance.warningBgColor;
       case ProductStatus.danger:
       case ProductStatus.expired:
-        return AppTheme.dangerBgColor;
+        return AppTheme.instance.dangerBgColor;
     }
   }
 
@@ -71,7 +71,7 @@ class ProductCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppTheme.borderColor),
+        side: BorderSide(color: AppTheme.instance.borderColor),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -90,7 +90,7 @@ class ProductCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textColor,
+                          color: AppTheme.instance.textColor,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -98,14 +98,14 @@ class ProductCard extends StatelessWidget {
                         product.type == 'care' ? 'Уходовая' : 'Декоративная',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.textLightColor,
+                          color: AppTheme.instance.textLightColor,
                         ),
                       ),
                     ],
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert, color: AppTheme.textLightColor, size: 20),
+                  icon: Icon(Icons.more_vert, color: AppTheme.instance.textLightColor, size: 20),
                   onSelected: (value) {
                     if (value == 'edit') onEdit();
                     if (value == 'delete') onDelete();
@@ -125,9 +125,9 @@ class ProductCard extends StatelessWidget {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline, size: 18, color: AppTheme.dangerColor),
+                          Icon(Icons.delete_outline, size: 18, color: AppTheme.instance.dangerColor),
                           const SizedBox(width: 8),
-                          Text('Удалить', style: TextStyle(color: AppTheme.dangerColor)),
+                          Text('Удалить', style: TextStyle(color: AppTheme.instance.dangerColor)),
                         ],
                       ),
                     ),
@@ -144,11 +144,11 @@ class ProductCard extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 4),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 12, color: AppTheme.textLightColor),
+                    Icon(Icons.calendar_today, size: 12, color: AppTheme.instance.textLightColor),
                     const SizedBox(width: 4),
                     Text(
                       'Вскрыто ${_getOpenedDaysAgo()} дн. назад',
-                      style: TextStyle(fontSize: 11, color: AppTheme.textLightColor),
+                      style: TextStyle(fontSize: 11, color: AppTheme.instance.textLightColor),
                     ),
                   ],
                 ),
@@ -180,7 +180,7 @@ class ProductCard extends StatelessWidget {
       padding: const EdgeInsets.only(top: 4),
       child: RichText(
         text: TextSpan(
-          style: TextStyle(fontSize: 13, color: AppTheme.textLightColor),
+          style: TextStyle(fontSize: 13, color: AppTheme.instance.textLightColor),
           children: [
             TextSpan(
               text: label,

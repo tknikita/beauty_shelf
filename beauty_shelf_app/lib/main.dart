@@ -3,52 +3,70 @@ import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const BeautyShelfApp());
 }
 
-class BeautyShelfApp extends StatelessWidget {
+class BeautyShelfApp extends StatefulWidget {
   const BeautyShelfApp({super.key});
 
   @override
+  State<BeautyShelfApp> createState() => _BeautyShelfAppState();
+}
+
+class _BeautyShelfAppState extends State<BeautyShelfApp> {
+  @override
+  void initState() {
+    super.initState();
+    AppTheme.instance.addListener(_onThemeChange);
+  }
+
+  @override
+  void dispose() {
+    AppTheme.instance.removeListener(_onThemeChange);
+    super.dispose();
+  }
+
+  void _onThemeChange() {
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+    
     return MaterialApp(
       title: 'Beauty Shelf',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: AppTheme.primaryColor,
-          surface: AppTheme.backgroundColor,
+          seedColor: theme.primaryColor,
+          surface: theme.backgroundColor,
         ),
         useMaterial3: true,
         fontFamily: 'Inter',
-        primaryColor: AppTheme.primaryColor,
-        scaffoldBackgroundColor: AppTheme.backgroundColor,
+        primaryColor: theme.primaryColor,
+        scaffoldBackgroundColor: theme.backgroundColor,
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.white,
-          foregroundColor: AppTheme.textColor,
+          foregroundColor: theme.textColor,
           elevation: 0,
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
+            backgroundColor: theme.primaryColor,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppTheme.textColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            foregroundColor: theme.textColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),

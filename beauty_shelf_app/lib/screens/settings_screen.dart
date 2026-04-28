@@ -1,83 +1,20 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
-class SettingsScreen extends StatefulWidget {
-  final VoidCallback onThemeChanged;
-
-  const SettingsScreen({super.key, required this.onThemeChanged});
-
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  final _presets = [
-    {
-      'name': 'Розовый',
-      'primary': 'E8B4BC',
-      'primaryDark': 'D49BA5',
-      'background': 'FDF9FA',
-    },
-    {
-      'name': 'Лаванда',
-      'primary': 'B4A7E8',
-      'primaryDark': '9A87D4',
-      'background': 'F5F3FA',
-    },
-    {
-      'name': 'Мята',
-      'primary': 'A7E8C4',
-      'primaryDark': '87D4A5',
-      'background': 'F3FAF5',
-    },
-    {
-      'name': 'Персик',
-      'primary': 'E8C4A7',
-      'primaryDark': 'D4A987',
-      'background': 'FAF5F3',
-    },
-    {
-      'name': 'Голубой',
-      'primary': 'A7C4E8',
-      'primaryDark': '87A5D4',
-      'background': 'F3F5FA',
-    },
-    {
-      'name': 'Монохром',
-      'primary': '666666',
-      'primaryDark': '333333',
-      'background': 'FAFAFA',
-    },
-  ];
-
-  String _currentPreset = 'Розовый';
-
-  void _applyPreset(Map<String, dynamic> preset) {
-    setState(() {
-      _currentPreset = preset['name'] ?? '';
-      AppTheme.primaryColor = Color(int.parse('FF${preset['primary']}', radix: 16));
-      AppTheme.primaryDarkColor = Color(int.parse('FF${preset['primaryDark']}', radix: 16));
-      AppTheme.backgroundColor = Color(int.parse('FF${preset['background']}', radix: 16));
-    });
-    widget.onThemeChanged();
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Применён: ${preset['name']}'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: theme.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Text('Настройки', style: TextStyle(color: AppTheme.textColor)),
+        title: Text('Настройки', style: TextStyle(color: theme.textColor)),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppTheme.textColor),
+          icon: Icon(Icons.arrow_back, color: theme.textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -86,85 +23,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Text(
             'Цветовая тема',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textColor),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
           ),
           const SizedBox(height: 8),
           Text(
             'Выберите цветовую схему',
-            style: TextStyle(fontSize: 14, color: AppTheme.textLightColor),
+            style: TextStyle(fontSize: 14, color: theme.textLightColor),
           ),
           const SizedBox(height: 16),
           
-          // Compact horizontal scroll
-          SizedBox(
-            height: 80,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _presets.length,
-              itemBuilder: (context, index) {
-                final preset = _presets[index];
-                final isSelected = _currentPreset == preset['name'];
-                final color = Color(int.parse('FF${preset['primary']}', radix: 16));
-                final bgColor = Color(int.parse('FF${preset['background']}', radix: 16));
-                
-                return GestureDetector(
-                  onTap: () => _applyPreset(preset),
-                  child: Container(
-                    width: 90,
-                    margin: EdgeInsets.only(right: index < _presets.length - 1 ? 12 : 0),
-                    decoration: BoxDecoration(
-                      color: bgColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? color : AppTheme.borderColor,
-                        width: isSelected ? 2 : 1,
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        Container(
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: color,
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 8,
-                          left: 8,
-                          right: 8,
-                          child: Row(
-                            children: [
-                              Icon(
-                                isSelected ? Icons.check_circle : Icons.circle_outlined,
-                                color: isSelected ? color : AppTheme.textLightColor,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  preset['name'] ?? '',
-                                  style: const TextStyle(fontSize: 11),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _PresetCard(name: 'Розовый', primary: const Color(0xFFE8B4BC), background: const Color(0xFFFDF9FA)),
+              _PresetCard(name: 'Лаванда', primary: const Color(0xFFB4A7E8), background: const Color(0xFFF5F3FA)),
+              _PresetCard(name: 'Мята', primary: const Color(0xFFA7E8C4), background: const Color(0xFFF3FAF5)),
+              _PresetCard(name: 'Персик', primary: const Color(0xFFE8C4A7), background: const Color(0xFFFAF5F3)),
+              _PresetCard(name: 'Голубой', primary: const Color(0xFFA7C4E8), background: const Color(0xFFF3F5FA)),
+              _PresetCard(name: 'Монохром', primary: const Color(0xFF666666), background: const Color(0xFFFAFAFA)),
+            ],
           ),
           
           const SizedBox(height: 32),
           
           Text(
             'Превью',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textColor),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
           ),
           const SizedBox(height: 16),
           
@@ -173,7 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderColor),
+              border: Border.all(color: theme.borderColor),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,7 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor,
+                        color: theme.primaryColor,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
@@ -192,38 +77,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(width: 12),
                     Text(
                       'Beauty Shelf',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textColor),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Тестовый продукт',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textColor),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Уходовая косметика',
-                  style: TextStyle(fontSize: 12, color: AppTheme.textLightColor),
+                  style: TextStyle(fontSize: 12, color: theme.textLightColor),
                 ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppTheme.okBgColor,
+                    color: theme.okBgColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     'OK · 120 дн.',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.okColor),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {},
-                    child: const Text('Добавить продукт'),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.okColor),
                   ),
                 ),
               ],
@@ -234,7 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           
           Text(
             'О приложении',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textColor),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
           ),
           const SizedBox(height: 16),
           Container(
@@ -242,29 +119,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderColor),
+              border: Border.all(color: theme.borderColor),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Beauty Shelf',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textColor),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Версия 1.0.0',
-                  style: TextStyle(fontSize: 14, color: AppTheme.textLightColor),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Трекер косметики с отслеживанием сроков годности.',
-                  style: TextStyle(fontSize: 14, color: AppTheme.textColor),
+                  style: TextStyle(fontSize: 14, color: theme.textLightColor),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PresetCard extends StatelessWidget {
+  final String name;
+  final Color primary;
+  final Color background;
+
+  const _PresetCard({
+    required this.name,
+    required this.primary,
+    required this.background,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+    final isSelected = theme.primaryColor.value == primary.value;
+
+    return GestureDetector(
+      onTap: () {
+        theme.applyPreset(primary, background);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Применён: $name'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      },
+      child: Container(
+        width: 100,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? primary : theme.borderColor,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              height: 30,
+              decoration: BoxDecoration(
+                color: primary,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: theme.textColor,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

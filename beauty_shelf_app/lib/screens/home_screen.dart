@@ -28,7 +28,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    AppTheme.instance.addListener(_onThemeChanged);
     _loadProducts();
+  }
+
+  @override
+  void dispose() {
+    AppTheme.instance.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    setState(() {});
   }
 
   Future<void> _loadProducts() async {
@@ -140,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _showSnackBar('Ошибка удаления');
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.dangerColor),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.instance.dangerColor),
             child: const Text('Удалить'),
           ),
         ],
@@ -158,9 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SettingsScreen(
-          onThemeChanged: () => setState(() {}),
-        ),
+        builder: (context) => const SettingsScreen(),
       ),
     );
   }
@@ -168,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppTheme.instance.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -178,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor,
+                color: AppTheme.instance.primaryColor,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
@@ -189,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textColor,
+                color: AppTheme.instance.textColor,
               ),
             ),
           ],
@@ -199,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: AppTheme.backgroundColor,
+              color: AppTheme.instance.backgroundColor,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -207,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 IconButton(
                   icon: Icon(
                     Icons.grid_view_rounded,
-                    color: !_isTableView ? AppTheme.primaryDarkColor : Colors.grey[400],
+                    color: !_isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
                     size: 20,
                   ),
                   onPressed: _toggleView,
@@ -215,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 IconButton(
                   icon: Icon(
                     Icons.table_rows_rounded,
-                    color: _isTableView ? AppTheme.primaryDarkColor : Colors.grey[400],
+                    color: _isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
                     size: 20,
                   ),
                   onPressed: _toggleView,
@@ -240,9 +249,9 @@ class _HomeScreenState extends State<HomeScreen> {
               onChanged: (v) => _applyFilters(),
               decoration: InputDecoration(
                 hintText: 'Поиск...',
-                prefixIcon: Icon(Icons.search, color: AppTheme.textLightColor),
+                prefixIcon: Icon(Icons.search, color: AppTheme.instance.textLightColor),
                 filled: true,
-                fillColor: AppTheme.backgroundColor,
+                fillColor: AppTheme.instance.backgroundColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
@@ -262,21 +271,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: 'Все',
                   selected: _filter == 'all',
                   onTap: () => _setFilter('all'),
-                  color: AppTheme.primaryColor,
+                  color: AppTheme.instance.primaryColor,
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
                   label: 'Уход',
                   selected: _filter == 'care',
                   onTap: () => _setFilter('care'),
-                  color: AppTheme.primaryColor,
+                  color: AppTheme.instance.primaryColor,
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
                   label: 'Декоративная',
                   selected: _filter == 'decorative',
                   onTap: () => _setFilter('decorative'),
-                  color: AppTheme.primaryColor,
+                  color: AppTheme.instance.primaryColor,
                 ),
               ],
             ),
@@ -299,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddModal,
-        backgroundColor: AppTheme.primaryColor,
+        backgroundColor: AppTheme.instance.primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -402,14 +411,14 @@ class _FilterChip extends StatelessWidget {
           color: selected ? color : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? color : AppTheme.borderColor,
+            color: selected ? color : AppTheme.instance.borderColor,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
-            color: selected ? Colors.white : AppTheme.textColor,
+            color: selected ? Colors.white : AppTheme.instance.textColor,
           ),
         ),
       ),

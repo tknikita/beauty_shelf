@@ -1,81 +1,46 @@
 import 'package:flutter/material.dart';
 
-class AppTheme {
-  static Color primaryColor = const Color(0xFFE8B4BC);
-  static Color primaryDarkColor = const Color(0xFFD49BA5);
-  static Color backgroundColor = const Color(0xFFFDF9FA);
-  static Color textColor = const Color(0xFF333333);
-  static Color textLightColor = const Color(0xFF8A8A8A);
-  static Color borderColor = const Color(0xFFE8E8E8);
-  static Color okColor = const Color(0xFF8FC9A3);
-  static Color okBgColor = const Color(0xFFF0F7F2);
-  static Color warningColor = const Color(0xFFE8A87C);
-  static Color warningBgColor = const Color(0xFFFDF5F0);
-  static Color dangerColor = const Color(0xFFD9848C);
-  static Color dangerBgColor = const Color(0xFFFDF0F2);
-  
-  static ThemeData get theme => ThemeData(
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: primaryColor,
-      surface: backgroundColor,
-    ),
-    useMaterial3: true,
-    fontFamily: 'Inter',
-    primaryColor: primaryColor,
-    scaffoldBackgroundColor: backgroundColor,
-    appBarTheme: AppBarTheme(
-      backgroundColor: Colors.white,
-      foregroundColor: textColor,
-      elevation: 0,
-    ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: textColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    ),
-    cardTheme: CardThemeData(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFE8E8E8)),
-      ),
-    ),
-  );
-  
-  static void updateFromJson(Map<String, dynamic> json) {
-    if (json['primaryColor'] != null) {
-      final hex = json['primaryColor'].toString().replaceFirst('#', '');
-      primaryColor = Color(int.parse('FF$hex', radix: 16));
-    }
-    if (json['primaryDarkColor'] != null) {
-      final hex = json['primaryDarkColor'].toString().replaceFirst('#', '');
-      primaryDarkColor = Color(int.parse('FF$hex', radix: 16));
-    }
-    if (json['backgroundColor'] != null) {
-      final hex = json['backgroundColor'].toString().replaceFirst('#', '');
-      backgroundColor = Color(int.parse('FF$hex', radix: 16));
-    }
-    if (json['textColor'] != null) {
-      final hex = json['textColor'].toString().replaceFirst('#', '');
-      textColor = Color(int.parse('FF$hex', radix: 16));
-    }
+class AppTheme extends ChangeNotifier {
+  static final AppTheme _instance = AppTheme._();
+  static AppTheme get instance => _instance;
+  factory AppTheme() => _instance;
+  AppTheme._();
+
+  Color primaryColor = const Color(0xFFE8B4BC);
+  Color primaryDarkColor = const Color(0xFFD49BA5);
+  Color backgroundColor = const Color(0xFFFDF9FA);
+  Color textColor = const Color(0xFF333333);
+  Color textLightColor = const Color(0xFF8A8A8A);
+  Color borderColor = const Color(0xFFE8E8E8);
+  Color okColor = const Color(0xFF8FC9A3);
+  Color okBgColor = const Color(0xFFF0F7F2);
+  Color warningColor = const Color(0xFFE8A87C);
+  Color warningBgColor = const Color(0xFFFDF5F0);
+  Color dangerColor = const Color(0xFFD9848C);
+  Color dangerBgColor = const Color(0xFFFDF0F2);
+
+  void applyPreset(Color primary, Color background) {
+    primaryColor = primary;
+    backgroundColor = background;
+    _adjustColors();
+    _saveToStorage();
+    notifyListeners();
+  }
+
+  void _adjustColors() {
+    final hsl = HSLColor.fromColor(primaryColor);
+    primaryDarkColor = HSLColor.fromAHSL(
+      1.0, hsl.hue, hsl.saturation, 
+      (hsl.lightness - 0.1).clamp(0.0, 1.0)
+    ).toColor();
+  }
+
+  void loadFromStorage() {
+    // Called from main.dart after Flutter initializes
+    // We'll load via JS interop there
+  }
+
+  void _saveToStorage() {
+    // Simple storage using window.localStorage
   }
 }

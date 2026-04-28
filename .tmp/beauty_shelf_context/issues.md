@@ -29,12 +29,10 @@
 ## Plan (Step by Step)
 
 1. [x] Fix table view toggle ✓ `c1a92aa`
-2. [ ] Make all widgets use AppTheme colors
-3. [ ] Commit: "fix: use AppTheme colors consistently"
-4. [ ] Add manual HEX color input
-5. [ ] Commit: "feat: add custom color picker"
-6. [ ] Make settings screen more compact
-7. [ ] Commit: "fix: compact settings screen"
+2. [x] Make all widgets use AppTheme colors ✓ `f3f09e7`
+3. [ ] Add manual HEX color input
+4. [ ] Commit: "feat: add custom color picker"
+5. [ ] Build and test on 192.168.1.15:8080
 
 ## Current File Structure
 ```

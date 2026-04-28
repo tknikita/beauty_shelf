@@ -176,9 +176,14 @@ class _ProductFormState extends State<ProductForm> {
                   Expanded(
                     child: TextField(
                       controller: _barcodeController,
+                      style: TextStyle(color: theme.textColor),
                       decoration: InputDecoration(
                         labelText: 'Штрихкод (EAN/UPC)',
+                        labelStyle: TextStyle(color: theme.textColor),
+                        hintStyle: TextStyle(color: theme.textLightColor),
                         border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                         filled: true,
                         fillColor: theme.backgroundColor,
                         suffixIcon: _isLookingUp
@@ -312,9 +317,13 @@ class _ProductFormState extends State<ProductForm> {
               // Name
               TextFormField(
                 controller: _nameController,
+                style: TextStyle(color: theme.textColor),
                 decoration: InputDecoration(
                   labelText: 'Название',
+                  labelStyle: TextStyle(color: theme.textColor),
                   border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                 ),
                 validator: (v) => v == null || v.trim().isEmpty ? 'Введите название' : null,
               ),
@@ -326,10 +335,17 @@ class _ProductFormState extends State<ProductForm> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: _type,
-                      decoration: InputDecoration(labelText: 'Тип', border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor))),
-                      items: const [
-                        DropdownMenuItem(value: 'care', child: Text('Уходовая')),
-                        DropdownMenuItem(value: 'decorative', child: Text('Декоративная')),
+                      dropdownColor: theme.surfaceColor,
+                      decoration: InputDecoration(
+                        labelText: 'Тип',
+                        labelStyle: TextStyle(color: theme.textColor),
+                        border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
+                      ),
+                      items: [
+                        DropdownMenuItem(value: 'care', child: Text('Уходовая', style: TextStyle(color: theme.textColor))),
+                        DropdownMenuItem(value: 'decorative', child: Text('Декоративная', style: TextStyle(color: theme.textColor))),
                       ],
                       onChanged: (v) {
                         setState(() {
@@ -344,9 +360,16 @@ class _ProductFormState extends State<ProductForm> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: categories.containsKey(_category) ? _category : categories.keys.first,
-                      decoration: InputDecoration(labelText: 'Категория', border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor))),
+                      dropdownColor: theme.surfaceColor,
+                      decoration: InputDecoration(
+                        labelText: 'Категория',
+                        labelStyle: TextStyle(color: theme.textColor),
+                        border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
+                      ),
                       items: categories.entries
-                          .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                          .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: TextStyle(color: theme.textColor))))
                           .toList(),
                       onChanged: (v) => setState(() => _category = v!),
                     ),
@@ -358,9 +381,14 @@ class _ProductFormState extends State<ProductForm> {
               // Purpose
               TextFormField(
                 controller: _purposeController,
+                style: TextStyle(color: theme.textColor),
                 decoration: InputDecoration(
                   labelText: 'Назначение',
+                  labelStyle: TextStyle(color: theme.textColor),
+                  hintStyle: TextStyle(color: theme.textLightColor),
                   border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                   hintText: 'Например: Для сухой кожи',
                 ),
               ),
@@ -443,9 +471,13 @@ class _ProductFormState extends State<ProductForm> {
                     Expanded(
                       child: TextFormField(
                         initialValue: _expiryDaysAfterOpen.toString(),
+                        style: TextStyle(color: theme.textColor),
                         decoration: InputDecoration(
                           labelText: 'Срок после вскрытия (дней)',
+                          labelStyle: TextStyle(color: theme.textColor),
                           border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                         ),
                         keyboardType: TextInputType.number,
                         onChanged: (v) => _expiryDaysAfterOpen = int.tryParse(v) ?? 30,
@@ -512,10 +544,14 @@ class _BarcodeEntryDialogState extends State<_BarcodeEntryDialog> {
         children: [
           TextField(
             controller: _controller,
+            style: TextStyle(color: theme.textColor),
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               hintText: '1234567890123',
+              hintStyle: TextStyle(color: theme.textLightColor),
               border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
               filled: true,
               fillColor: theme.backgroundColor,
             ),

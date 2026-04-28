@@ -9,21 +9,23 @@ Cross-platform cosmetics inventory tracker with web frontend and FastAPI backend
 ```
 ┌──────────────────┐     HTTP         ┌─────────────────┐
 │  Nginx (Port 80) │ ───────────────► │  FastAPI (8000) │
-│  + Static HTML   │                  │  + SQLite        │
+│  + Flutter Web   │                  │  + SQLite        │
 └──────────────────┘                  └─────────────────┘
          │
-         ├── Serves: index.html (static HTML/CSS/JS)
+         ├── Serves: Flutter web app
          ├── Proxy: /api/* → backend:8000
          └── Proxy: /ws → backend:8000 (WebSocket)
 ```
 
 ## Components
 
-### Frontend (Static HTML/CSS/JS)
-- Pure HTML/CSS/JavaScript (no framework dependencies)
-- Responsive design with CSS Grid
-- Modern UI with Inter font
-- File: `frontend/index.html`
+### Frontend (Flutter Web)
+- Flutter 3.x with Material Design 3
+- Pink theme (E8B4BC)
+- Product cards with status badges
+- Filter by type with search
+- Add/Edit/Delete products
+- Directory: `beauty_shelf_app/`
 
 ### Backend (FastAPI)
 - Port: 8000

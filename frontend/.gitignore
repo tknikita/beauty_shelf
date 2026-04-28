@@ -1,7 +1,0 @@
-__pycache__/
-*.pyc
-venv/
-build/
-.flet/
-*.log
-.DS_Store

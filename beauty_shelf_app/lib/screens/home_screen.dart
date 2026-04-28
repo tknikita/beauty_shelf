@@ -354,19 +354,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTableView() {
-    return Column(
-      children: [
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: ProductTable(
-              products: _filteredProducts,
-              onEdit: _showEditModal,
-              onDelete: _confirmDelete,
-            ),
-          ),
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ProductTable(
+          products: _filteredProducts,
+          onEdit: _showEditModal,
+          onDelete: _confirmDelete,
         ),
-      ],
+      ),
     );
   }
 

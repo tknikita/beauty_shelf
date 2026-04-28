@@ -91,15 +91,21 @@ class ProductTable extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
-          // Rows
+          // Rows - use Expanded to fill remaining space
           Expanded(
-            child: ListView.builder(
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final p = products[index];
-                return _buildRow(p);
-              },
-            ),
+            child: products.isEmpty
+                ? Center(
+                    child: Text(
+                      'Нет продуктов',
+                      style: TextStyle(color: theme.textLightColor),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      return _buildRow(products[index]);
+                    },
+                  ),
           ),
         ],
       ),

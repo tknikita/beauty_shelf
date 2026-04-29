@@ -333,147 +333,151 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.instance.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppTheme.instance.surfaceColor,
-        elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: AppTheme.instance.primaryColor,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Beauty Shelf',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.instance.textColor,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: AppTheme.instance.backgroundColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            backgroundColor: AppTheme.instance.surfaceColor,
+            elevation: 0,
+            floating: true,
+            snap: true,
+            title: Row(
               children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.grid_view_rounded,
-                    color: !_isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
-                    size: 20,
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppTheme.instance.primaryColor,
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  onPressed: _toggleView,
+                  child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
                 ),
-                IconButton(
-                  icon: Icon(
-                    Icons.table_rows_rounded,
-                    color: _isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
-                    size: 20,
-                  ),
-                  onPressed: _toggleView,
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: _openSettings,
-            color: Colors.grey[600],
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: AppTheme.instance.surfaceColor,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Column(
-              children: [
-                // Expiring products banner
-                _buildExpiringBanner(),
-                const SizedBox(height: 8),
-                TextField(
-                  onChanged: (v) {
-                    setState(() {
-                      _searchQuery = v;
-                      _applyFilters();
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Поиск...',
-                    prefixIcon: Icon(Icons.search, color: AppTheme.instance.textLightColor),
-                    filled: true,
-                    fillColor: AppTheme.instance.backgroundColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                const SizedBox(width: 8),
+                Text(
+                  'Beauty Shelf',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.instance.textColor,
                   ),
                 ),
               ],
             ),
-          ),
-          Container(
-            color: AppTheme.instance.surfaceColor,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+            actions: [
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.instance.backgroundColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
                   children: [
-                    _FilterChip(
-                      label: 'Все',
-                      selected: _typeFilter == 'all',
-                      onTap: () => _setTypeFilter('all'),
-                      color: AppTheme.instance.primaryColor,
+                    IconButton(
+                      icon: Icon(
+                        Icons.grid_view_rounded,
+                        color: !_isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
+                        size: 20,
+                      ),
+                      onPressed: _toggleView,
                     ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'Уход',
-                      selected: _typeFilter == 'care',
-                      onTap: () => _setTypeFilter('care'),
-                      color: AppTheme.instance.primaryColor,
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'Декор.',
-                      selected: _typeFilter == 'decorative',
-                      onTap: () => _setTypeFilter('decorative'),
-                      color: AppTheme.instance.primaryColor,
+                    IconButton(
+                      icon: Icon(
+                        Icons.table_rows_rounded,
+                        color: _isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
+                        size: 20,
+                      ),
+                      onPressed: _toggleView,
                     ),
                   ],
                 ),
-                if (_typeFilter != 'all') ...[
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: _openSettings,
+                color: Colors.grey[600],
+              ),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Container(
+              color: AppTheme.instance.surfaceColor,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Column(
+                children: [
+                  _buildExpiringBanner(),
                   const SizedBox(height: 8),
-                  _buildCategoryChips(),
+                  TextField(
+                    onChanged: (v) {
+                      setState(() {
+                        _searchQuery = v;
+                        _applyFilters();
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Поиск...',
+                      prefixIcon: Icon(Icons.search, color: AppTheme.instance.textLightColor),
+                      filled: true,
+                      fillColor: AppTheme.instance.backgroundColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    ),
+                  ),
                 ],
-              ],
+              ),
             ),
           ),
-          const Divider(height: 1),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                    ? _buildError()
-                    : _filteredProducts.isEmpty
-                        ? _buildEmpty()
-                        : _isTableView
-                            ? _buildTableView()
-                            : _buildProductList(),
+          SliverToBoxAdapter(
+            child: Container(
+              color: AppTheme.instance.surfaceColor,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _FilterChip(
+                        label: 'Все',
+                        selected: _typeFilter == 'all',
+                        onTap: () => _setTypeFilter('all'),
+                        color: AppTheme.instance.primaryColor,
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: 'Уход',
+                        selected: _typeFilter == 'care',
+                        onTap: () => _setTypeFilter('care'),
+                        color: AppTheme.instance.primaryColor,
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: 'Декор.',
+                        selected: _typeFilter == 'decorative',
+                        onTap: () => _setTypeFilter('decorative'),
+                        color: AppTheme.instance.primaryColor,
+                      ),
+                    ],
+                  ),
+                  if (_typeFilter != 'all') ...[
+                    const SizedBox(height: 8),
+                    _buildCategoryChips(),
+                  ],
+                ],
+              ),
+            ),
           ),
+          const SliverToBoxAdapter(child: Divider(height: 1)),
+          if (_isLoading)
+            const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+          else if (_error != null)
+            SliverFillRemaining(child: _buildError())
+          else if (_filteredProducts.isEmpty)
+            SliverFillRemaining(child: _buildEmpty())
+          else if (_isTableView)
+            SliverFillRemaining(child: _buildTableView())
+          else
+            SliverFillRemaining(child: _buildProductList()),
         ],
       ),
       floatingActionButton: FloatingActionButton(

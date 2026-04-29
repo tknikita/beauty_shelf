@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../theme/app_theme.dart';
-
-enum SortField { name, expiry, category }
-enum SortOrder { asc, desc }
+import 'product_cards.dart';
 
 class ProductTable extends StatefulWidget {
   final List<Product> products;

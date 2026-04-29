@@ -297,36 +297,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCategoryChips() {
-    final categories = AppTheme.instance.getCategoriesByType(_typeFilter);
-    final sortedKeys = categories.keys.toList()
-      ..sort((a, b) => categories[a]!.compareTo(categories[b]!));
-    final theme = AppTheme.instance;
-
-    return SizedBox(
-      height: 28,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: sortedKeys.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return _MiniFilterChip(
-              label: 'Все',
-              selected: _categoryFilter == null,
-              onTap: () => _setCategoryFilter(null),
-              color: theme.primaryColor,
-            );
-          }
-          final key = sortedKeys[index - 1];
-          return _MiniFilterChip(
-            label: categories[key]!,
-            selected: _categoryFilter == key,
-            onTap: () => _setCategoryFilter(key),
-            color: theme.primaryColor,
-          );
-        },
-      ),
-    );
+    // Removed - using dropdown instead
+    return const SizedBox.shrink();
   }
 
   @override
@@ -432,37 +404,24 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               color: AppTheme.instance.surfaceColor,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      _FilterChip(
-                        label: 'Все',
-                        selected: _typeFilter == 'all',
-                        onTap: () => _setTypeFilter('all'),
-                        color: AppTheme.instance.primaryColor,
-                      ),
-                      const SizedBox(width: 8),
-                      _FilterChip(
-                        label: 'Уход',
-                        selected: _typeFilter == 'care',
-                        onTap: () => _setTypeFilter('care'),
-                        color: AppTheme.instance.primaryColor,
-                      ),
-                      const SizedBox(width: 8),
-                      _FilterChip(
-                        label: 'Декор.',
-                        selected: _typeFilter == 'decorative',
-                        onTap: () => _setTypeFilter('decorative'),
-                        color: AppTheme.instance.primaryColor,
-                      ),
-                    ],
+                  Expanded(
+                    child: _FilterDropdown(
+                      label: 'Тип',
+                      value: _typeFilter,
+                      items: const {'all': 'Все', 'care': 'Уход', 'decorative': 'Декор.'},
+                      onChanged: (v) => _setTypeFilter(v),
+                    ),
                   ),
-                  if (_typeFilter != 'all') ...[
-                    const SizedBox(height: 8),
-                    _buildCategoryChips(),
-                  ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _CategoryDropdown(
+                      typeFilter: _typeFilter,
+                      value: _categoryFilter,
+                      onChanged: (v) => _setCategoryFilter(v),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -552,77 +511,92 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _FilterChip extends StatelessWidget {
+class _FilterDropdown extends StatelessWidget {
   final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Color color;
+  final String value;
+  final Map<String, String> items;
+  final Function(String) onChanged;
 
-  const _FilterChip({
+  const _FilterDropdown({
     required this.label,
-    required this.selected,
-    required this.onTap,
-    required this.color,
+    required this.value,
+    required this.items,
+    required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? color : AppTheme.instance.surfaceColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? color : AppTheme.instance.borderColor,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            color: selected ? AppTheme.instance.surfaceColor : AppTheme.instance.textColor,
-          ),
+    final theme = AppTheme.instance;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: theme.backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.borderColor),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 20),
+          style: TextStyle(fontSize: 13, color: theme.textColor),
+          dropdownColor: theme.surfaceColor,
+          items: items.entries.map((e) => DropdownMenuItem(
+            value: e.key,
+            child: Text(e.value),
+          )).toList(),
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
         ),
       ),
     );
   }
 }
 
-class _MiniFilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Color color;
+class _CategoryDropdown extends StatelessWidget {
+  final String typeFilter;
+  final String? value;
+  final Function(String?) onChanged;
 
-  const _MiniFilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    required this.color,
+  const _CategoryDropdown({
+    required this.typeFilter,
+    required this.value,
+    required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(
-          color: selected ? color.withAlpha(30) : AppTheme.instance.surfaceColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? color : AppTheme.instance.borderColor,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: selected ? color : AppTheme.instance.textLightColor,
-            fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
-          ),
+    final theme = AppTheme.instance;
+    final categories = AppTheme.instance.getCategoriesByType(typeFilter);
+    final sortedKeys = categories.keys.toList()
+      ..sort((a, b) => categories[a]!.compareTo(categories[b]!));
+
+    final items = <String, String>{'all': 'Все', ...{
+      for (final k in sortedKeys) k: categories[k]!
+    }};
+
+    final currentValue = value ?? 'all';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: theme.backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.borderColor),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: items.containsKey(currentValue) ? currentValue : 'all',
+          isExpanded: true,
+          icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 20),
+          style: TextStyle(fontSize: 13, color: theme.textColor),
+          dropdownColor: theme.surfaceColor,
+          items: items.entries.map((e) => DropdownMenuItem(
+            value: e.key,
+            child: Text(e.value),
+          )).toList(),
+          onChanged: (v) => onChanged(v == 'all' ? null : v),
         ),
       ),
     );

@@ -38,6 +38,12 @@ class AppTheme extends ChangeNotifier {
   Color dangerColor = const Color(0xFFD9848C);
   Color dangerBgColor = const Color(0xFFFDF0F2);
 
+  // Type badge colors
+  Color careTypeColor = const Color(0xFF2196F3);
+  Color careTypeBgColor = const Color(0xFFE3F2FD);
+  Color decorativeTypeColor = const Color(0xFF9C27B0);
+  Color decorativeTypeBgColor = const Color(0xFFF3E5F5);
+
   // Selection/focus colors
   Color selectionColor = const Color(0xFFE8B4BC);
   Color inputFocusColor = const Color(0xFFE8B4BC);
@@ -73,6 +79,9 @@ class AppTheme extends ChangeNotifier {
       dangerColor = const Color(0xFFE87C7C);
       selectionColor = const Color(0xFFE8B4BC);
       inputFocusColor = const Color(0xFFE8B4BC);
+      // Type badge colors for dark mode
+      careTypeBgColor = const Color(0xFF0D2744);
+      decorativeTypeBgColor = const Color(0xFF2D1A3D);
     } else {
       backgroundColor = _lightBackground;
       surfaceColor = Colors.white;
@@ -82,6 +91,9 @@ class AppTheme extends ChangeNotifier {
       dangerBgColor = const Color(0xFFFDF0F2);
       selectionColor = const Color(0xFFE8B4BC);
       inputFocusColor = const Color(0xFFE8B4BC);
+      // Type badge colors for light mode
+      careTypeBgColor = const Color(0xFFE3F2FD);
+      decorativeTypeBgColor = const Color(0xFFF3E5F5);
     }
     // Recalculate text colors from primary
     adjustColors();
@@ -153,23 +165,6 @@ class AppTheme extends ChangeNotifier {
     try {
       html.window.localStorage['beauty_shelf_theme'] =
         '${primaryColor.value},${backgroundColor.value},${_savedPrimaryColor.value}';
-    } catch (e) {
-      // localStorage not available
-    }
-  }
-
-  // View mode persistence
-  bool isTableView = false;
-
-  void setTableView(bool value) {
-    isTableView = value;
-    _saveViewMode();
-    notifyListeners();
-  }
-
-  void _saveViewMode() {
-    try {
-      html.window.localStorage['beauty_shelf_view'] = isTableView ? 'table' : 'card';
     } catch (e) {
       // localStorage not available
     }
@@ -285,17 +280,6 @@ class AppTheme extends ChangeNotifier {
         'nails': 'Ногти',
       },
     };
-  }
-}
-
-void loadViewMode() {
-  try {
-    final saved = html.window.localStorage['beauty_shelf_view'];
-    if (saved == 'table') {
-      AppTheme.instance.isTableView = true;
-    }
-  } catch (e) {
-    // localStorage not available
   }
 }
 

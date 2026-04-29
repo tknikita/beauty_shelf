@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
 import '../utils/sorting.dart';
-import '../widgets/product_cards.dart';
-import '../widgets/product_table.dart';
-import '../widgets/product_form.dart';
 import '../widgets/product_card.dart';
+import '../widgets/product_form.dart';
 import '../theme/app_theme.dart';
 import 'settings_screen.dart';
 
@@ -26,7 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String _typeFilter = 'all';
   String? _categoryFilter;
   String _searchQuery = '';
-  bool get _isTableView => AppTheme.instance.isTableView;
   
   // Sorting
   SortField _sortField = SortField.expiry;
@@ -119,10 +116,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _categoryFilter = category;
       _applyFilters();
     });
-  }
-
-  void _toggleView() {
-    AppTheme.instance.setTableView(!AppTheme.instance.isTableView);
   }
 
   void _showAddModal() {
@@ -321,21 +314,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoryChips() {
-    // Removed - using dropdown instead
-    return const SizedBox.shrink();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+    
     return Scaffold(
-      backgroundColor: AppTheme.instance.backgroundColor,
+      backgroundColor: theme.backgroundColor,
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: Container(
-              color: AppTheme.instance.surfaceColor,
-              padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+              color: theme.surfaceColor,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Column(
                 children: [
                   Row(
@@ -344,7 +334,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: 28,
                         height: 28,
                         decoration: BoxDecoration(
-                          color: AppTheme.instance.primaryColor,
+                          color: theme.primaryColor,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
@@ -355,44 +345,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.instance.textColor,
+                          color: theme.textColor,
                         ),
                       ),
                       const Spacer(),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.instance.backgroundColor,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Icons.grid_view_rounded,
-                                color: !_isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
-                                size: 20,
-                              ),
-                              onPressed: _toggleView,
-                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                              padding: EdgeInsets.zero,
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.table_rows_rounded,
-                                color: _isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
-                                size: 20,
-                              ),
-                              onPressed: _toggleView,
-                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                              padding: EdgeInsets.zero,
-                            ),
-                          ],
-                        ),
-                      ),
                       IconButton(
                         icon: const Icon(Icons.settings_outlined),
                         onPressed: _openSettings,
-                        color: Colors.grey[600],
+                        color: theme.textLightColor,
                         constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                         padding: EdgeInsets.zero,
                       ),
@@ -408,11 +368,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         _applyFilters();
                       });
                     },
+                    style: TextStyle(color: theme.textColor),
                     decoration: InputDecoration(
                       hintText: 'Поиск...',
-                      prefixIcon: Icon(Icons.search, color: AppTheme.instance.textLightColor),
+                      hintStyle: TextStyle(color: theme.textLightColor),
+                      prefixIcon: Icon(Icons.search, color: theme.textLightColor),
                       filled: true,
-                      fillColor: AppTheme.instance.backgroundColor,
+                      fillColor: theme.backgroundColor,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
                         borderSide: BorderSide.none,
@@ -444,32 +406,31 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverFillRemaining(child: _buildError())
           else if (_filteredProducts.isEmpty)
             SliverFillRemaining(child: _buildEmpty())
-          else if (_isTableView)
-            SliverToBoxAdapter(child: _buildTableView())
           else
             _buildProductGrid(),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddModal,
-        backgroundColor: AppTheme.instance.primaryColor,
+        backgroundColor: theme.primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
   Widget _buildError() {
+    final theme = AppTheme.instance;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 48, color: Colors.grey[400]),
+          Icon(Icons.error_outline, size: 48, color: theme.textLightColor),
           const SizedBox(height: 16),
-          const Text('Не удалось загрузить', style: TextStyle(fontSize: 16)),
+          Text('Не удалось загрузить', style: TextStyle(fontSize: 16, color: theme.textColor)),
           const SizedBox(height: 8),
           TextButton(
             onPressed: _loadProducts,
-            child: const Text('Повторить'),
+            child: Text('Повторить', style: TextStyle(color: theme.primaryColor)),
           ),
         ],
       ),
@@ -477,46 +438,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildEmpty() {
+    final theme = AppTheme.instance;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[300]),
+          Icon(Icons.inventory_2_outlined, size: 64, color: theme.textLightColor),
           const SizedBox(height: 16),
           Text(
             _products.isEmpty ? 'Полка пуста' : 'Ничего не найдено',
-            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 18, color: theme.textColor),
           ),
           const SizedBox(height: 8),
           Text(
             _products.isEmpty
                 ? 'Нажмите + чтобы добавить первый продукт'
                 : 'Попробуйте изменить фильтры',
-            style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+            style: TextStyle(fontSize: 14, color: theme.textLightColor),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTableView() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: ProductTable(
-        products: _filteredProducts,
-        onEdit: _showEditModal,
-        onDelete: _confirmDelete,
-      ),
-    );
-  }
-
-  Widget _buildProductList() {
-    return RefreshIndicator(
-      onRefresh: _loadProducts,
-      child: ProductCards(
-        products: _filteredProducts,
-        onEdit: _showEditModal,
-        onDelete: _confirmDelete,
       ),
     );
   }
@@ -580,7 +520,7 @@ class _FilterDropdown extends StatelessWidget {
           dropdownColor: theme.surfaceColor,
           items: items.entries.map((e) => DropdownMenuItem(
             value: e.key,
-            child: Text(e.value),
+            child: Text(e.value, style: TextStyle(color: theme.textColor)),
           )).toList(),
           onChanged: (v) {
             if (v != null) onChanged(v);
@@ -603,13 +543,11 @@ class _CategoryDropdown extends StatelessWidget {
   });
 
   Map<String, String> _getAllCategories() {
-    // Get all categories from all types
     final allCategories = <String, String>{};
     for (final type in ['care', 'decorative']) {
       final cats = AppTheme.instance.getCategoriesByType(type);
       allCategories.addAll(cats);
     }
-    // Sort by name
     final sortedKeys = allCategories.keys.toList()
       ..sort((a, b) => allCategories[a]!.compareTo(allCategories[b]!));
     return {for (final k in sortedKeys) k: allCategories[k]!};
@@ -619,7 +557,6 @@ class _CategoryDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
     
-    // Get categories based on type filter
     Map<String, String> categories;
     if (typeFilter == 'all') {
       categories = _getAllCategories();
@@ -649,7 +586,7 @@ class _CategoryDropdown extends StatelessWidget {
           dropdownColor: theme.surfaceColor,
           items: items.entries.map((e) => DropdownMenuItem(
             value: e.key,
-            child: Text(e.value),
+            child: Text(e.value, style: TextStyle(color: theme.textColor)),
           )).toList(),
           onChanged: (v) => onChanged(v == 'all' ? null : v),
         ),
@@ -718,7 +655,6 @@ class _FilterSortHeaderDelegate extends SliverPersistentHeaderDelegate {
             ],
           ),
           const SizedBox(height: 8),
-          // Sort chips
           Row(
             children: [
               _SortChip(
@@ -750,10 +686,8 @@ class _FilterSortHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _FilterSortHeaderDelegate oldDelegate) {
-    return typeFilter != oldDelegate.typeFilter ||
-        categoryFilter != oldDelegate.categoryFilter ||
-        sortField != oldDelegate.sortField ||
-        sortOrder != oldDelegate.sortOrder;
+    // Always rebuild to catch theme changes
+    return true;
   }
 }
 

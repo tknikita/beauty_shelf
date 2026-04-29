@@ -87,7 +87,6 @@ class _ProductCardsState extends State<ProductCards> {
     
     return Column(
       children: [
-        // Sort bar
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
@@ -119,35 +118,25 @@ class _ProductCardsState extends State<ProductCards> {
             ],
           ),
         ),
-        // Cards grid - no separate scrolling, parent handles it
-        LayoutBuilder(
-          builder: (context, constraints) {
-            // Adaptive: 2 columns on mobile, more on tablet/desktop
-            final width = constraints.maxWidth;
-            final crossAxisCount = width > 600 ? (width > 900 ? 3 : 2) : 2;
-            final itemWidth = (width - 24 - (crossAxisCount - 1) * 8) / crossAxisCount;
-            
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(12),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                childAspectRatio: itemWidth / 130,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-              ),
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final p = products[index];
-                return ProductCard(
-                  product: p,
-                  onEdit: () => widget.onEdit(p),
-                  onDelete: () => widget.onDelete(p),
-                );
-              },
-            );
-          },
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 300,
+              childAspectRatio: 2.0,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final p = products[index];
+              return ProductCard(
+                product: p,
+                onEdit: () => widget.onEdit(p),
+                onDelete: () => widget.onDelete(p),
+              );
+            },
+          ),
         ),
       ],
     );

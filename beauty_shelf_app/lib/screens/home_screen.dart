@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
-import '../widgets/product_card.dart';
+import '../widgets/product_cards.dart';
 import '../widgets/product_table.dart';
 import '../widgets/product_form.dart';
 import '../theme/app_theme.dart';
@@ -359,34 +359,33 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          // TODO: Re-enable view toggle when card view is ready
-          // Container(
-          //   margin: const EdgeInsets.only(right: 8),
-          //   decoration: BoxDecoration(
-          //     color: AppTheme.instance.backgroundColor,
-          //     borderRadius: BorderRadius.circular(8),
-          //   ),
-          //   child: Row(
-          //     children: [
-          //       IconButton(
-          //         icon: Icon(
-          //           Icons.grid_view_rounded,
-          //           color: !_isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
-          //           size: 20,
-          //         ),
-          //         onPressed: _toggleView,
-          //       ),
-          //       IconButton(
-          //         icon: Icon(
-          //           Icons.table_rows_rounded,
-          //           color: _isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
-          //           size: 20,
-          //         ),
-          //         onPressed: _toggleView,
-          //       ),
-          //     ],
-          //   ),
-          // ),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.instance.backgroundColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.grid_view_rounded,
+                    color: !_isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
+                    size: 20,
+                  ),
+                  onPressed: _toggleView,
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.table_rows_rounded,
+                    color: _isTableView ? AppTheme.instance.primaryDarkColor : Colors.grey[400],
+                    size: 20,
+                  ),
+                  onPressed: _toggleView,
+                ),
+              ],
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: _openSettings,
@@ -540,20 +539,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildProductList() {
     return RefreshIndicator(
       onRefresh: _loadProducts,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _filteredProducts.length,
-        itemBuilder: (context, index) {
-          final product = _filteredProducts[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: ProductCard(
-              product: product,
-              onEdit: () => _showEditModal(product),
-              onDelete: () => _confirmDelete(product),
-            ),
-          );
-        },
+      child: ProductCards(
+        products: _filteredProducts,
+        onEdit: _showEditModal,
+        onDelete: _confirmDelete,
       ),
     );
   }

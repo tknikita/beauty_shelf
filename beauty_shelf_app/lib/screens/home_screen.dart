@@ -565,17 +565,35 @@ class _CategoryDropdown extends StatelessWidget {
     required this.onChanged,
   });
 
+  Map<String, String> _getAllCategories() {
+    // Get all categories from all types
+    final allCategories = <String, String>{};
+    for (final type in ['care', 'decorative']) {
+      final cats = AppTheme.instance.getCategoriesByType(type);
+      allCategories.addAll(cats);
+    }
+    // Sort by name
+    final sortedKeys = allCategories.keys.toList()
+      ..sort((a, b) => allCategories[a]!.compareTo(allCategories[b]!));
+    return {for (final k in sortedKeys) k: allCategories[k]!};
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
-    final categories = AppTheme.instance.getCategoriesByType(typeFilter);
-    final sortedKeys = categories.keys.toList()
-      ..sort((a, b) => categories[a]!.compareTo(categories[b]!));
+    
+    // Get categories based on type filter
+    Map<String, String> categories;
+    if (typeFilter == 'all') {
+      categories = _getAllCategories();
+    } else {
+      categories = AppTheme.instance.getCategoriesByType(typeFilter);
+      final sortedKeys = categories.keys.toList()
+        ..sort((a, b) => categories[a]!.compareTo(categories[b]!));
+      categories = {for (final k in sortedKeys) k: categories[k]!};
+    }
 
-    final items = <String, String>{'all': 'Все', ...{
-      for (final k in sortedKeys) k: categories[k]!
-    }};
-
+    final items = <String, String>{'all': 'Все', ...categories};
     final currentValue = value ?? 'all';
 
     return Container(

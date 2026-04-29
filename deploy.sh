@@ -11,11 +11,10 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Build frontend
+# Build frontend (Flutter Web)
 echo "📦 Building frontend..."
-cd frontend
-source venv/bin/activate
-flet build web . --output ../frontend_build
+cd beauty_shelf_app
+flutter build web --release
 cd ..
 echo "✅ Frontend built"
 

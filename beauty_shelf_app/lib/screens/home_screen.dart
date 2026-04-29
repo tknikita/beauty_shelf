@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
+import '../utils/sorting.dart';
 import '../widgets/product_cards.dart';
 import '../widgets/product_table.dart';
 import '../widgets/product_form.dart';
@@ -32,25 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   SortOrder _sortOrder = SortOrder.asc;
   
   List<Product> get _sortedFilteredProducts {
-    final sorted = List<Product>.from(_filteredProducts);
-    sorted.sort((a, b) {
-      int cmp;
-      switch (_sortField) {
-        case SortField.name:
-          cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-          break;
-        case SortField.expiry:
-          cmp = a.daysLeft.compareTo(b.daysLeft);
-          break;
-        case SortField.category:
-          final catA = Categories.getCategoryName(a.type, a.category).toLowerCase();
-          final catB = Categories.getCategoryName(b.type, b.category).toLowerCase();
-          cmp = catA.compareTo(catB);
-          break;
-      }
-      return _sortOrder == SortOrder.asc ? cmp : -cmp;
-    });
-    return sorted;
+    return sortProducts(_filteredProducts, _sortField, _sortOrder);
   }
   
   void _toggleSort(SortField field) {
@@ -65,8 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
   
   IconData _getSortIcon(SortField field) {
-    if (_sortField != field) return Icons.unfold_more;
-    return _sortOrder == SortOrder.asc ? Icons.arrow_upward : Icons.arrow_downward;
+    return getSortIcon(_sortField, field, _sortOrder);
   }
 
   @override

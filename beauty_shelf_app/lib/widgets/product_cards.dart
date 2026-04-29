@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../theme/app_theme.dart';
+import '../utils/sorting.dart';
 import 'product_card.dart';
-
-enum SortField { name, expiry, category }
-enum SortOrder { asc, desc }
 
 class ProductCards extends StatefulWidget {
   final List<Product> products;
@@ -27,25 +25,7 @@ class _ProductCardsState extends State<ProductCards> {
   SortOrder _sortOrder = SortOrder.asc;
 
   List<Product> get _sortedProducts {
-    final sorted = List<Product>.from(widget.products);
-    sorted.sort((a, b) {
-      int cmp;
-      switch (_sortField) {
-        case SortField.name:
-          cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-          break;
-        case SortField.expiry:
-          cmp = a.daysLeft.compareTo(b.daysLeft);
-          break;
-        case SortField.category:
-          final catA = Categories.getCategoryName(a.type, a.category).toLowerCase();
-          final catB = Categories.getCategoryName(b.type, b.category).toLowerCase();
-          cmp = catA.compareTo(catB);
-          break;
-      }
-      return _sortOrder == SortOrder.asc ? cmp : -cmp;
-    });
-    return sorted;
+    return sortProducts(widget.products, _sortField, _sortOrder);
   }
 
   void _toggleSort(SortField field) {
@@ -60,8 +40,7 @@ class _ProductCardsState extends State<ProductCards> {
   }
 
   IconData _getSortIcon(SortField field) {
-    if (_sortField != field) return Icons.unfold_more;
-    return _sortOrder == SortOrder.asc ? Icons.arrow_upward : Icons.arrow_downward;
+    return getSortIcon(_sortField, field, _sortOrder);
   }
 
   @override

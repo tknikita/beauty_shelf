@@ -74,15 +74,16 @@ class ApiService {
 
   Future<Map<String, dynamic>> lookupBarcode(String barcode) async {
     try {
+      // Use backend as proxy to avoid CORS issues
       final response = await http.get(
-        Uri.parse('https://world.openbeautyfacts.org/api/v2/product/$barcode.json'),
-        headers: {'User-Agent': 'BeautyShelf/1.0'},
+        Uri.parse('$baseUrl/barcode/$barcode'),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['status'] == 1) {
-          return data['product'] ?? {};
+        // If empty object returned, product not found
+        if (data.isNotEmpty) {
+          return data;
         }
       }
       return {};

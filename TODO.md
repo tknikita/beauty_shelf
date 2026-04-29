@@ -2,6 +2,7 @@
 
 ## Done ✓
 - [x] Table view toggle fix
+- [x] Table view rows rendering (fixed styling issues on Flutter Web)
 - [x] Theme changes apply to all widgets (ProductCard, ProductTable, etc.)
 - [x] Theme persists after page reload (localStorage)
 - [x] Settings screen shows theme changes immediately (ListenableBuilder)
@@ -10,6 +11,9 @@
 
 ### High Priority
 - [x] Manual HEX color input in settings
+- [x] Expiry filter
+  - Filter by status: Просрочено / < 30 дней / < 60 дней / OK
+  - Quick-select chips in filter panel
 - [ ] Product images
   - Add image upload to products
   - Display image in cards
@@ -25,7 +29,7 @@
 ### Low Priority / Ideas
 - [x] Barcode entry dialog
 - [x] Export/Import data (JSON)
-- [x] Notifications for expiring products
+- [x] Notifications for expiring products (backend endpoint /api/expiring)
 - [ ] Camera-based barcode scanning
 - [ ] PWA support for offline mode
 - [ ] Mobile native app (iOS/Android)
@@ -33,9 +37,6 @@
 ## Known Issues
 - Flutter web WASM warnings (non-critical)
 - Form deprecated `value` parameter warnings
-
-## Table View Bug (UNRESOLVED)
-Table view header renders but rows don't appear on Flutter Web. Minimal `Column` + `.map()` works, but adding styling/Container breaks rendering. Current implementation is minimal text-only version until proper layout solution found.
 
 ## Tech Debt
 - Remove `// ignore: avoid_web_libraries` for dart:html

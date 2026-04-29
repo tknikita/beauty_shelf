@@ -88,7 +88,7 @@ docker-compose logs -f frontend
 - **Table view** with sortable columns (Name, Type, Category, Expiry, Status)
 - Filter by type (All / Care / Decorative)
 - Filter by category (dropdown with all categories grouped by type)
-- Filter by expiry status (All / OK / Soon / Very Soon / Expired)
+- Filter by expiry status (All / Просрочено / < 30 дн. / < 60 дн. / OK)
 - View toggle (cards ↔ table)
 - Search by name or purpose
 - Add/Edit/Delete products
@@ -207,6 +207,10 @@ docker-compose up -d frontend
 ```
 
 ## Changelog
+
+### 2026-04-29
+- **Fixed Table View** - Rows now render correctly with styling on Flutter Web
+- **Fixed expiry filter** - Separate chips for < 30 days, < 60 days (no more toggling bug)
 
 ### 2026-04-28
 - **Replaced HTML frontend** with Flutter web app

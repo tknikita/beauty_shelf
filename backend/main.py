@@ -30,6 +30,10 @@ DB_PATH = DB_DIR / "beauty_shelf.db"
 IMG_DIR = DB_DIR / "images"
 IMG_DIR.mkdir(parents=True, exist_ok=True)
 
+# External API URLs
+OPEN_FOOD_FACTS_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
+OPEN_BEAUTY_FACTS_URL = "https://world.openbeautyfacts.org/api/v2/product/{barcode}.json"
+
 
 def get_db():
     """Get database connection."""
@@ -90,6 +94,43 @@ def init_db():
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('notifications_enabled', 'true')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('notification_days', '7')")
     conn.close()
+
+
+# Barcode lookup endpoint (proxy to avoid CORS)
+@app.get("/api/barcode/{barcode}")
+async def lookup_barcode(barcode: str):
+    """Lookup product by barcode using OpenFoodFacts API."""
+    import httpx
+    
+    # Try OpenFoodFacts first
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                OPEN_FOOD_FACTS_URL.format(barcode=barcode),
+                headers={"User-Agent": "BeautyShelf/1.0"}
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("status") == 1:
+                    return data.get("product", {})
+    except Exception:
+        pass
+    
+    # Fallback to OpenBeautyFacts
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                OPEN_BEAUTY_FACTS_URL.format(barcode=barcode),
+                headers={"User-Agent": "BeautyShelf/1.0"}
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("status") == 1:
+                    return data.get("product", {})
+    except Exception:
+        pass
+    
+    return {}
 
 
 # Pydantic models

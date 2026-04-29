@@ -35,6 +35,7 @@ class _ProductFormState extends State<ProductForm> {
   
   bool _isLookingUp = false;
   String? _lookupResult;
+  String? _lookupError; // 'network', 'not_found', 'empty'
 
   @override
   void initState() {
@@ -70,35 +71,53 @@ class _ProductFormState extends State<ProductForm> {
 
   Future<void> _lookupBarcode() async {
     final barcode = _barcodeController.text.trim();
-    if (barcode.length < 8) return;
+    if (barcode.length < 8) {
+      setState(() {
+        _lookupResult = null;
+        _lookupError = null;
+      });
+      return;
+    }
     
     setState(() {
       _isLookingUp = true;
       _lookupResult = null;
+      _lookupError = null;
     });
     
     try {
       final product = await _api.lookupBarcode(barcode);
       if (product.isNotEmpty) {
         final name = product['product_name'] ?? product['product_name_fr'] ?? product['name'];
-        if (name != null && _nameController.text.isEmpty) {
-          _nameController.text = name;
-        }
         final brands = product['brands'];
-        if (brands != null && _purposeController.text.isEmpty) {
-          _purposeController.text = brands;
+        final categories = product['categories'];
+        
+        bool filled = false;
+        if (name != null && name.toString().isNotEmpty && _nameController.text.isEmpty) {
+          _nameController.text = name.toString();
+          filled = true;
         }
+        if (brands != null && brands.toString().isNotEmpty && _purposeController.text.isEmpty) {
+          _purposeController.text = brands.toString();
+          filled = true;
+        }
+        
         setState(() {
-          _lookupResult = 'Найден: $name';
+          _lookupResult = filled 
+              ? '✓ Данные загружены: $name'
+              : '✓ Найден: $name';
+          _lookupError = null;
         });
       } else {
         setState(() {
-          _lookupResult = 'Продукт не найден';
+          _lookupResult = 'Продукт не найден в базе';
+          _lookupError = 'not_found';
         });
       }
     } catch (e) {
       setState(() {
-        _lookupResult = 'Ошибка поиска';
+        _lookupResult = 'Ошибка подключения к интернету';
+        _lookupError = 'network';
       });
     } finally {
       setState(() {
@@ -235,34 +254,64 @@ class _ProductFormState extends State<ProductForm> {
               if (_lookupResult != null) ...[
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: _lookupResult!.startsWith('Найден') 
+                    color: _lookupError == null 
                         ? theme.okBgColor
-                        : theme.warningBgColor,
-                    borderRadius: BorderRadius.circular(6),
+                        : _lookupError == 'not_found'
+                            ? theme.warningBgColor
+                            : theme.dangerBgColor,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
                       Icon(
-                        _lookupResult!.startsWith('Найден') ? Icons.check_circle : Icons.warning,
-                        size: 16,
-                        color: _lookupResult!.startsWith('Найден') 
+                        _lookupError == null 
+                            ? Icons.check_circle
+                            : _lookupError == 'not_found'
+                                ? Icons.search_off
+                                : Icons.cloud_off,
+                        size: 18,
+                        color: _lookupError == null 
                             ? theme.okColor
-                            : theme.warningColor,
+                            : _lookupError == 'not_found'
+                                ? theme.warningColor
+                                : theme.dangerColor,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           _lookupResult!,
                           style: TextStyle(
                             fontSize: 13,
-                            color: _lookupResult!.startsWith('Найден') 
+                            color: _lookupError == null 
                                 ? theme.okColor
-                                : theme.warningColor,
+                                : _lookupError == 'not_found'
+                                    ? theme.warningColor
+                                    : theme.dangerColor,
                           ),
                         ),
                       ),
+                      if (_lookupError == 'network')
+                        TextButton(
+                          onPressed: _lookupBarcode,
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text('Повторить', style: TextStyle(fontSize: 12, color: theme.dangerColor)),
+                        ),
+                      if (_lookupError == 'not_found')
+                        IconButton(
+                          onPressed: () => setState(() {
+                            _lookupResult = null;
+                            _lookupError = null;
+                          }),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(Icons.close, size: 16, color: theme.warningColor),
+                        ),
                     ],
                   ),
                 ),

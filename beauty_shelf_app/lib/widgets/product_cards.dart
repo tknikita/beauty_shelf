@@ -122,10 +122,10 @@ class _ProductCardsState extends State<ProductCards> {
           child: GridView.builder(
             padding: const EdgeInsets.all(12),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 300,
-              childAspectRatio: 2.0,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
+              maxCrossAxisExtent: 320,
+              childAspectRatio: 1.35,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
             ),
             itemCount: products.length,
             itemBuilder: (context, index) {

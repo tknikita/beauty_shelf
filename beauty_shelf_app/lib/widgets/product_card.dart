@@ -81,23 +81,26 @@ class ProductCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (product.imageUrl != null) ...[
-                    Container(
-                      width: 48,
-                      height: 48,
-                      margin: const EdgeInsets.only(right: 10),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppTheme.instance.borderColor),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(7),
-                      child: Image.network(
-                          product.effectiveImageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(
-                            Icons.image_not_supported,
-                            size: 20,
-                            color: AppTheme.instance.textLightColor,
+                    GestureDetector(
+                      onTap: () => _showImagePreview(context, product),
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        margin: const EdgeInsets.only(right: 10),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppTheme.instance.borderColor),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(7),
+                          child: Image.network(
+                            product.effectiveImageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.image_not_supported,
+                              size: 20,
+                              color: AppTheme.instance.textLightColor,
+                            ),
                           ),
                         ),
                       ),
@@ -186,4 +189,67 @@ class ProductCard extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showImagePreview(BuildContext context, Product product) {
+  if (product.imageUrl == null) return;
+  
+  final theme = AppTheme.instance;
+  
+  showDialog(
+    context: context,
+    builder: (ctx) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Image
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                product.effectiveImageUrl!,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Container(
+                  padding: const EdgeInsets.all(40),
+                  decoration: BoxDecoration(
+                    color: theme.surfaceColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.image_not_supported,
+                    size: 64,
+                    color: theme.textLightColor,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Close button
+          Positioned(
+            top: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(ctx),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.isDarkMode ? Colors.black54 : Colors.white70,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.close,
+                  color: theme.textColor,
+                  size: 24,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

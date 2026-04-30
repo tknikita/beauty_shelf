@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 // ignore: avoid_web_libraries
 import 'dart:html' as html;
 import '../models/product.dart';
@@ -147,26 +149,60 @@ class ApiService {
     if (input.files?.isNotEmpty == true) {
       final file = input.files!.first;
       
-      final formData = html.FormData();
-      formData.appendBlob('file', file, file.name);
+      // Detect content type from file extension
+      final extension = file.name.split('.').last.toLowerCase();
+      final contentType = _getContentType(extension);
       
       try {
-        final request = html.HttpRequest();
-        request.open('POST', '$baseUrl/images/upload', async: false);
-        request.send(formData);
+        // Read file as bytes
+        final reader = html.FileReader();
+        reader.readAsArrayBuffer(file);
+        await reader.onLoadEnd.first;
         
-        // Wait for completion (sync in dart:html)
-        await request.onLoadEnd.first;
+        final bytes = reader.result as List<Object>;
+        final uint8List = Uint8List.fromList(bytes.cast<int>());
         
-        if (request.status == 200) {
-          final data = json.decode(request.responseText as String);
+        // Create multipart request
+        final uri = Uri.parse('$baseUrl/images/upload');
+        final request = http.MultipartRequest('POST', uri);
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'file',
+            uint8List,
+            filename: file.name,
+            contentType: contentType,
+          ),
+        );
+        
+        final response = await request.send();
+        
+        if (response.statusCode == 200) {
+          final body = await response.stream.bytesToString();
+          final data = json.decode(body);
           return data['url'] as String?;
         }
+        print('Upload failed: ${response.statusCode}');
       } catch (e) {
-        // Fallback - try with http package
+        print('Image upload error: $e');
       }
     }
     
     return null;
+  }
+  
+  MediaType _getContentType(String extension) {
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return MediaType('image', 'jpeg');
+      case 'png':
+        return MediaType('image', 'png');
+      case 'gif':
+        return MediaType('image', 'gif');
+      case 'webp':
+        return MediaType('image', 'webp');
+      default:
+        return MediaType('image', 'jpeg');
+    }
   }
 }

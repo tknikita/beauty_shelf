@@ -91,8 +91,8 @@ class ProductCard extends StatelessWidget {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(7),
-                        child: Image.network(
-                          product.imageUrl!.startsWith('/') ? '/api${product.imageUrl}' : product.imageUrl!,
+                      child: Image.network(
+                          product.effectiveImageUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Icon(
                             Icons.image_not_supported,

@@ -332,7 +332,7 @@ class _ProductFormState extends State<ProductForm> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(7),
                         child: Image.network(
-                          _imageUrl!.startsWith('/') ? '/api${_imageUrl}' : _imageUrl!,
+                          Product.getDisplayUrl(_imageUrl) ?? _imageUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
                         ),

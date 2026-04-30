@@ -83,6 +83,26 @@ class Product {
     return ProductStatus.ok;
   }
 
+  String? get effectiveImageUrl {
+    if (imageUrl == null) return null;
+    // URL already includes /api prefix from backend
+    // Only add /api if URL starts with /images/ (without /api)
+    if (imageUrl!.startsWith('/images/')) {
+      return '/api$imageUrl';
+    }
+    return imageUrl;
+  }
+
+  /// Helper to convert image URL for display
+  static String? getDisplayUrl(String? url) {
+    if (url == null) return null;
+    // URL already includes /api prefix from backend
+    if (url.startsWith('/images/')) {
+      return '/api$url';
+    }
+    return url;
+  }
+
   Product copyWith({
     int? id,
     String? name,

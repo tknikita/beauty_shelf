@@ -132,37 +132,8 @@ class Product {
 
 enum ProductStatus { ok, warning, danger, expired }
 
+/// Categories helper - uses AppTheme for actual data
 class Categories {
-  static const Map<String, Map<String, String>> defaults = {
-    'care': {
-      'basic_care': 'Базовая уходовая',
-      'cleanser': 'Очищение',
-      'tonic': 'Тоник',
-      'serum': 'Сыворотка',
-      'cream': 'Крем',
-      'face_cream': 'Крем для лица',
-      'eye_cream': 'Крем для глаз',
-      'mask': 'Маска',
-      'sunscreen': 'Солнцезащита',
-      'special': 'Специальный уход',
-    },
-    'decorative': {
-      'base': 'База',
-      'tone': 'Тональное средство',
-      'concealer': 'Консилер',
-      'powder': 'Пудра',
-      'blush': 'Румяна',
-      'bronzer': 'Бронзер',
-      'highlighter': 'Хайлайтер',
-      'eyeshadow': 'Тени для век',
-      'eyeliner': 'Подводка',
-      'mascara': 'Тушь',
-      'eyebrows': 'Брови',
-      'lips': 'Губы',
-      'nails': 'Ногти',
-    },
-  };
-
   static Map<String, Map<String, String>> get byType => AppTheme.instance.categories;
   static String getCategoryName(String type, String category) => byType[type]?[category] ?? category;
 }

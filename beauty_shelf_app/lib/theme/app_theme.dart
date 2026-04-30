@@ -286,13 +286,18 @@ class AppTheme extends ChangeNotifier {
 void loadDarkMode() {
   try {
     final saved = html.window.localStorage['beauty_shelf_dark'];
+    print('loadDarkMode: saved=$saved');
     if (saved == '1') {
       AppTheme.instance._isDarkMode = true;
       AppTheme.instance._applyDarkMode();
       AppTheme.instance.notifyListeners();
+    } else {
+      // Explicitly ensure light mode colors are applied
+      AppTheme.instance._isDarkMode = false;
+      AppTheme.instance._applyDarkMode();
     }
   } catch (e) {
-    // localStorage not available
+    print('loadDarkMode error: $e');
   }
 }
 
@@ -317,9 +322,16 @@ void loadThemeFromStorage() {
         final bg = int.tryParse(parts[1]);
         if (primary != null && bg != null) {
           AppTheme.instance.primaryColor = Color(primary);
-          AppTheme.instance.backgroundColor = Color(bg);
           AppTheme.instance._savedPrimaryColor = Color(primary);
           AppTheme._instancePrimarySet = true;
+          
+          // Only set backgroundColor if not in dark mode
+          if (!AppTheme.instance._isDarkMode) {
+            AppTheme.instance.backgroundColor = Color(bg);
+            // Ensure surface and border are correctly set for light mode
+            AppTheme.instance.surfaceColor = Colors.white;
+            AppTheme.instance.borderColor = AppTheme._lightBorder;
+          }
           AppTheme.instance.adjustColors();
         }
       }

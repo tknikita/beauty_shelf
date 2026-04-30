@@ -45,6 +45,7 @@ class _BeautyShelfAppState extends State<BeautyShelfApp> {
         colorScheme: ColorScheme.fromSeed(
           seedColor: theme.primaryColor,
           surface: theme.backgroundColor,
+          brightness: Brightness.light,
         ),
         useMaterial3: true,
         fontFamily: 'Inter',
@@ -75,6 +76,8 @@ class _BeautyShelfAppState extends State<BeautyShelfApp> {
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide(color: theme.primaryColor, width: 2),
           ),
+          fillColor: theme.backgroundColor,
+          filled: true,
         ),
         textSelectionTheme: TextSelectionThemeData(
           cursorColor: theme.primaryColor,
@@ -82,6 +85,51 @@ class _BeautyShelfAppState extends State<BeautyShelfApp> {
           selectionHandleColor: theme.primaryColor,
         ),
       ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: theme.primaryColor,
+          surface: theme.backgroundColor,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+        fontFamily: 'Inter',
+        primaryColor: theme.primaryColor,
+        scaffoldBackgroundColor: theme.backgroundColor,
+        appBarTheme: AppBarTheme(
+          backgroundColor: theme.surfaceColor,
+          foregroundColor: theme.textColor,
+          elevation: 0,
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: theme.primaryColor,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: theme.textColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: theme.primaryColor, width: 2),
+          ),
+          fillColor: theme.backgroundColor,
+          filled: true,
+        ),
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: theme.primaryColor,
+          selectionColor: theme.primaryColor.withAlpha(77),
+          selectionHandleColor: theme.primaryColor,
+        ),
+      ),
+      themeMode: theme.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: const HomeScreen(),
     );
   }

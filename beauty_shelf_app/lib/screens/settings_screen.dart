@@ -235,12 +235,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: theme.okBgColor,
+                            color: theme.neutralBgColor,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             'OK · 120 дн.',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: theme.okColor),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: theme.neutralColor),
                           ),
                         ),
                       ],
@@ -249,13 +249,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // Status badges row
                     Row(
                       children: [
-                        _StatusBadge(label: 'OK', bgColor: theme.okBgColor, textColor: theme.okColor),
+                        _StatusBadge(label: 'OK', bgColor: theme.neutralBgColor, textColor: theme.neutralColor),
                         const SizedBox(width: 8),
                         _StatusBadge(label: 'Скоро', bgColor: theme.warningBgColor, textColor: theme.warningColor),
                         const SizedBox(width: 8),
-                        _StatusBadge(label: 'Скоро', bgColor: theme.dangerBgColor, textColor: theme.dangerColor),
+                        _StatusBadge(label: 'Скоро', bgColor: theme.expiredBgColor, textColor: theme.expiredColor),
                         const SizedBox(width: 8),
-                        _StatusBadge(label: 'Просрочено', bgColor: theme.dangerBgColor, textColor: theme.dangerColor),
+                        _StatusBadge(label: 'Просрочено', bgColor: theme.expiredBgColor, textColor: theme.expiredColor),
                       ],
                     ),
                   ],
@@ -808,7 +808,7 @@ class _CategoryTabState extends State<_CategoryTab> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete_outline, size: 18),
-                        color: theme.dangerColor,
+                        color: theme.expiredColor,
                         constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                         padding: EdgeInsets.zero,
                         onPressed: () {

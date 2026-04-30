@@ -257,10 +257,10 @@ class _ProductFormState extends State<ProductForm> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: _lookupError == null 
-                        ? theme.okBgColor
+                        ? theme.successBgColor
                         : _lookupError == 'not_found'
                             ? theme.warningBgColor
-                            : theme.dangerBgColor,
+                            : theme.expiredBgColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -273,10 +273,10 @@ class _ProductFormState extends State<ProductForm> {
                                 : Icons.cloud_off,
                         size: 18,
                         color: _lookupError == null 
-                            ? theme.okColor
+                            ? theme.successColor
                             : _lookupError == 'not_found'
                                 ? theme.warningColor
-                                : theme.dangerColor,
+                                : theme.expiredColor,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -285,10 +285,10 @@ class _ProductFormState extends State<ProductForm> {
                           style: TextStyle(
                             fontSize: 13,
                             color: _lookupError == null 
-                                ? theme.okColor
+                                ? theme.successColor
                                 : _lookupError == 'not_found'
                                     ? theme.warningColor
-                                    : theme.dangerColor,
+                                    : theme.expiredColor,
                           ),
                         ),
                       ),
@@ -300,7 +300,7 @@ class _ProductFormState extends State<ProductForm> {
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          child: Text('Повторить', style: TextStyle(fontSize: 12, color: theme.dangerColor)),
+                          child: Text('Повторить', style: TextStyle(fontSize: 12, color: theme.expiredColor)),
                         ),
                       if (_lookupError == 'not_found')
                         IconButton(

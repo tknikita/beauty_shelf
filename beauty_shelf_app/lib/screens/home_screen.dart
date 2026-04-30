@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Product> get _sortedFilteredProducts {
     return sortProducts(_filteredProducts, _sortField, _sortOrder);
   }
-  
+
   void _toggleSort(SortField field) {
     setState(() {
       if (_sortField == field) {
@@ -43,9 +43,10 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
   }
-  
+
   IconData _getSortIcon(SortField field) {
-    return getSortIcon(_sortField, field, _sortOrder);
+    if (_sortField != field) return Icons.unfold_more;
+    return _sortOrder == SortOrder.asc ? Icons.arrow_upward : Icons.arrow_downward;
   }
 
   @override
@@ -177,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _showSnackBar('Ошибка удаления');
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.instance.dangerColor),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.instance.expiredColor),
             child: const Text('Удалить'),
           ),
         ],
@@ -214,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: expiredCount > 0 ? theme.dangerBgColor : theme.warningBgColor,
+          color: expiredCount > 0 ? theme.expiredBgColor : theme.warningBgColor,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -222,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Icon(
               expiredCount > 0 ? Icons.warning : Icons.access_time,
               size: 18,
-              color: expiredCount > 0 ? theme.dangerColor : theme.warningColor,
+              color: expiredCount > 0 ? theme.expiredColor : theme.warningColor,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -232,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     : '$expiringCount скоро истекает',
                 style: TextStyle(
                   fontSize: 13,
-                  color: expiredCount > 0 ? theme.dangerColor : theme.warningColor,
+                  color: expiredCount > 0 ? theme.expiredColor : theme.warningColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -241,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
               'Подробнее →',
               style: TextStyle(
                 fontSize: 12,
-                color: expiredCount > 0 ? theme.dangerColor : theme.warningColor,
+                color: expiredCount > 0 ? theme.expiredColor : theme.warningColor,
               ),
             ),
           ],
@@ -286,10 +287,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: p.daysLeft < 0 
-                            ? theme.dangerColor 
+                            ? theme.expiredColor 
                             : p.daysLeft <= 7 
                                 ? theme.warningColor 
-                                : theme.okColor,
+                                : theme.neutralColor,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -300,7 +301,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           : '${p.daysLeft} дн.',
                       style: TextStyle(
                         color: p.daysLeft < 0 
-                            ? theme.dangerColor 
+                            ? theme.expiredColor 
                             : theme.textLightColor,
                         fontSize: 12,
                       ),
@@ -322,6 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: theme.backgroundColor,
       body: CustomScrollView(
         slivers: [
+          // Header
           SliverToBoxAdapter(
             child: Container(
               color: theme.surfaceColor,
@@ -353,8 +355,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.settings_outlined),
                         onPressed: _openSettings,
                         color: theme.textLightColor,
-                        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                        padding: EdgeInsets.zero,
                       ),
                     ],
                   ),
@@ -372,7 +372,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     decoration: InputDecoration(
                       hintText: 'Поиск...',
                       hintStyle: TextStyle(color: theme.textLightColor),
-                      prefixIcon: Icon(Icons.search, color: theme.textLightColor),
+                      prefixIcon: Icon(Icons.search, color: theme.textLightColor, size: 20),
                       filled: true,
                       fillColor: theme.backgroundColor,
                       border: OutlineInputBorder(
@@ -386,9 +386,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          // Filters + Sort in a pinned header
+          // Filters row
           SliverPersistentHeader(
-            delegate: _FilterSortHeaderDelegate(
+            delegate: _FilterHeaderDelegate(
               typeFilter: _typeFilter,
               categoryFilter: _categoryFilter,
               sortField: _sortField,
@@ -400,6 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             pinned: true,
           ),
+          // Products
           if (_isLoading)
             const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
           else if (_error != null)
@@ -407,13 +408,32 @@ class _HomeScreenState extends State<HomeScreen> {
           else if (_filteredProducts.isEmpty)
             SliverFillRemaining(child: _buildEmpty())
           else
-            _buildProductGrid(),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final p = _sortedFilteredProducts[index];
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                    child: ProductCard(
+                      product: p,
+                      onEdit: () => _showEditModal(p),
+                      onDelete: () => _confirmDelete(p),
+                    ),
+                  );
+                },
+                childCount: _sortedFilteredProducts.length,
+              ),
+            ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddModal,
-        backgroundColor: theme.primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: SizedBox(
+        width: 56,
+        height: 56,
+        child: FloatingActionButton(
+          onPressed: _showAddModal,
+          backgroundColor: theme.primaryColor,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }
@@ -460,142 +480,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
-  Widget _buildProductGrid() {
-    final products = _sortedFilteredProducts;
-    return SliverPadding(
-      padding: const EdgeInsets.all(12),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 320,
-          childAspectRatio: 1.35,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final p = products[index];
-            return ProductCard(
-              product: p,
-              onEdit: () => _showEditModal(p),
-              onDelete: () => _confirmDelete(p),
-            );
-          },
-          childCount: products.length,
-        ),
-      ),
-    );
-  }
 }
 
-class _FilterDropdown extends StatelessWidget {
-  final String label;
-  final String value;
-  final Map<String, String> items;
-  final Function(String) onChanged;
-
-  const _FilterDropdown({
-    required this.label,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = AppTheme.instance;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: theme.backgroundColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.borderColor),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 20),
-          style: TextStyle(fontSize: 13, color: theme.textColor),
-          dropdownColor: theme.surfaceColor,
-          items: items.entries.map((e) => DropdownMenuItem(
-            value: e.key,
-            child: Text(e.value, style: TextStyle(color: theme.textColor)),
-          )).toList(),
-          onChanged: (v) {
-            if (v != null) onChanged(v);
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _CategoryDropdown extends StatelessWidget {
-  final String typeFilter;
-  final String? value;
-  final Function(String?) onChanged;
-
-  const _CategoryDropdown({
-    required this.typeFilter,
-    required this.value,
-    required this.onChanged,
-  });
-
-  Map<String, String> _getAllCategories() {
-    final allCategories = <String, String>{};
-    for (final type in ['care', 'decorative']) {
-      final cats = AppTheme.instance.getCategoriesByType(type);
-      allCategories.addAll(cats);
-    }
-    final sortedKeys = allCategories.keys.toList()
-      ..sort((a, b) => allCategories[a]!.compareTo(allCategories[b]!));
-    return {for (final k in sortedKeys) k: allCategories[k]!};
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = AppTheme.instance;
-    
-    Map<String, String> categories;
-    if (typeFilter == 'all') {
-      categories = _getAllCategories();
-    } else {
-      categories = AppTheme.instance.getCategoriesByType(typeFilter);
-      final sortedKeys = categories.keys.toList()
-        ..sort((a, b) => categories[a]!.compareTo(categories[b]!));
-      categories = {for (final k in sortedKeys) k: categories[k]!};
-    }
-
-    final items = <String, String>{'all': 'Все', ...categories};
-    final currentValue = value ?? 'all';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: theme.backgroundColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.borderColor),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: items.containsKey(currentValue) ? currentValue : 'all',
-          isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 20),
-          style: TextStyle(fontSize: 13, color: theme.textColor),
-          dropdownColor: theme.surfaceColor,
-          items: items.entries.map((e) => DropdownMenuItem(
-            value: e.key,
-            child: Text(e.value, style: TextStyle(color: theme.textColor)),
-          )).toList(),
-          onChanged: (v) => onChanged(v == 'all' ? null : v),
-        ),
-      ),
-    );
-  }
-}
-
-class _FilterSortHeaderDelegate extends SliverPersistentHeaderDelegate {
+class _FilterHeaderDelegate extends SliverPersistentHeaderDelegate {
   final String typeFilter;
   final String? categoryFilter;
   final SortField sortField;
@@ -605,7 +492,7 @@ class _FilterSortHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Function(SortField) onToggleSort;
   final IconData Function(SortField) getSortIcon;
 
-  _FilterSortHeaderDelegate({
+  _FilterHeaderDelegate({
     required this.typeFilter,
     required this.categoryFilter,
     required this.sortField,
@@ -617,67 +504,106 @@ class _FilterSortHeaderDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get minExtent => 118;
+  double get minExtent => 96;
 
   @override
-  double get maxExtent => 118;
+  double get maxExtent => 96;
+
+  Map<String, String> _getCategories() {
+    final allCategories = <String, String>{};
+    for (final type in ['care', 'decorative']) {
+      final cats = AppTheme.instance.getCategoriesByType(type);
+      allCategories.addAll(cats);
+    }
+    final sortedKeys = allCategories.keys.toList()
+      ..sort((a, b) => allCategories[a]!.compareTo(allCategories[b]!));
+    return {for (final k in sortedKeys) k: allCategories[k]!};
+  }
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     final theme = AppTheme.instance;
+    final categories = _getCategories();
+    
+    Map<String, String> categoryItems;
+    if (typeFilter == 'all') {
+      categoryItems = {'all': 'Все', ...categories};
+    } else {
+      categoryItems = {'all': 'Все', ...AppTheme.instance.getCategoriesByType(typeFilter)};
+      final sortedKeys = categoryItems.keys.toList()
+        ..sort((a, b) {
+          if (a == 'all') return -1;
+          if (b == 'all') return 1;
+          return categoryItems[a]!.compareTo(categoryItems[b]!);
+        });
+      categoryItems = {for (final k in sortedKeys) k: categoryItems[k]!};
+    }
+
     return Container(
-      decoration: BoxDecoration(
-        color: theme.surfaceColor,
-        border: Border(bottom: BorderSide(color: theme.borderColor)),
-      ),
+      color: theme.surfaceColor,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: _FilterDropdown(
-                  label: 'Тип',
+          // Type dropdown
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: theme.backgroundColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.borderColor),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
                   value: typeFilter,
-                  items: const {'all': 'Все', 'care': 'Уход', 'decorative': 'Декор.'},
-                  onChanged: onTypeChanged,
+                  isExpanded: true,
+                  icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 20),
+                  style: TextStyle(fontSize: 13, color: theme.textColor),
+                  dropdownColor: theme.surfaceColor,
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('Все')),
+                    DropdownMenuItem(value: 'care', child: Text('Уход')),
+                    DropdownMenuItem(value: 'decorative', child: Text('Декор.')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) onTypeChanged(v);
+                  },
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _CategoryDropdown(
-                  typeFilter: typeFilter,
-                  value: categoryFilter,
-                  onChanged: onCategoryChanged,
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              _SortChip(
-                label: 'По сроку',
-                icon: getSortIcon(SortField.expiry),
-                isActive: sortField == SortField.expiry,
-                onTap: () => onToggleSort(SortField.expiry),
+          const SizedBox(width: 8),
+          // Category dropdown
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: theme.backgroundColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.borderColor),
               ),
-              const SizedBox(width: 8),
-              _SortChip(
-                label: 'По названию',
-                icon: getSortIcon(SortField.name),
-                isActive: sortField == SortField.name,
-                onTap: () => onToggleSort(SortField.name),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: categoryFilter ?? 'all',
+                  isExpanded: true,
+                  icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 20),
+                  style: TextStyle(fontSize: 13, color: theme.textColor),
+                  dropdownColor: theme.surfaceColor,
+                  items: categoryItems.entries
+                      .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                      .toList(),
+                  onChanged: (v) => onCategoryChanged(v == 'all' ? null : v),
+                ),
               ),
-              const SizedBox(width: 8),
-              _SortChip(
-                label: 'По категории',
-                icon: getSortIcon(SortField.category),
-                isActive: sortField == SortField.category,
-                onTap: () => onToggleSort(SortField.category),
-              ),
-            ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Sort button
+          _SortButton(
+            field: sortField,
+            order: sortOrder,
+            onTap: onToggleSort,
+            getIcon: getSortIcon,
           ),
         ],
       ),
@@ -685,55 +611,74 @@ class _FilterSortHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(covariant _FilterSortHeaderDelegate oldDelegate) {
-    // Always rebuild to catch theme changes
-    return true;
-  }
+  bool shouldRebuild(covariant _FilterHeaderDelegate oldDelegate) => true;
 }
 
-class _SortChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isActive;
-  final VoidCallback onTap;
+class _SortButton extends StatelessWidget {
+  final SortField field;
+  final SortOrder order;
+  final Function(SortField) onTap;
+  final IconData Function(SortField) getIcon;
 
-  const _SortChip({
-    required this.label,
-    required this.icon,
-    required this.isActive,
+  const _SortButton({
+    required this.field,
+    required this.order,
     required this.onTap,
+    required this.getIcon,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    return PopupMenuButton<SortField>(
+      icon: Container(
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isActive ? theme.primaryColor.withAlpha(25) : theme.backgroundColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isActive ? theme.primaryColor : theme.borderColor,
+          color: theme.backgroundColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: theme.borderColor),
+        ),
+        child: Icon(Icons.swap_vert, size: 20, color: theme.textLightColor),
+      ),
+      onSelected: onTap,
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: SortField.expiry,
+          child: _buildSortItem('По сроку', SortField.expiry),
+        ),
+        PopupMenuItem(
+          value: SortField.name,
+          child: _buildSortItem('По названию', SortField.name),
+        ),
+        PopupMenuItem(
+          value: SortField.category,
+          child: _buildSortItem('По категории', SortField.category),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSortItem(String label, SortField sortField) {
+    final theme = AppTheme.instance;
+    final isSelected = field == sortField;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? theme.primaryColor : theme.textColor,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                color: isActive ? theme.primaryColor : theme.textColor,
-              ),
-            ),
-            const SizedBox(width: 3),
-            Icon(icon, size: 12, color: isActive ? theme.primaryColor : theme.textLightColor),
-          ],
-        ),
-      ),
+        if (isSelected)
+          Icon(
+            order == SortOrder.asc ? Icons.arrow_upward : Icons.arrow_downward,
+            size: 16,
+            color: theme.primaryColor,
+          ),
+      ],
     );
   }
 }

@@ -31,12 +31,18 @@ class AppTheme extends ChangeNotifier {
   Color textColor = _lightText;
   Color textLightColor = _lightTextLight;
   Color borderColor = _lightBorder;
-  Color okColor = const Color(0xFF8FC9A3);
-  Color okBgColor = const Color(0xFFF0F7F2);
-  Color warningColor = const Color(0xFFE8A87C);
-  Color warningBgColor = const Color(0xFFFDF5F0);
-  Color dangerColor = const Color(0xFFD9848C);
-  Color dangerBgColor = const Color(0xFFFDF0F2);
+
+  // Status colors
+  Color expiredColor = const Color(0xFFC62828);
+  Color expiredBgColor = const Color(0xFFFFEBEE);
+  Color todayColor = const Color(0xFFEF6C00);
+  Color todayBgColor = const Color(0xFFFFF3E0);
+  Color warningColor = const Color(0xFFF9A825);
+  Color warningBgColor = const Color(0xFFFFFDE7);
+  Color neutralColor = const Color(0xFF616161);
+  Color neutralBgColor = const Color(0xFFF5F5F5);
+  Color successColor = const Color(0xFF2E7D32);
+  Color successBgColor = const Color(0xFFE8F5E9);
 
   // Type badge colors
   Color careTypeColor = const Color(0xFF2196F3);
@@ -71,12 +77,14 @@ class AppTheme extends ChangeNotifier {
       surfaceColor = const Color(0xFF2A2A2A);
       borderColor = _darkBorder;
       // Brighter badge colors for dark mode visibility
-      okBgColor = const Color(0xFF1B3D22);
-      okColor = const Color(0xFF7DD49A);
-      warningBgColor = const Color(0xFF3D2E1B);
-      warningColor = const Color(0xFFE8C77C);
-      dangerBgColor = const Color(0xFF3D1B1B);
-      dangerColor = const Color(0xFFE87C7C);
+      expiredBgColor = const Color(0xFF3D1B1B);
+      expiredColor = const Color(0xFFEF9A9A);
+      todayBgColor = const Color(0xFF3D2E1B);
+      todayColor = const Color(0xFFFFCC80);
+      warningBgColor = const Color(0xFF3D3D1B);
+      warningColor = const Color(0xFFFFF176);
+      neutralBgColor = const Color(0xFF2A2A2A);
+      neutralColor = const Color(0xFFBDBDBD);
       selectionColor = const Color(0xFFE8B4BC);
       inputFocusColor = const Color(0xFFE8B4BC);
       // Type badge colors for dark mode
@@ -86,9 +94,14 @@ class AppTheme extends ChangeNotifier {
       backgroundColor = _lightBackground;
       surfaceColor = Colors.white;
       borderColor = _lightBorder;
-      okBgColor = const Color(0xFFF0F7F2);
-      warningBgColor = const Color(0xFFFDF5F0);
-      dangerBgColor = const Color(0xFFFDF0F2);
+      expiredBgColor = const Color(0xFFFFEBEE);
+      expiredColor = const Color(0xFFC62828);
+      todayBgColor = const Color(0xFFFFF3E0);
+      todayColor = const Color(0xFFEF6C00);
+      warningBgColor = const Color(0xFFFFFDE7);
+      warningColor = const Color(0xFFF9A825);
+      neutralBgColor = const Color(0xFFF5F5F5);
+      neutralColor = const Color(0xFF616161);
       selectionColor = const Color(0xFFE8B4BC);
       inputFocusColor = const Color(0xFFE8B4BC);
       // Type badge colors for light mode

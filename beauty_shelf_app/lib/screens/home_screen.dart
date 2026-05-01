@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
-import '../services/api_service.dart';
+import '../services/storage_service.dart';
+import '../services/storage_io.dart';
 import '../utils/sorting.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_form.dart';
@@ -15,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _api = ApiService();
+  final StorageService _storage = MobileStorageService();
   List<Product> _products = [];
   List<Product> _filteredProducts = [];
   bool _isLoading = true;
@@ -73,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final products = await _api.getProducts();
+      final products = await _storage.getAllProducts();
       setState(() {
         _products = products;
         _applyFilters();
@@ -141,9 +142,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.pop(context);
           try {
             if (p.id == null) {
-              await _api.createProduct(p);
+              await _storage.createProduct(p);
             } else {
-              await _api.updateProduct(p);
+              await _storage.updateProduct(p);
             }
             _loadProducts();
             _showSnackBar(p.id == null ? 'Продукт добавлен' : 'Продукт обновлён');
@@ -167,11 +168,11 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Отмена'),
           ),
-          FilledButton(
+            FilledButton(
             onPressed: () async {
               Navigator.pop(context);
               try {
-                await _api.deleteProduct(product.id!);
+                await _storage.deleteProduct(product.id!);
                 _loadProducts();
                 _showSnackBar('Продукт удалён');
               } catch (e) {

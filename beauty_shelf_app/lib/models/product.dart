@@ -57,6 +57,39 @@ class Product {
     };
   }
 
+  // SQLite map support
+  factory Product.fromMap(Map<String, dynamic> map) {
+    return Product(
+      id: map['id'] as int?,
+      name: map['name'] as String,
+      type: map['type'] as String,
+      category: map['category'] as String,
+      purpose: map['purpose'] as String?,
+      expiryDate: DateTime.parse(map['expiry_date'] as String),
+      isOpened: (map['is_opened'] as int?) == 1,
+      openedDate: map['opened_date'] != null
+          ? DateTime.parse(map['opened_date'] as String)
+          : null,
+      expiryDaysAfterOpen: map['expiry_days_after_open'] as int? ?? 30,
+      imageUrl: map['image_url'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      if (id != null) 'id': id,
+      'name': name,
+      'type': type,
+      'category': category,
+      'purpose': purpose,
+      'expiry_date': expiryDate.toIso8601String().split('T')[0],
+      'is_opened': isOpened ? 1 : 0,
+      'opened_date': openedDate?.toIso8601String().split('T')[0],
+      'expiry_days_after_open': expiryDaysAfterOpen,
+      'image_url': imageUrl,
+    };
+  }
+
   DateTime get effectiveExpiryDate {
     if (isOpened && openedDate != null) {
       return openedDate!.add(Duration(days: expiryDaysAfterOpen));

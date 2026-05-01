@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../services/api_service.dart';
-import '../models/product.dart';
+import '../services/storage_io.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,15 +10,17 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final _api = ApiService();
+  final _storage = MobileStorageService();
 
   Future<void> _exportData(BuildContext context) async {
     try {
-      final products = await _api.getProducts();
-      await _api.exportToJson(products);
+      final result = await _storage.exportToJson();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Экспорт завершён'), behavior: SnackBarBehavior.floating),
+          SnackBar(
+            content: Text(result != null ? 'Экспорт завершён' : 'Ошибка экспорта'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {
@@ -32,32 +33,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _importData(BuildContext context) async {
-    try {
-      final products = await _api.importFromJson();
-      if (products != null && products.isNotEmpty) {
-        int imported = 0;
-        for (final product in products) {
-          await _api.createProduct(product);
-          imported++;
-        }
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Импортировано: $imported'), behavior: SnackBarBehavior.floating),
-          );
-        }
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Выберите файл'), behavior: SnackBarBehavior.floating),
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка импорта: $e'), behavior: SnackBarBehavior.floating),
-        );
-      }
+    // Note: Import requires file picker which is implemented in platform-specific code
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Импорт временно недоступен на Android'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 

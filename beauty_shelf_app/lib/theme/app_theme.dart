@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-// ignore: avoid_web_libraries
-import 'dart:html' as html;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AppTheme extends ChangeNotifier {
   static final AppTheme _instance = AppTheme._();
@@ -60,10 +59,14 @@ class AppTheme extends ChangeNotifier {
   // Custom categories
   Map<String, Map<String, String>> customCategories = {};
 
+  // Storage keys
+  static const _keyDark = 'beauty_shelf_dark';
+  static const _keyTheme = 'beauty_shelf_theme';
+  static const _keyCategories = 'beauty_shelf_categories';
+
   void toggleDarkMode() {
-    // Save primary before switching
     _savedPrimaryColor = primaryColor;
-    AppTheme._instancePrimarySet = true;
+    _instancePrimarySet = true;
     _isDarkMode = !_isDarkMode;
     _applyDarkMode();
     _saveDarkMode();
@@ -71,12 +74,10 @@ class AppTheme extends ChangeNotifier {
   }
 
   void _applyDarkMode() {
-    // Keep user's chosen primary color
     if (_isDarkMode) {
       backgroundColor = _darkBackground;
       surfaceColor = const Color(0xFF2A2A2A);
       borderColor = _darkBorder;
-      // Brighter badge colors for dark mode visibility
       expiredBgColor = const Color(0xFF3D1B1B);
       expiredColor = const Color(0xFFEF9A9A);
       todayBgColor = const Color(0xFF3D2E1B);
@@ -87,7 +88,6 @@ class AppTheme extends ChangeNotifier {
       neutralColor = const Color(0xFFBDBDBD);
       selectionColor = const Color(0xFFE8B4BC);
       inputFocusColor = const Color(0xFFE8B4BC);
-      // Type badge colors for dark mode
       careTypeBgColor = const Color(0xFF0D2744);
       decorativeTypeBgColor = const Color(0xFF2D1A3D);
     } else {
@@ -104,29 +104,27 @@ class AppTheme extends ChangeNotifier {
       neutralColor = const Color(0xFF616161);
       selectionColor = const Color(0xFFE8B4BC);
       inputFocusColor = const Color(0xFFE8B4BC);
-      // Type badge colors for light mode
       careTypeBgColor = const Color(0xFFE3F2FD);
       decorativeTypeBgColor = const Color(0xFFF3E5F5);
     }
-    // Recalculate text colors from primary
     adjustColors();
   }
   
   static bool _instancePrimarySet = false;
   Color _savedPrimaryColor = _lightPrimary;
 
-  void _saveDarkMode() {
+  Future<void> _saveDarkMode() async {
     try {
-      html.window.localStorage['beauty_shelf_dark'] = _isDarkMode ? '1' : '0';
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyDark, _isDarkMode ? '1' : '0');
     } catch (e) {
-      // localStorage not available
+      debugPrint('_saveDarkMode error: $e');
     }
   }
 
   void applyPreset(Color primary, Color background) {
     primaryColor = primary;
     _savedPrimaryColor = primary;
-    // In dark mode, don't change background/surface colors
     if (!_isDarkMode) {
       backgroundColor = background;
     }
@@ -146,9 +144,7 @@ class AppTheme extends ChangeNotifier {
       (hsl.lightness - 0.1).clamp(0.0, 1.0)
     ).toColor();
     
-    // Text color tinted with primary (more saturated, readable lightness)
     if (_isDarkMode) {
-      // Dark mode: light text with primary tint
       textColor = HSLColor.fromAHSL(
         1.0, hsl.hue, 
         (hsl.saturation * 0.5).clamp(0.0, 1.0),
@@ -160,7 +156,6 @@ class AppTheme extends ChangeNotifier {
         0.7
       ).toColor();
     } else {
-      // Light mode: dark text with primary tint
       textColor = HSLColor.fromAHSL(
         1.0, hsl.hue, 
         (hsl.saturation * 0.6).clamp(0.0, 1.0),
@@ -174,12 +169,15 @@ class AppTheme extends ChangeNotifier {
     }
   }
 
-  void _saveToStorage() {
+  Future<void> _saveToStorage() async {
     try {
-      html.window.localStorage['beauty_shelf_theme'] =
-        '${primaryColor.value},${backgroundColor.value},${_savedPrimaryColor.value}';
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _keyTheme,
+        '${primaryColor.toARGB32()},${backgroundColor.toARGB32()},${_savedPrimaryColor.toARGB32()}',
+      );
     } catch (e) {
-      // localStorage not available
+      debugPrint('_saveToStorage error: $e');
     }
   }
 
@@ -212,13 +210,14 @@ class AppTheme extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _saveCategories() {
+  Future<void> _saveCategories() async {
     try {
       final encoded = customCategories.map((type, cats) =>
         MapEntry(type, cats.map((k, v) => MapEntry(k, v))));
-      html.window.localStorage['beauty_shelf_categories'] = _encodeMap(encoded);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyCategories, _encodeMap(encoded));
     } catch (e) {
-      // localStorage not available
+      debugPrint('_saveCategories error: $e');
     }
   }
 
@@ -296,38 +295,39 @@ class AppTheme extends ChangeNotifier {
   }
 }
 
-void loadDarkMode() {
+Future<void> loadDarkMode() async {
   try {
-    final saved = html.window.localStorage['beauty_shelf_dark'];
-    print('loadDarkMode: saved=$saved');
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('beauty_shelf_dark');
     if (saved == '1') {
       AppTheme.instance._isDarkMode = true;
       AppTheme.instance._applyDarkMode();
       AppTheme.instance.notifyListeners();
     } else {
-      // Explicitly ensure light mode colors are applied
       AppTheme.instance._isDarkMode = false;
       AppTheme.instance._applyDarkMode();
     }
   } catch (e) {
-    print('loadDarkMode error: $e');
+    debugPrint('loadDarkMode error: $e');
   }
 }
 
-void loadCategories() {
+Future<void> loadCategories() async {
   try {
-    final saved = html.window.localStorage['beauty_shelf_categories'];
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('beauty_shelf_categories');
     if (saved != null && saved.isNotEmpty) {
       AppTheme.instance.customCategories = AppTheme.instance._decodeMap(saved);
     }
   } catch (e) {
-    // localStorage not available
+    debugPrint('loadCategories error: $e');
   }
 }
 
-void loadThemeFromStorage() {
+Future<void> loadThemeFromStorage() async {
   try {
-    final saved = html.window.localStorage['beauty_shelf_theme'];
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('beauty_shelf_theme');
     if (saved != null && saved.isNotEmpty) {
       final parts = saved.split(',');
       if (parts.length >= 2) {
@@ -338,10 +338,8 @@ void loadThemeFromStorage() {
           AppTheme.instance._savedPrimaryColor = Color(primary);
           AppTheme._instancePrimarySet = true;
           
-          // Only set backgroundColor if not in dark mode
           if (!AppTheme.instance._isDarkMode) {
             AppTheme.instance.backgroundColor = Color(bg);
-            // Ensure surface and border are correctly set for light mode
             AppTheme.instance.surfaceColor = Colors.white;
             AppTheme.instance.borderColor = AppTheme._lightBorder;
           }
@@ -350,6 +348,6 @@ void loadThemeFromStorage() {
       }
     }
   } catch (e) {
-    // localStorage not available
+    debugPrint('loadThemeFromStorage error: $e');
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
-import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class ProductForm extends StatefulWidget {
@@ -19,7 +18,6 @@ class ProductForm extends StatefulWidget {
 
 class _ProductFormState extends State<ProductForm> {
   final _formKey = GlobalKey<FormState>();
-  final _api = ApiService();
   
   late TextEditingController _barcodeController;
   late TextEditingController _nameController;
@@ -70,60 +68,12 @@ class _ProductFormState extends State<ProductForm> {
   }
 
   Future<void> _lookupBarcode() async {
-    final barcode = _barcodeController.text.trim();
-    if (barcode.length < 8) {
-      setState(() {
-        _lookupResult = null;
-        _lookupError = null;
-      });
-      return;
-    }
-    
+    // Barcode lookup requires network access (Open Beauty Facts API)
+    // For local storage mode, show that this feature is not available
     setState(() {
-      _isLookingUp = true;
-      _lookupResult = null;
-      _lookupError = null;
+      _lookupResult = 'Поиск по штрихкоду недоступен в офлайн режиме';
+      _lookupError = 'network';
     });
-    
-    try {
-      final product = await _api.lookupBarcode(barcode);
-      if (product.isNotEmpty) {
-        final name = product['product_name'] ?? product['product_name_fr'] ?? product['name'];
-        final brands = product['brands'];
-        final categories = product['categories'];
-        
-        bool filled = false;
-        if (name != null && name.toString().isNotEmpty && _nameController.text.isEmpty) {
-          _nameController.text = name.toString();
-          filled = true;
-        }
-        if (brands != null && brands.toString().isNotEmpty && _purposeController.text.isEmpty) {
-          _purposeController.text = brands.toString();
-          filled = true;
-        }
-        
-        setState(() {
-          _lookupResult = filled 
-              ? '✓ Данные загружены: $name'
-              : '✓ Найден: $name';
-          _lookupError = null;
-        });
-      } else {
-        setState(() {
-          _lookupResult = 'Продукт не найден в базе';
-          _lookupError = 'not_found';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _lookupResult = 'Ошибка подключения к интернету';
-        _lookupError = 'network';
-      });
-    } finally {
-      setState(() {
-        _isLookingUp = false;
-      });
-    }
   }
 
   void _submit() {
@@ -145,22 +95,11 @@ class _ProductFormState extends State<ProductForm> {
   }
 
   Future<void> _uploadImage() async {
-    setState(() => _isUploadingImage = true);
-    try {
-      final url = await _api.uploadImage();
-      if (url != null) {
-        setState(() => _imageUrl = url);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ошибка загрузки изображения')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isUploadingImage = false);
-      }
+    // Image upload requires backend server
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Загрузка изображений недоступна в офлайн режиме')),
+      );
     }
   }
 

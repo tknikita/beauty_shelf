@@ -2,7 +2,11 @@
 
 ## Overview
 
-Cross-platform cosmetics inventory tracker with Flutter web frontend and FastAPI backend.
+Cross-platform cosmetics inventory tracker with Flutter (web + Android) frontend and FastAPI backend.
+
+**Platforms:**
+- **Web** - Flutter web app served via Nginx, uses backend API
+- **Android** - Flutter Android APK with local SQLite storage (offline-capable)
 
 ## Architecture
 
@@ -30,6 +34,13 @@ Cross-platform cosmetics inventory tracker with Flutter web frontend and FastAPI
 - Add/Edit/Delete products
 - Barcode lookup via Open Beauty Facts API
 - Directory: `beauty_shelf_app/`
+
+### Android App (Flutter Mobile)
+- Flutter 3.x with Material Design 3
+- Local SQLite storage (offline-capable)
+- Same UI as web with responsive layout
+- Navigation bar safe area handling
+- APK: `beauty_shelf_app/build/app/outputs/flutter-apk/app-debug.apk`
 
 ### Backend (FastAPI)
 - Port: 8000
@@ -168,11 +179,14 @@ beauty_shelf/
 │   ├── main.py            # FastAPI application
 │   ├── requirements.txt   # Python deps
 │   └── Dockerfile          # Backend container
-├── beauty_shelf_app/       # Flutter web app
+├── beauty_shelf_app/       # Flutter app (web + Android)
 │   ├── lib/
 │   │   ├── main.dart
 │   │   ├── models/product.dart
-│   │   ├── services/api_service.dart
+│   │   ├── services/
+│   │   │   ├── api_service.dart      # Web: backend API client
+│   │   │   ├── storage_service.dart   # Interface for storage
+│   │   │   └── storage_io.dart       # Android: SQLite implementation
 │   │   ├── screens/
 │   │   │   ├── home_screen.dart
 │   │   │   └── settings_screen.dart
@@ -195,18 +209,34 @@ brew install flutter
 # Edit frontend
 cd beauty_shelf_app
 
-# Run locally
+# Run locally (web)
 flutter run -d chrome
 
 # Build web
 flutter build web
 
-# Deploy
+# Build Android APK
+flutter build apk --debug
+flutter build apk --release
+
+# Install on device (via USB)
+adb install -r build/app/outputs/flutter-apk/app-debug.apk
+
+# Deploy (web only)
 docker-compose build frontend
 docker-compose up -d frontend
 ```
 
 ## Changelog
+
+### 2026-05-01
+- **Added Android APK support** with local SQLite storage
+  - Flutter app now builds for both web and Android
+  - Android version uses `MobileStorageService` with local SQLite
+  - Web version uses `ApiService` for backend communication
+  - Offline barcode lookup and image upload (shows message instead)
+  - Fixed UI layout issues: status bar overlap, card overlap, navigation bar safe areas
+  - Supports gesture navigation on modern Android devices
 
 ### 2026-04-29
 - **Fixed Table View** - Rows now render correctly with styling on Flutter Web

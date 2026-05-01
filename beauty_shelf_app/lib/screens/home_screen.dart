@@ -335,6 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Header section
             Container(
               color: theme.surfaceColor,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -479,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
           ),
         ],
-        ),
+      ),
       ),
       floatingActionButton: SizedBox(
         width: 56,

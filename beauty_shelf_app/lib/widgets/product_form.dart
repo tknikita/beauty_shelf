@@ -135,8 +135,8 @@ class _ProductFormState extends State<ProductForm> {
 
     return Padding(
       padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
+        left: 16,
+        right: 16,
         top: 24,
         bottom: bottomPadding,
       ),
@@ -360,8 +360,8 @@ class _ProductFormState extends State<ProductForm> {
                         focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                       ),
                       items: [
-                        DropdownMenuItem(value: 'care', child: Text('Уходовая', style: TextStyle(color: theme.textColor))),
-                        DropdownMenuItem(value: 'decorative', child: Text('Декоративная', style: TextStyle(color: theme.textColor))),
+                        DropdownMenuItem(value: 'care', child: Text('Уход', style: TextStyle(color: theme.textColor))),
+                        DropdownMenuItem(value: 'decorative', child: Text('Декор.', style: TextStyle(color: theme.textColor))),
                       ],
                       onChanged: (v) {
                         setState(() {
@@ -483,8 +483,8 @@ class _ProductFormState extends State<ProductForm> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
+                  const SizedBox(width: 8),
+                  Expanded(
                       child: TextFormField(
                         initialValue: _expiryDaysAfterOpen.toString(),
                         style: TextStyle(color: theme.textColor),

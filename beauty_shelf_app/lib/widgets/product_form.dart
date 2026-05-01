@@ -126,13 +126,15 @@ class _ProductFormState extends State<ProductForm> {
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
     final categories = theme.getCategoriesByType(_type);
+    final mediaQuery = MediaQuery.of(context);
+    final bottomPadding = mediaQuery.viewInsets.bottom + mediaQuery.padding.bottom + 24;
 
     return Padding(
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
         top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        bottom: bottomPadding,
       ),
       child: Form(
         key: _formKey,
@@ -604,6 +606,7 @@ class _BarcodeEntryDialogState extends State<_BarcodeEntryDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return AlertDialog(
       backgroundColor: theme.surfaceColor,

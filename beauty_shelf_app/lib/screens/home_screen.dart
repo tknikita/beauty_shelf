@@ -75,9 +75,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final products = await _storage.getAllProducts();
+      final filtered = _filterProducts(products);
       setState(() {
         _products = products;
-        _applyFilters();
+        _filteredProducts = filtered;
         _isLoading = false;
       });
     } catch (e) {
@@ -88,20 +89,24 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  List<Product> _filterProducts(List<Product> products) {
+    return products.where((p) {
+      if (_typeFilter != 'all' && p.type != _typeFilter) return false;
+      if (_categoryFilter != null && p.category != _categoryFilter) return false;
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        if (!p.name.toLowerCase().contains(q) &&
+            !(p.purpose?.toLowerCase().contains(q) ?? false)) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+  }
+
   void _applyFilters() {
     setState(() {
-      _filteredProducts = _products.where((p) {
-        if (_typeFilter != 'all' && p.type != _typeFilter) return false;
-        if (_categoryFilter != null && p.category != _categoryFilter) return false;
-        if (_searchQuery.isNotEmpty) {
-          final q = _searchQuery.toLowerCase();
-          if (!p.name.toLowerCase().contains(q) &&
-              !(p.purpose?.toLowerCase().contains(q) ?? false)) {
-            return false;
-          }
-        }
-        return true;
-      }).toList();
+      _filteredProducts = _filterProducts(_products);
     });
   }
 
@@ -322,13 +327,13 @@ class _HomeScreenState extends State<HomeScreen> {
     
     return Scaffold(
       backgroundColor: theme.backgroundColor,
-      body: CustomScrollView(
-        slivers: [
-          // Header
-          SliverToBoxAdapter(
+      body: Column(
+        children: [
+          SafeArea(
+            bottom: false,
             child: Container(
               color: theme.surfaceColor,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Column(
                 children: [
                   Row(
@@ -387,44 +392,89 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          // Filters row
-          SliverPersistentHeader(
-            delegate: _FilterHeaderDelegate(
-              typeFilter: _typeFilter,
-              categoryFilter: _categoryFilter,
-              sortField: _sortField,
-              sortOrder: _sortOrder,
-              onTypeChanged: _setTypeFilter,
-              onCategoryChanged: _setCategoryFilter,
-              onToggleSort: _toggleSort,
-              getSortIcon: _getSortIcon,
-            ),
-            pinned: true,
-          ),
-          // Products
-          if (_isLoading)
-            const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
-          else if (_error != null)
-            SliverFillRemaining(child: _buildError())
-          else if (_filteredProducts.isEmpty)
-            SliverFillRemaining(child: _buildEmpty())
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final p = _sortedFilteredProducts[index];
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                    child: ProductCard(
-                      product: p,
-                      onEdit: () => _showEditModal(p),
-                      onDelete: () => _confirmDelete(p),
+          // Filters row - use regular Container instead of SliverPersistentHeader
+          Container(
+            color: theme.surfaceColor,
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: theme.backgroundColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: theme.borderColor),
                     ),
-                  );
-                },
-                childCount: _sortedFilteredProducts.length,
-              ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _typeFilter,
+                        isExpanded: true,
+                        icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 18),
+                        style: TextStyle(fontSize: 12, color: theme.textColor),
+                        dropdownColor: theme.surfaceColor,
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('Все')),
+                          DropdownMenuItem(value: 'care', child: Text('Уход')),
+                          DropdownMenuItem(value: 'decorative', child: Text('Декор.')),
+                        ],
+                        onChanged: (v) {
+                          if (v != null) _setTypeFilter(v);
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: theme.backgroundColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: theme.borderColor),
+                    ),
+                    child: _CategoryDropdown(
+                      typeFilter: _typeFilter,
+                      categoryFilter: _categoryFilter,
+                      onChanged: _setCategoryFilter,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _SortButton(
+                  field: _sortField,
+                  order: _sortOrder,
+                  onTap: _toggleSort,
+                  getIcon: _getSortIcon,
+                ),
+              ],
             ),
+          ),
+          // Products list
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? _buildError()
+                    : _filteredProducts.isEmpty
+                        ? _buildEmpty()
+                        : ListView.builder(
+                            padding: const EdgeInsets.only(top: 4, bottom: 80),
+                            itemCount: _sortedFilteredProducts.length,
+                            itemBuilder: (context, index) {
+                              final p = _sortedFilteredProducts[index];
+                              return Padding(
+                                padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                                child: ProductCard(
+                                  product: p,
+                                  onEdit: () => _showEditModal(p),
+                                  onDelete: () => _confirmDelete(p),
+                                ),
+                              );
+                            },
+                          ),
+          ),
         ],
       ),
       floatingActionButton: SizedBox(
@@ -481,138 +531,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
-
-class _FilterHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final String typeFilter;
-  final String? categoryFilter;
-  final SortField sortField;
-  final SortOrder sortOrder;
-  final Function(String) onTypeChanged;
-  final Function(String?) onCategoryChanged;
-  final Function(SortField) onToggleSort;
-  final IconData Function(SortField) getSortIcon;
-
-  _FilterHeaderDelegate({
-    required this.typeFilter,
-    required this.categoryFilter,
-    required this.sortField,
-    required this.sortOrder,
-    required this.onTypeChanged,
-    required this.onCategoryChanged,
-    required this.onToggleSort,
-    required this.getSortIcon,
-  });
-
-  @override
-  double get minExtent => 96;
-
-  @override
-  double get maxExtent => 96;
-
-  Map<String, String> _getCategories() {
-    final allCategories = <String, String>{};
-    for (final type in ['care', 'decorative']) {
-      final cats = AppTheme.instance.getCategoriesByType(type);
-      allCategories.addAll(cats);
-    }
-    final sortedKeys = allCategories.keys.toList()
-      ..sort((a, b) => allCategories[a]!.compareTo(allCategories[b]!));
-    return {for (final k in sortedKeys) k: allCategories[k]!};
-  }
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final theme = AppTheme.instance;
-    final categories = _getCategories();
-    
-    Map<String, String> categoryItems;
-    if (typeFilter == 'all') {
-      categoryItems = {'all': 'Все', ...categories};
-    } else {
-      categoryItems = {'all': 'Все', ...AppTheme.instance.getCategoriesByType(typeFilter)};
-      final sortedKeys = categoryItems.keys.toList()
-        ..sort((a, b) {
-          if (a == 'all') return -1;
-          if (b == 'all') return 1;
-          return categoryItems[a]!.compareTo(categoryItems[b]!);
-        });
-      categoryItems = {for (final k in sortedKeys) k: categoryItems[k]!};
-    }
-
-    return Container(
-      color: theme.surfaceColor,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Row(
-        children: [
-          // Type dropdown
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: theme.backgroundColor,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: theme.borderColor),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: typeFilter,
-                  isExpanded: true,
-                  icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 20),
-                  style: TextStyle(fontSize: 13, color: theme.textColor),
-                  dropdownColor: theme.surfaceColor,
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('Все')),
-                    DropdownMenuItem(value: 'care', child: Text('Уход')),
-                    DropdownMenuItem(value: 'decorative', child: Text('Декор.')),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) onTypeChanged(v);
-                  },
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Category dropdown
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: theme.backgroundColor,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: theme.borderColor),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: categoryFilter ?? 'all',
-                  isExpanded: true,
-                  icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 20),
-                  style: TextStyle(fontSize: 13, color: theme.textColor),
-                  dropdownColor: theme.surfaceColor,
-                  items: categoryItems.entries
-                      .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-                      .toList(),
-                  onChanged: (v) => onCategoryChanged(v == 'all' ? null : v),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Sort button
-          _SortButton(
-            field: sortField,
-            order: sortOrder,
-            onTap: onToggleSort,
-            getIcon: getSortIcon,
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _FilterHeaderDelegate oldDelegate) => true;
 }
 
 class _SortButton extends StatelessWidget {
@@ -680,6 +598,62 @@ class _SortButton extends StatelessWidget {
             color: theme.primaryColor,
           ),
       ],
+    );
+  }
+}
+
+class _CategoryDropdown extends StatelessWidget {
+  final String typeFilter;
+  final String? categoryFilter;
+  final Function(String?) onChanged;
+
+  const _CategoryDropdown({
+    required this.typeFilter,
+    required this.categoryFilter,
+    required this.onChanged,
+  });
+
+  Map<String, String> _getCategories() {
+    final allCategories = <String, String>{};
+    for (final type in ['care', 'decorative']) {
+      final cats = AppTheme.instance.getCategoriesByType(type);
+      allCategories.addAll(cats);
+    }
+    final sortedKeys = allCategories.keys.toList()
+      ..sort((a, b) => allCategories[a]!.compareTo(allCategories[b]!));
+    return {for (final k in sortedKeys) k: allCategories[k]!};
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+
+    Map<String, String> categoryItems;
+    if (typeFilter == 'all') {
+      categoryItems = {'all': 'Все', ..._getCategories()};
+    } else {
+      categoryItems = {'all': 'Все', ...AppTheme.instance.getCategoriesByType(typeFilter)};
+      final sortedKeys = categoryItems.keys.toList()
+        ..sort((a, b) {
+          if (a == 'all') return -1;
+          if (b == 'all') return 1;
+          return categoryItems[a]!.compareTo(categoryItems[b]!);
+        });
+      categoryItems = {for (final k in sortedKeys) k: categoryItems[k]!};
+    }
+
+    return DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: categoryFilter ?? 'all',
+        isExpanded: true,
+        icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 18),
+        style: TextStyle(fontSize: 12, color: theme.textColor),
+        dropdownColor: theme.surfaceColor,
+        items: categoryItems.entries
+            .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+            .toList(),
+        onChanged: (v) => onChanged(v == 'all' ? null : v),
+      ),
     );
   }
 }

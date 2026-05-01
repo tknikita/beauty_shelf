@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class ProductForm extends StatefulWidget {
@@ -68,11 +69,27 @@ class _ProductFormState extends State<ProductForm> {
   }
 
   Future<void> _lookupBarcode() async {
-    // Barcode lookup requires network access (Open Beauty Facts API)
-    // For local storage mode, show that this feature is not available
+    final barcode = _barcodeController.text.trim();
+    if (barcode.length < 8) {
+      setState(() {
+        _lookupResult = null;
+        _lookupError = null;
+      });
+      return;
+    }
+    
+    setState(() {
+      _isLookingUp = true;
+      _lookupResult = null;
+      _lookupError = null;
+    });
+    
+    // Barcode lookup requires network - show offline message for mobile
+    await Future.delayed(const Duration(milliseconds: 500));
     setState(() {
       _lookupResult = 'Поиск по штрихкоду недоступен в офлайн режиме';
       _lookupError = 'network';
+      _isLookingUp = false;
     });
   }
 
@@ -95,11 +112,13 @@ class _ProductFormState extends State<ProductForm> {
   }
 
   Future<void> _uploadImage() async {
-    // Image upload requires backend server
+    setState(() => _isUploadingImage = true);
+    await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Загрузка изображений недоступна в офлайн режиме')),
       );
+      setState(() => _isUploadingImage = false);
     }
   }
 

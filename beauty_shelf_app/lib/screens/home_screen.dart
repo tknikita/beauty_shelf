@@ -193,8 +193,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showSnackBar(String message) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(left: 16, right: 16, bottom: bottomPadding + 16),
+      ),
     );
   }
 
@@ -327,11 +332,10 @@ class _HomeScreenState extends State<HomeScreen> {
     
     return Scaffold(
       backgroundColor: theme.backgroundColor,
-      body: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Container(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
               color: theme.surfaceColor,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Column(
@@ -391,7 +395,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-          ),
           // Filters row - use regular Container instead of SliverPersistentHeader
           Container(
             color: theme.surfaceColor,
@@ -476,6 +479,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
           ),
         ],
+        ),
       ),
       floatingActionButton: SizedBox(
         width: 56,

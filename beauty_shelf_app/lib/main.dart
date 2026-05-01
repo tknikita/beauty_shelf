@@ -86,6 +86,9 @@ class _BeautyShelfAppState extends State<BeautyShelfApp> {
           selectionColor: theme.primaryColor.withAlpha(77),
           selectionHandleColor: theme.primaryColor,
         ),
+        snackBarTheme: SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+        ),
       ),
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

@@ -116,7 +116,11 @@ class _ProductFormState extends State<ProductForm> {
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Загрузка изображений недоступна в офлайн режиме')),
+        SnackBar(
+          content: const Text('Загрузка изображений недоступна в офлайн режиме'),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(left: 16, right: 16, bottom: MediaQuery.of(context).padding.bottom + 16),
+        ),
       );
       setState(() => _isUploadingImage = false);
     }

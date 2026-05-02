@@ -25,11 +25,11 @@
 
 ### branch: `feat/expiring-notifications`
 **Push notifications for expiring products**
-- [ ] WorkManager for scheduled checks (Android)
-- [ ] Local notifications API
-- [ ] Configurable notification timing (7/3/1 days before)
-- [ ] Notification tap opens product
-- Status: TODO
+- [x] flutter_local_notifications for scheduled notifications
+- [x] Daily check scheduled at 9 AM
+- [x] Configurable notification timing (1/3/7/14/30 days before)
+- [ ] Notification tap opens product (needs deep linking)
+- Status: DONE ✓
 
 ### branch: `feat/pao-tracking`
 **Period After Opening tracking**

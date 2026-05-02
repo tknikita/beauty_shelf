@@ -41,11 +41,11 @@
 
 ### branch: `feat/swipe-actions`
 **Swipe gestures on product cards**
-- [ ] Swipe left to delete (with confirmation)
-- [ ] Swipe right to edit
-- [ ] Visual feedback during swipe
-- [ ] Haptic feedback
-- Status: TODO
+- [x] Swipe left to delete (with confirmation)
+- [x] Swipe right to edit
+- [x] Visual feedback during swipe
+- [x] Haptic feedback
+- Status: DONE ✓
 
 ### branch: `feat/bulk-actions`
 **Bulk operations**

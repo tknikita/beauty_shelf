@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/storage_io.dart';
+import '../services/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,6 +13,54 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _storage = MobileStorageService();
+  bool _notificationsEnabled = false;
+  int _notificationDays = 7;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSettings();
+  }
+
+  Future<void> _loadNotificationSettings() async {
+    final service = NotificationService();
+    final enabled = await service.areNotificationsEnabled();
+    final days = await service.getNotificationDays();
+    if (mounted) {
+      setState(() {
+        _notificationsEnabled = enabled;
+        _notificationDays = days;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _toggleNotifications(bool value) async {
+    final service = NotificationService();
+    if (value && Platform.isAndroid) {
+      final granted = await service.requestPermission();
+      if (!granted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Разрешите уведомления в настройках'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+    }
+    await service.setNotificationsEnabled(value);
+    setState(() => _notificationsEnabled = value);
+  }
+
+  Future<void> _setNotificationDays(int days) async {
+    final service = NotificationService();
+    await service.setNotificationDays(days);
+    setState(() => _notificationDays = days);
+  }
 
   Future<void> _exportData(BuildContext context) async {
     try {
@@ -278,6 +328,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       label: 'Декоративная',
                       categories: theme.getCategoriesByType('decorative'),
                     ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Notifications
+              Text(
+                'Уведомления',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.surfaceColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.borderColor),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Icon(Icons.notifications, color: theme.primaryColor),
+                      title: Text('Уведомления о сроке годности', style: TextStyle(color: theme.textColor)),
+                      subtitle: Text(
+                        _notificationsEnabled ? 'Включены' : 'Выключены',
+                        style: TextStyle(color: theme.textLightColor, fontSize: 12),
+                      ),
+                      trailing: Switch(
+                        value: _notificationsEnabled,
+                        onChanged: _loading ? null : _toggleNotifications,
+                        activeColor: theme.primaryColor,
+                      ),
+                    ),
+                    if (_notificationsEnabled) ...[
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: Icon(Icons.timer, color: theme.primaryColor),
+                        title: Text('Предупреждать за', style: TextStyle(color: theme.textColor)),
+                        trailing: DropdownButton<int>(
+                          value: _notificationDays,
+                          underline: const SizedBox(),
+                          items: [1, 3, 7, 14, 30].map((days) => DropdownMenuItem(
+                            value: days,
+                            child: Text('$days дн.'),
+                          )).toList(),
+                          onChanged: (value) {
+                            if (value != null) _setNotificationDays(value);
+                          },
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

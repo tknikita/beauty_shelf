@@ -335,11 +335,15 @@ class _ProductFormState extends State<ProductForm> {
                               ? Image.file(
                                   File(_imageUrl!),
                                   fit: BoxFit.cover,
+                                  cacheWidth: 160,
+                                  cacheHeight: 160,
                                   errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
                                 )
                               : Image.network(
                                   Product.getDisplayUrl(_imageUrl) ?? _imageUrl!,
                                   fit: BoxFit.cover,
+                                  cacheWidth: 160,
+                                  cacheHeight: 160,
                                   errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
                                 ),
                         ),

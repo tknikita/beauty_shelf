@@ -158,11 +158,15 @@ class ProductCard extends StatelessWidget {
       return _buildPlaceholder(theme);
     }
     
+    const size = 112; // 2x for retina
+    
     // Local file
     if (product.isLocalImage) {
       return Image.file(
         File(product.effectiveImageUrl!),
         fit: BoxFit.cover,
+        cacheWidth: size,
+        cacheHeight: size,
         errorBuilder: (_, __, ___) => _buildPlaceholder(theme),
       );
     }
@@ -171,6 +175,8 @@ class ProductCard extends StatelessWidget {
     return Image.network(
       product.effectiveImageUrl!,
       fit: BoxFit.cover,
+      cacheWidth: size,
+      cacheHeight: size,
       errorBuilder: (_, __, ___) => _buildPlaceholder(theme),
     );
   }

@@ -53,6 +53,7 @@
 - [x] Swipe right to edit
 - [x] Visual feedback during swipe
 - [x] Haptic feedback
+- [x] Tap to edit (restored)
 - Status: DONE ✓
 
 ### branch: `feat/camera-image`

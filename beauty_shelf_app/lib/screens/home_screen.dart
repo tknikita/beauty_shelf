@@ -780,6 +780,7 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
     return GestureDetector(
       onHorizontalDragUpdate: _onDragUpdate,
       onHorizontalDragEnd: _onDragEnd,
+      onTap: widget.onEdit,
       child: Stack(
         children: [
           // Background action

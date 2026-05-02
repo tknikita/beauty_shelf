@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/product.dart';
+import '../screens/barcode_scanner_screen.dart';
 import '../services/api_service.dart';
 import '../services/storage_io.dart';
 import '../theme/app_theme.dart';
@@ -93,13 +94,36 @@ class _ProductFormState extends State<ProductForm> {
       _lookupError = null;
     });
     
-    // Barcode lookup requires network - show offline message for mobile
-    await Future.delayed(const Duration(milliseconds: 500));
-    setState(() {
-      _lookupResult = 'Поиск по штрихкоду недоступен в офлайн режиме';
-      _lookupError = 'network';
-      _isLookingUp = false;
-    });
+    try {
+      final result = await ApiService.lookupBarcode(barcode);
+      if (mounted) {
+        setState(() {
+          _isLookingUp = false;
+          if (result != null) {
+            _lookupResult = result['name'] ?? result['product_name'] ?? 'Найден товар';
+            _lookupError = null;
+            // Auto-fill name if empty
+            if (_nameController.text.trim().isEmpty) {
+              final name = result['name'] ?? result['product_name'];
+              if (name != null) {
+                _nameController.text = name;
+              }
+            }
+          } else {
+            _lookupResult = 'Товар не найден';
+            _lookupError = 'not_found';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLookingUp = false;
+          _lookupResult = 'Ошибка поиска';
+          _lookupError = 'network';
+        });
+      }
+    }
   }
 
   void _submit() {
@@ -221,14 +245,15 @@ class _ProductFormState extends State<ProductForm> {
                   const SizedBox(width: 12),
                   IconButton(
                     onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => _BarcodeEntryDialog(
-                          onSubmit: (barcode) {
-                            _barcodeController.text = barcode;
-                            Navigator.pop(ctx);
-                            _lookupBarcode();
-                          },
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (ctx) => BarcodeScannerScreen(
+                            onBarcodeDetected: (barcode) {
+                              _barcodeController.text = barcode;
+                              _lookupBarcode();
+                            },
+                          ),
                         ),
                       );
                     },
@@ -643,80 +668,6 @@ class _LookupResultBanner extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _BarcodeEntryDialog extends StatefulWidget {
-  final Function(String) onSubmit;
-
-  const _BarcodeEntryDialog({required this.onSubmit});
-
-  @override
-  State<_BarcodeEntryDialog> createState() => _BarcodeEntryDialogState();
-}
-
-class _BarcodeEntryDialogState extends State<_BarcodeEntryDialog> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = AppTheme.instance;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-
-    return AlertDialog(
-      backgroundColor: theme.surfaceColor,
-      title: Text('Введите штрихкод', style: TextStyle(color: theme.textColor)),
-      contentPadding: EdgeInsets.fromLTRB(24, 20, 24, 20 + bottomPadding),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _controller,
-            style: TextStyle(color: theme.textColor),
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: '1234567890123',
-              hintStyle: TextStyle(color: theme.textLightColor),
-              border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
-              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
-              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
-              filled: true,
-              fillColor: theme.backgroundColor,
-            ),
-            autofocus: true,
-            onSubmitted: (_) => _submit(),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Введите код с упаковки или отсканируйте камерой',
-            style: TextStyle(fontSize: 12, color: theme.textLightColor),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Отмена'),
-        ),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('ОК'),
-        ),
-      ],
-    );
-  }
-
-  void _submit() {
-    final barcode = _controller.text.trim();
-    if (barcode.isNotEmpty) {
-      widget.onSubmit(barcode);
-    }
   }
 }
 

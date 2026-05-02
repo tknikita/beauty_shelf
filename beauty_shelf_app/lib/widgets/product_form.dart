@@ -427,7 +427,8 @@ class _ProductFormState extends State<ProductForm> {
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                   focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                 ),
-                items: categories.entries
+                items: (categories.entries.toList()
+                      ..sort((a, b) => a.value.compareTo(b.value)))
                     .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: TextStyle(color: theme.textColor))))
                     .toList(),
                 onChanged: (v) => setState(() => _category = v!),

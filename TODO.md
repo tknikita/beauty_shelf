@@ -62,6 +62,11 @@
 - [x] Image compression (imageQuality: 80, maxWidth: 800)
 - Status: DONE ✓
 
+### branch: `feat/ui-fixes`
+**UI fixes and improvements**
+- [x] Sort categories alphabetically in product form
+- Status: DONE ✓
+
 ### branch: `feat/bulk-actions`
 **Bulk operations**
 - [ ] Multi-select mode toggle

@@ -31,6 +31,14 @@
 - [ ] Notification tap opens product (needs deep linking)
 - Status: DONE ✓
 
+### branch: `feat/per-product-notifications`
+**Per-product notification timing**
+- [x] Add notification_days field to Product model
+- [x] Text input field in product form
+- [x] Schedule/cancel per-product notifications
+- [x] DB migration for notification_days column
+- Status: DONE ✓
+
 ### branch: `feat/pao-tracking`
 **Period After Opening tracking**
 - [ ] Add "opened" toggle with date picker in product form

@@ -41,6 +41,7 @@ class _ProductFormState extends State<ProductForm> {
   late int _expiryDaysAfterOpen;
   String? _imageUrl;
   bool _isUploadingImage = false;
+  late TextEditingController _notificationDaysController;
   
   bool _isLookingUp = false;
   String? _lookupResult;
@@ -60,7 +61,10 @@ class _ProductFormState extends State<ProductForm> {
     _openedDate = p?.openedDate;
     _expiryDaysAfterOpen = p?.expiryDaysAfterOpen ?? 30;
     _imageUrl = p?.imageUrl;
-    
+    _notificationDaysController = TextEditingController(
+      text: p?.notificationDays?.toString() ?? '',
+    );
+
     // Listen for theme changes
     AppTheme.instance.addListener(_onThemeChanged);
   }
@@ -70,6 +74,7 @@ class _ProductFormState extends State<ProductForm> {
     _barcodeController.dispose();
     _nameController.dispose();
     _purposeController.dispose();
+    _notificationDaysController.dispose();
     AppTheme.instance.removeListener(_onThemeChanged);
     super.dispose();
   }
@@ -128,6 +133,7 @@ class _ProductFormState extends State<ProductForm> {
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
+      final notificationDays = int.tryParse(_notificationDaysController.text.trim());
       final product = Product(
         id: widget.product?.id,
         name: _nameController.text.trim(),
@@ -139,6 +145,7 @@ class _ProductFormState extends State<ProductForm> {
         openedDate: _isOpened ? _openedDate : null,
         expiryDaysAfterOpen: _expiryDaysAfterOpen,
         imageUrl: _imageUrl,
+        notificationDays: notificationDays,
       );
       widget.onSave(product);
     }
@@ -443,6 +450,23 @@ class _ProductFormState extends State<ProductForm> {
                     style: TextStyle(color: theme.textColor),
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+
+              // Notification days
+              TextFormField(
+                controller: _notificationDaysController,
+                style: TextStyle(color: theme.textColor),
+                decoration: InputDecoration(
+                  labelText: 'Уведомить за (дней, оставьте пустым чтобы не уведомлять)',
+                  labelStyle: TextStyle(color: theme.textColor),
+                  hintText: 'например: 7',
+                  hintStyle: TextStyle(color: theme.textLightColor),
+                  border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
+                ),
+                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
 

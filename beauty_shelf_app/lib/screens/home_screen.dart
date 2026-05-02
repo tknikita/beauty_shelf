@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/product.dart';
 import '../services/storage_service.dart';
 import '../services/storage_io.dart';
+import '../services/notification_service.dart';
 import '../utils/sorting.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_form.dart';
@@ -147,15 +149,26 @@ class _HomeScreenState extends State<HomeScreen> {
         onSave: (p) async {
           Navigator.pop(context);
           try {
+            final notificationService = NotificationService();
+            int? productId;
+
             if (p.id == null) {
-              await _storage.createProduct(p);
+              final created = await _storage.createProduct(p);
+              productId = created.id;
+              // Schedule notification for new product
+              await notificationService.scheduleProductNotification(created);
             } else {
               await _storage.updateProduct(p);
+              productId = p.id;
+              // Cancel old notification and schedule new one
+              await notificationService.cancelProductNotification(p.id!);
+              await notificationService.scheduleProductNotification(p);
             }
             _loadProducts();
             _showSnackBar(p.id == null ? 'Продукт добавлен' : 'Продукт обновлён');
-          } catch (e) {
-            _showSnackBar('Ошибка сохранения');
+          } catch (e, stack) {
+            debugPrint('Save error: $e\n$stack');
+            _showSnackBar('Ошибка сохранения: $e');
           }
         },
       ),
@@ -181,6 +194,9 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () async {
                 Navigator.pop(context);
                 try {
+                  // Cancel notification first
+                  final notificationService = NotificationService();
+                  await notificationService.cancelProductNotification(product.id!);
                   await _storage.deleteProduct(product.id!);
                   _loadProducts();
                   _showSnackBar('Продукт удалён');

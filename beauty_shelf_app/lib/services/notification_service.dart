@@ -223,6 +223,62 @@ class NotificationService {
     );
   }
 
+  /// Schedule a notification for a specific product
+  Future<void> scheduleProductNotification(Product product) async {
+    if (product.id == null || product.notificationDays == null) return;
+
+    final daysBeforeExpiry = product.notificationDays!;
+    final notificationDate = product.effectiveExpiryDate.subtract(
+      Duration(days: daysBeforeExpiry),
+    );
+
+    // Don't schedule if the notification date is in the past
+    if (notificationDate.isBefore(DateTime.now())) return;
+
+    final notificationId = _getNotificationId(product.id!);
+
+    const androidDetails = AndroidNotificationDetails(
+      _notificationChannelId,
+      _notificationChannelName,
+      channelDescription: _notificationChannelDesc,
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+    );
+
+    const details = NotificationDetails(android: androidDetails);
+
+    // Schedule for 9 AM on the notification date
+    final scheduledDate = tz.TZDateTime(
+      tz.local,
+      notificationDate.year,
+      notificationDate.month,
+      notificationDate.day,
+      9,
+    );
+
+    await _notifications.zonedSchedule(
+      notificationId,
+      '⏰ Срок годности',
+      '${product.name} истекает через $daysBeforeExpiry дн.',
+      scheduledDate,
+      details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'product_${product.id}',
+    );
+  }
+
+  /// Cancel notification for a specific product
+  Future<void> cancelProductNotification(int productId) async {
+    await _notifications.cancel(_getNotificationId(productId));
+  }
+
+  int _getNotificationId(int productId) {
+    // Use a range of IDs for product notifications (1000-9999)
+    return 1000 + (productId % 9000);
+  }
+
   /// Cancel a specific notification
   Future<void> cancelNotification(int id) async {
     await _notifications.cancel(id);

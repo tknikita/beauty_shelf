@@ -11,6 +11,7 @@ class Product {
   final DateTime? openedDate;
   final int expiryDaysAfterOpen;
   final String? imageUrl;
+  final int? notificationDays; // null = no notification, 1-365 = days before expiry
 
   Product({
     this.id,
@@ -23,6 +24,7 @@ class Product {
     this.openedDate,
     this.expiryDaysAfterOpen = 30,
     this.imageUrl,
+    this.notificationDays,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -39,6 +41,7 @@ class Product {
           : null,
       expiryDaysAfterOpen: json['expiry_days_after_open'] as int? ?? 30,
       imageUrl: json['image_url'] as String?,
+      notificationDays: json['notification_days'] as int?,
     );
   }
 
@@ -54,6 +57,7 @@ class Product {
       'opened_date': openedDate?.toIso8601String().split('T')[0],
       'expiry_days_after_open': expiryDaysAfterOpen,
       'image_url': imageUrl,
+      if (notificationDays != null) 'notification_days': notificationDays,
     };
   }
 
@@ -72,6 +76,7 @@ class Product {
           : null,
       expiryDaysAfterOpen: map['expiry_days_after_open'] as int? ?? 30,
       imageUrl: map['image_url'] as String?,
+      notificationDays: map['notification_days'] as int?,
     );
   }
 
@@ -87,6 +92,7 @@ class Product {
       'opened_date': openedDate?.toIso8601String().split('T')[0],
       'expiry_days_after_open': expiryDaysAfterOpen,
       'image_url': imageUrl,
+      if (notificationDays != null) 'notification_days': notificationDays,
     };
   }
 
@@ -164,6 +170,7 @@ class Product {
     DateTime? openedDate,
     int? expiryDaysAfterOpen,
     String? imageUrl,
+    int? notificationDays,
   }) {
     return Product(
       id: id ?? this.id,
@@ -176,6 +183,7 @@ class Product {
       openedDate: openedDate ?? this.openedDate,
       expiryDaysAfterOpen: expiryDaysAfterOpen ?? this.expiryDaysAfterOpen,
       imageUrl: imageUrl ?? this.imageUrl,
+      notificationDays: notificationDays ?? this.notificationDays,
     );
   }
 }

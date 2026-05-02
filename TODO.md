@@ -1,44 +1,77 @@
 # Beauty Shelf - TODO
 
-## Done ✓
+## Done (v1.0) ✓
 - [x] Table view toggle fix
-- [x] Table view rows rendering (fixed styling issues on Flutter Web)
-- [x] Theme changes apply to all widgets (ProductCard, ProductTable, etc.)
-- [x] Theme persists after page reload (localStorage)
-- [x] Settings screen shows theme changes immediately (ListenableBuilder)
-
-## Pending
-
-### High Priority
-- [x] Manual HEX color input in settings
-- [x] Expiry filter
-  - Filter by status: Просрочено / < 30 дней / < 60 дней / OK
-  - Quick-select chips in filter panel
-- [x] Product images
-  - [x] Add image upload to products (image_picker)
-  - [x] Display image in cards
-  - [x] Store images locally (Android) or via API (Web)
-- [ ] Font customization
-  - Font size selection (small/medium/large)
-  - Persist in localStorage
-
-### Medium Priority
-- [x] Compact settings screen layout
-- [x] Dark mode support
-
-### Low Priority / Ideas
+- [x] Table view rows rendering
+- [x] Theme system with persistence
+- [x] HEX color input in settings
+- [x] Expiry filter with chips
+- [x] Product images (local storage)
 - [x] Barcode entry dialog
-- [x] Export/Import data (JSON)
-- [x] Notifications for expiring products (backend endpoint /api/expiring)
-- [ ] Camera-based barcode scanning
-- [ ] PWA support for offline mode
-- [ ] Mobile native app (iOS/Android)
+- [x] Export/Import JSON
+- [x] Navigation bar safe area
+- [x] Android platform support
+- [x] Image optimization (cacheWidth/cacheHeight)
 
-## Known Issues
-- Flutter web WASM warnings (non-critical)
-- Form deprecated `value` parameter warnings
+## Feature Branches
+
+### branch: `feat/barcode-scanner`
+**Camera-based barcode scanning (mobile)**
+- [ ] Integrate camera plugin (mobile_scanner or flutter_barcode_scanner)
+- [ ] Auto-fill barcode field after scan
+- [ ] Manual entry fallback
+- [ ] Flash/torch toggle
+- Status: TODO
+
+### branch: `feat/expiring-notifications`
+**Push notifications for expiring products**
+- [ ] WorkManager for scheduled checks (Android)
+- [ ] Local notifications API
+- [ ] Configurable notification timing (7/3/1 days before)
+- [ ] Notification tap opens product
+- Status: TODO
+
+### branch: `feat/pao-tracking`
+**Period After Opening tracking**
+- [ ] Add "opened" toggle with date picker in product form
+- [ ] Calculate expiry from open date + PAO days
+- [ ] Show PAO status in product card
+- [ ] Settings: default PAO per category
+- Status: TODO
+
+### branch: `feat/swipe-actions`
+**Swipe gestures on product cards**
+- [ ] Swipe left to delete (with confirmation)
+- [ ] Swipe right to edit
+- [ ] Visual feedback during swipe
+- [ ] Haptic feedback
+- Status: TODO
+
+### branch: `feat/bulk-actions`
+**Bulk operations**
+- [ ] Multi-select mode toggle
+- [ ] Select all / deselect all
+- [ ] Bulk delete selected
+- [ ] Bulk mark as opened
+- Status: TODO
+
+### branch: `feat/product-templates`
+**Quick add from templates**
+- [ ] Save current product as template
+- [ ] List saved templates
+- [ ] Quick-add from template (name, category, default PAO)
+- [ ] Templates management in settings
+- Status: TODO
+
+## Low Priority
+- [ ] PWA support for offline mode
+- [ ] Cloud backup (Google Drive/iCloud)
+- [ ] Voice input for product names
+- [ ] Home screen widget
+- [ ] Open Beauty Facts integration (expanded data)
 
 ## Tech Debt
-- Remove `// ignore: avoid_web_libraries` for dart:html
-- Consider migrating to `web` package instead of `dart:html`
-- Add unit tests for theme system
+- [ ] Remove dart:html, migrate to `web` package
+- [ ] Fix deprecated `value` parameter in DropdownButtonFormField
+- [ ] Add unit tests for theme system
+- [ ] Add widget tests for ProductForm

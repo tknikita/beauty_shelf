@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
+import '../services/storage_io.dart';
 import '../theme/app_theme.dart';
 
 class ProductForm extends StatefulWidget {
@@ -118,17 +121,42 @@ class _ProductFormState extends State<ProductForm> {
   }
 
   Future<void> _uploadImage() async {
+    final ImagePicker picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 800);
+    
+    if (image == null) return;
+    
     setState(() => _isUploadingImage = true);
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Загрузка изображений недоступна в офлайн режиме'),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
-        ),
-      );
-      setState(() => _isUploadingImage = false);
+    
+    try {
+      // Copy image to local storage
+      final storage = MobileStorageService();
+      final localPath = await storage.saveImage(image.path);
+      
+      if (localPath != null && mounted) {
+        setState(() => _imageUrl = localPath);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Изображение добавлено'),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Ошибка загрузки изображения'),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+      }
     }
   }
 
@@ -303,11 +331,17 @@ class _ProductFormState extends State<ProductForm> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(7),
-                          child: Image.network(
-                            Product.getDisplayUrl(_imageUrl) ?? _imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
-                          ),
+                          child: Product.isLocalPath(_imageUrl!)
+                              ? Image.file(
+                                  File(_imageUrl!),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+                                )
+                              : Image.network(
+                                  Product.getDisplayUrl(_imageUrl) ?? _imageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+                                ),
                         ),
                       ),
                     ),
@@ -530,6 +564,7 @@ class _ProductFormState extends State<ProductForm> {
 
   void _showImagePreview(BuildContext context, String imageUrl) {
     final theme = AppTheme.instance;
+    final isLocal = Product.isLocalPath(imageUrl);
     
     showDialog(
       context: context,
@@ -544,22 +579,17 @@ class _ProductFormState extends State<ProductForm> {
               child: InteractiveViewer(
                 minScale: 0.5,
                 maxScale: 4.0,
-                child: Image.network(
-                  Product.getDisplayUrl(imageUrl) ?? imageUrl,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Container(
-                    padding: const EdgeInsets.all(40),
-                    decoration: BoxDecoration(
-                      color: theme.surfaceColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.image_not_supported,
-                      size: 64,
-                      color: theme.textLightColor,
-                    ),
-                  ),
-                ),
+                child: isLocal
+                    ? Image.file(
+                        File(imageUrl),
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => _buildPreviewError(theme),
+                      )
+                    : Image.network(
+                        Product.getDisplayUrl(imageUrl) ?? imageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => _buildPreviewError(theme),
+                      ),
               ),
             ),
             Positioned(
@@ -660,4 +690,19 @@ class _BarcodeEntryDialogState extends State<_BarcodeEntryDialog> {
       widget.onSubmit(barcode);
     }
   }
+}
+
+Widget _buildPreviewError(AppTheme theme) {
+  return Container(
+    padding: const EdgeInsets.all(40),
+    decoration: BoxDecoration(
+      color: theme.surfaceColor,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Icon(
+      Icons.image_not_supported,
+      size: 64,
+      color: theme.textLightColor,
+    ),
+  );
 }

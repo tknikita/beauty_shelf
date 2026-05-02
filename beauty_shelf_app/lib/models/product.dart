@@ -118,6 +118,8 @@ class Product {
 
   String? get effectiveImageUrl {
     if (imageUrl == null) return null;
+    // Local file path - return as is
+    if (isLocalImage) return imageUrl;
     // URL already includes /api prefix from backend
     // Only add /api if URL starts with /images/ (without /api)
     if (imageUrl!.startsWith('/images/')) {
@@ -129,11 +131,26 @@ class Product {
   /// Helper to convert image URL for display
   static String? getDisplayUrl(String? url) {
     if (url == null) return null;
+    // Local file path - return as is
+    if (isLocalPath(url)) return url;
     // URL already includes /api prefix from backend
     if (url.startsWith('/images/')) {
       return '/api$url';
     }
     return url;
+  }
+
+  /// Check if path is a local file path (not a remote URL)
+  static bool isLocalPath(String path) {
+    return path.startsWith('/data/') ||
+           path.startsWith('/storage/') ||
+           path.startsWith('data/');
+  }
+
+  /// Check if imageUrl is a local file path (not a remote URL)
+  bool get isLocalImage {
+    if (imageUrl == null) return false;
+    return isLocalPath(imageUrl!);
   }
 
   Product copyWith({

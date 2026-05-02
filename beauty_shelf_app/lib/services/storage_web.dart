@@ -131,4 +131,11 @@ class WebStorageService implements StorageService {
       return 0;
     }
   }
+
+  // Web uses remote URLs - local image operations are no-ops
+  @override
+  Future<String?> saveImage(String sourcePath) async => null;
+
+  @override
+  Future<void> deleteImage(String? imagePath) async {}
 }

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../theme/app_theme.dart';
@@ -65,13 +66,7 @@ class ProductCard extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(9),
-                    child: product.effectiveImageUrl != null
-                        ? Image.network(
-                            product.effectiveImageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _buildPlaceholder(theme),
-                          )
-                        : _buildPlaceholder(theme),
+                    child: _buildProductImage(product, theme),
                   ),
                 ),
               ),
@@ -158,15 +153,53 @@ class ProductCard extends StatelessWidget {
     );
   }
 
+  Widget _buildProductImage(Product product, AppTheme theme) {
+    if (product.effectiveImageUrl == null) {
+      return _buildPlaceholder(theme);
+    }
+    
+    // Local file
+    if (product.isLocalImage) {
+      return Image.file(
+        File(product.effectiveImageUrl!),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildPlaceholder(theme),
+      );
+    }
+    
+    // Remote URL
+    return Image.network(
+      product.effectiveImageUrl!,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _buildPlaceholder(theme),
+    );
+  }
+
   Widget _buildPlaceholder(AppTheme theme) {
     return Icon(Icons.inventory_2_outlined, size: 24, color: theme.textLightColor);
   }
+}
+
+Widget _buildPreviewError(AppTheme theme) {
+  return Container(
+    padding: const EdgeInsets.all(40),
+    decoration: BoxDecoration(
+      color: theme.surfaceColor,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Icon(
+      Icons.image_not_supported,
+      size: 64,
+      color: theme.textLightColor,
+    ),
+  );
 }
 
 void _showImagePreview(BuildContext context, Product product) {
   if (product.imageUrl == null) return;
   
   final theme = AppTheme.instance;
+  final isLocal = product.isLocalImage;
   
   showDialog(
     context: context,
@@ -181,22 +214,17 @@ void _showImagePreview(BuildContext context, Product product) {
             child: InteractiveViewer(
               minScale: 0.5,
               maxScale: 4.0,
-              child: Image.network(
-                product.effectiveImageUrl!,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Container(
-                  padding: const EdgeInsets.all(40),
-                  decoration: BoxDecoration(
-                    color: theme.surfaceColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.image_not_supported,
-                    size: 64,
-                    color: theme.textLightColor,
-                  ),
-                ),
-              ),
+              child: isLocal
+                  ? Image.file(
+                      File(product.effectiveImageUrl!),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => _buildPreviewError(theme),
+                    )
+                  : Image.network(
+                      product.effectiveImageUrl!,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => _buildPreviewError(theme),
+                    ),
             ),
           ),
           Positioned(

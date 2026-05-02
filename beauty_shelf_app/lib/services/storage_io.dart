@@ -10,6 +10,8 @@ StorageService createStorage() => MobileStorageService();
 
 class MobileStorageService implements StorageService {
   Database? _database;
+  static const String _imagesDir = 'images';
+  static const int _maxImageSize = 500 * 1024; // 500KB
 
   Future<Database> get database async {
     _database ??= await _initDatabase();
@@ -84,8 +86,23 @@ class MobileStorageService implements StorageService {
 
   @override
   Future<void> deleteProduct(int id) async {
+    // Fetch product to get image path before deletion
+    final product = await getProductById(id);
+    
+    // Delete image if exists
+    if (product?.imageUrl != null) {
+      await deleteImage(product!.imageUrl);
+    }
+    
     final db = await database;
     await db.delete('products', where: 'id = ?', whereArgs: [id]);
+  }
+  
+  Future<Product?> getProductById(int id) async {
+    final db = await database;
+    final maps = await db.query('products', where: 'id = ?', whereArgs: [id]);
+    if (maps.isEmpty) return null;
+    return Product.fromMap(maps.first);
   }
 
   @override
@@ -157,5 +174,57 @@ class MobileStorageService implements StorageService {
       print('Import error: $e');
       return 0;
     }
+  }
+
+  /// Copy image to app's local storage and return local path
+  @override
+  Future<String?> saveImage(String sourcePath) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final imagesPath = path.join(dir.path, _imagesDir);
+      
+      // Create images directory if not exists
+      final imagesDir = Directory(imagesPath);
+      if (!await imagesDir.exists()) {
+        await imagesDir.create(recursive: true);
+      }
+
+      // Generate unique filename
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final ext = path.extension(sourcePath).toLowerCase();
+      final validExt = ['.jpg', '.jpeg', '.png', '.gif', '.webp'].contains(ext) ? ext : '.jpg';
+      final localFileName = 'product_$timestamp$validExt';
+      final localPath = path.join(imagesPath, localFileName);
+
+      // Copy file
+      final sourceFile = File(sourcePath);
+      await sourceFile.copy(localPath);
+
+      return localPath;
+    } catch (e) {
+      print('Error saving image: $e');
+      return null;
+    }
+  }
+
+  /// Delete image from local storage
+  @override
+  Future<void> deleteImage(String? imagePath) async {
+    if (imagePath == null || !_isLocalPath(imagePath)) return;
+    
+    try {
+      final file = File(imagePath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (e) {
+      print('Error deleting image: $e');
+    }
+  }
+
+  bool _isLocalPath(String path) {
+    return path.startsWith('/data/') ||
+           path.startsWith('/storage/') ||
+           path.startsWith('data/');
   }
 }

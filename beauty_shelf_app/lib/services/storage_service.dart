@@ -11,4 +11,8 @@ abstract class StorageService {
   Future<List<Product>> getExpiringProducts(int days);
   Future<String?> exportToJson();
   Future<int> importFromJson(String content);
+  
+  // Image management (for local storage)
+  Future<String?> saveImage(String sourcePath);
+  Future<void> deleteImage(String? imagePath);
 }

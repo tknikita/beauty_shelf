@@ -17,11 +17,11 @@
 
 ### branch: `feat/barcode-scanner`
 **Camera-based barcode scanning (mobile)**
-- [ ] Integrate camera plugin (mobile_scanner or flutter_barcode_scanner)
-- [ ] Auto-fill barcode field after scan
-- [ ] Manual entry fallback
-- [ ] Flash/torch toggle
-- Status: TODO
+- [x] Integrate camera plugin (mobile_scanner)
+- [x] Auto-fill barcode field after scan
+- [x] Multi-source barcode lookup (Open Beauty/Food Facts)
+- [x] Flash/torch toggle
+- Status: DONE ✓
 
 ### branch: `feat/expiring-notifications`
 **Push notifications for expiring products**

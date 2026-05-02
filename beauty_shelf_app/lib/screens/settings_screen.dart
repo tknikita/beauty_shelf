@@ -13,7 +13,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _storage = MobileStorageService();
 
   Future<void> _exportData(BuildContext context) async {
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
     try {
       final result = await _storage.exportToJson();
       if (context.mounted) {
@@ -21,7 +20,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SnackBar(
             content: Text(result != null ? 'Экспорт завершён' : 'Ошибка экспорта'),
             behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(left: 16, right: 16, bottom: bottomPadding + 16),
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
           ),
         );
       }
@@ -31,7 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SnackBar(
             content: Text('Ошибка экспорта: $e'),
             behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(left: 16, right: 16, bottom: bottomPadding + 16),
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
           ),
         );
       }
@@ -40,13 +39,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _importData(BuildContext context) async {
     // Note: Import requires file picker which is implemented in platform-specific code
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Импорт временно недоступен на Android'),
           behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.only(left: 16, right: 16, bottom: bottomPadding + 16),
+          margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
         ),
       );
     }
@@ -617,14 +615,13 @@ class _PresetChip extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         theme.applyPreset(primary, background);
-        final bottomPadding = MediaQuery.of(context).padding.bottom;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Применён: $name'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: isDark ? const Color(0xFF3A3A3A) : null,
             duration: const Duration(seconds: 1),
-            margin: EdgeInsets.only(left: 16, right: 16, bottom: bottomPadding + 16),
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
           ),
         );
       },

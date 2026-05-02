@@ -164,41 +164,44 @@ class _HomeScreenState extends State<HomeScreen> {
   void _confirmDelete(Product product) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.instance.surfaceColor,
-        title: Text('Удалить продукт?', style: TextStyle(color: AppTheme.instance.textColor)),
-        content: Text('Это действие нельзя отменить.', style: TextStyle(color: AppTheme.instance.textColor)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
-          ),
+      builder: (context) {
+        final bottomPadding = MediaQuery.of(context).padding.bottom;
+        return AlertDialog(
+          backgroundColor: AppTheme.instance.surfaceColor,
+          title: Text('Удалить продукт?', style: TextStyle(color: AppTheme.instance.textColor)),
+          content: Text('Это действие нельзя отменить.', style: TextStyle(color: AppTheme.instance.textColor)),
+          contentPadding: EdgeInsets.fromLTRB(24, 20, 24, 20 + bottomPadding),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Отмена'),
+            ),
             FilledButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                await _storage.deleteProduct(product.id!);
-                _loadProducts();
-                _showSnackBar('Продукт удалён');
-              } catch (e) {
-                _showSnackBar('Ошибка удаления');
-              }
-            },
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.instance.expiredColor),
-            child: const Text('Удалить'),
-          ),
-        ],
-      ),
+              onPressed: () async {
+                Navigator.pop(context);
+                try {
+                  await _storage.deleteProduct(product.id!);
+                  _loadProducts();
+                  _showSnackBar('Продукт удалён');
+                } catch (e) {
+                  _showSnackBar('Ошибка удаления');
+                }
+              },
+              style: FilledButton.styleFrom(backgroundColor: AppTheme.instance.expiredColor),
+              child: const Text('Удалить'),
+            ),
+          ],
+        );
+      },
     );
   }
 
   void _showSnackBar(String message) {
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(left: 16, right: 16, bottom: bottomPadding + 16),
+        margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
       ),
     );
   }
@@ -264,6 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showExpiringProducts() {
     final theme = AppTheme.instance;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     final expiring = _products.where((p) => p.daysLeft <= 30).toList()
       ..sort((a, b) => a.daysLeft.compareTo(b.daysLeft));
     
@@ -275,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       builder: (ctx) => Container(
         color: theme.surfaceColor,
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomPadding),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -20,6 +20,12 @@ class ProductForm extends StatefulWidget {
 class _ProductFormState extends State<ProductForm> {
   final _formKey = GlobalKey<FormState>();
   
+  // Abbreviate category names for dropdown
+  String _abbr(String name) {
+    if (name.length <= 10) return name;
+    return '${name.substring(0, 8)}…';
+  }
+  
   late TextEditingController _barcodeController;
   late TextEditingController _nameController;
   late TextEditingController _purposeController;
@@ -119,7 +125,7 @@ class _ProductFormState extends State<ProductForm> {
         SnackBar(
           content: const Text('Загрузка изображений недоступна в офлайн режиме'),
           behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.only(left: 16, right: 16, bottom: MediaQuery.of(context).padding.bottom + 16),
+          margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
         ),
       );
       setState(() => _isUploadingImage = false);
@@ -346,51 +352,44 @@ class _ProductFormState extends State<ProductForm> {
               const SizedBox(height: 16),
 
               // Type & Category row
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _type,
-                      dropdownColor: theme.surfaceColor,
-                      decoration: InputDecoration(
-                        labelText: 'Тип',
-                        labelStyle: TextStyle(color: theme.textColor),
-                        border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
-                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
-                      ),
-                      items: [
-                        DropdownMenuItem(value: 'care', child: Text('Уход', style: TextStyle(color: theme.textColor))),
-                        DropdownMenuItem(value: 'decorative', child: Text('Декор.', style: TextStyle(color: theme.textColor))),
-                      ],
-                      onChanged: (v) {
-                        setState(() {
-                          _type = v!;
-                          final cats = theme.getCategoriesByType(_type);
-                          _category = cats.keys.first;
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: categories.containsKey(_category) ? _category : categories.keys.first,
-                      dropdownColor: theme.surfaceColor,
-                      decoration: InputDecoration(
-                        labelText: 'Категория',
-                        labelStyle: TextStyle(color: theme.textColor),
-                        border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
-                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
-                      ),
-                      items: categories.entries
-                          .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: TextStyle(color: theme.textColor))))
-                          .toList(),
-                      onChanged: (v) => setState(() => _category = v!),
-                    ),
-                  ),
+              // Type & Category - stacked on narrow screens
+              DropdownButtonFormField<String>(
+                value: _type,
+                dropdownColor: theme.surfaceColor,
+                decoration: InputDecoration(
+                  labelText: 'Тип',
+                  labelStyle: TextStyle(color: theme.textColor),
+                  border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
+                ),
+                items: [
+                  DropdownMenuItem(value: 'care', child: Text('Уходовая', style: TextStyle(color: theme.textColor))),
+                  DropdownMenuItem(value: 'decorative', child: Text('Декоративная', style: TextStyle(color: theme.textColor))),
                 ],
+                onChanged: (v) {
+                  setState(() {
+                    _type = v!;
+                    final cats = theme.getCategoriesByType(_type);
+                    _category = cats.keys.first;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: categories.containsKey(_category) ? _category : categories.keys.first,
+                dropdownColor: theme.surfaceColor,
+                decoration: InputDecoration(
+                  labelText: 'Категория',
+                  labelStyle: TextStyle(color: theme.textColor),
+                  border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
+                ),
+                items: categories.entries
+                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: TextStyle(color: theme.textColor))))
+                    .toList(),
+                onChanged: (v) => setState(() => _category = v!),
               ),
               const SizedBox(height: 16),
 
@@ -615,6 +614,7 @@ class _BarcodeEntryDialogState extends State<_BarcodeEntryDialog> {
     return AlertDialog(
       backgroundColor: theme.surfaceColor,
       title: Text('Введите штрихкод', style: TextStyle(color: theme.textColor)),
+      contentPadding: EdgeInsets.fromLTRB(24, 20, 24, 20 + bottomPadding),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

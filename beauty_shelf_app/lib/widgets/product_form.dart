@@ -251,67 +251,14 @@ class _ProductFormState extends State<ProductForm> {
               ),
               if (_lookupResult != null) ...[
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: _lookupError == null 
-                        ? theme.successBgColor
-                        : _lookupError == 'not_found'
-                            ? theme.warningBgColor
-                            : theme.expiredBgColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _lookupError == null 
-                            ? Icons.check_circle
-                            : _lookupError == 'not_found'
-                                ? Icons.search_off
-                                : Icons.cloud_off,
-                        size: 18,
-                        color: _lookupError == null 
-                            ? theme.successColor
-                            : _lookupError == 'not_found'
-                                ? theme.warningColor
-                                : theme.expiredColor,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          _lookupResult!,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: _lookupError == null 
-                                ? theme.successColor
-                                : _lookupError == 'not_found'
-                                    ? theme.warningColor
-                                    : theme.expiredColor,
-                          ),
-                        ),
-                      ),
-                      if (_lookupError == 'network')
-                        TextButton(
-                          onPressed: _lookupBarcode,
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text('Повторить', style: TextStyle(fontSize: 12, color: theme.expiredColor)),
-                        ),
-                      if (_lookupError == 'not_found')
-                        IconButton(
-                          onPressed: () => setState(() {
-                            _lookupResult = null;
-                            _lookupError = null;
-                          }),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: Icon(Icons.close, size: 16, color: theme.warningColor),
-                        ),
-                    ],
-                  ),
+                _LookupResultBanner(
+                  lookupResult: _lookupResult,
+                  lookupError: _lookupError,
+                  onRetry: _lookupBarcode,
+                  onDismiss: () => setState(() {
+                    _lookupResult = null;
+                    _lookupError = null;
+                  }),
                 ),
               ],
               const SizedBox(height: 16),
@@ -617,6 +564,83 @@ class _ProductFormState extends State<ProductForm> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Separate widget for lookup result to isolate rebuilds
+class _LookupResultBanner extends StatelessWidget {
+  final String? lookupResult;
+  final String? lookupError;
+  final VoidCallback? onRetry;
+  final VoidCallback? onDismiss;
+
+  const _LookupResultBanner({
+    this.lookupResult,
+    this.lookupError,
+    this.onRetry,
+    this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (lookupResult == null) return const SizedBox.shrink();
+
+    final theme = AppTheme.instance;
+    final hasError = lookupError != null;
+    final isNotFound = lookupError == 'not_found';
+    final isNetwork = lookupError == 'network';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: hasError
+            ? (isNotFound ? theme.warningBgColor : theme.expiredBgColor)
+            : theme.successBgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            hasError
+                ? (isNotFound ? Icons.search_off : Icons.cloud_off)
+                : Icons.check_circle,
+            size: 18,
+            color: hasError
+                ? (isNotFound ? theme.warningColor : theme.expiredColor)
+                : theme.successColor,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              lookupResult!,
+              style: TextStyle(
+                fontSize: 13,
+                color: hasError
+                    ? (isNotFound ? theme.warningColor : theme.expiredColor)
+                    : theme.successColor,
+              ),
+            ),
+          ),
+          if (isNetwork)
+            TextButton(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text('Повторить', style: TextStyle(fontSize: 12, color: theme.expiredColor)),
+            ),
+          if (isNotFound)
+            IconButton(
+              onPressed: onDismiss,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(Icons.close, size: 16, color: theme.warningColor),
+            ),
+        ],
       ),
     );
   }

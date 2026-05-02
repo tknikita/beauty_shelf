@@ -14,10 +14,10 @@
 - [x] Expiry filter
   - Filter by status: Просрочено / < 30 дней / < 60 дней / OK
   - Quick-select chips in filter panel
-- [ ] Product images
-  - Add image upload to products
-  - Display image in cards
-  - Store images locally or via API
+- [x] Product images
+  - [x] Add image upload to products (image_picker)
+  - [x] Display image in cards
+  - [x] Store images locally (Android) or via API (Web)
 - [ ] Font customization
   - Font size selection (small/medium/large)
   - Persist in localStorage

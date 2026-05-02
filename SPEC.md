@@ -38,6 +38,7 @@ Cross-platform cosmetics inventory tracker with Flutter (web + Android) frontend
 ### Android App (Flutter Mobile)
 - Flutter 3.x with Material Design 3
 - Local SQLite storage (offline-capable)
+- **Local image storage** - picked photos saved to app documents
 - Same UI as web with responsive layout
 - Navigation bar safe area handling
 - APK: `beauty_shelf_app/build/app/outputs/flutter-apk/app-debug.apk`

@@ -45,7 +45,7 @@ class ProductCard extends StatelessWidget {
         side: BorderSide(color: theme.borderColor),
       ),
       child: InkWell(
-        onTap: onEdit,
+        onTap: () {}, // Disabled - swipe handles navigation
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/product.dart';
 import '../services/storage_service.dart';
 import '../services/storage_io.dart';
@@ -474,7 +475,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               final p = _sortedFilteredProducts[index];
                               return Padding(
                                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                                child: ProductCard(
+                                child: _SwipeableProductCard(
                                   product: p,
                                   onEdit: () => _showEditModal(p),
                                   onDelete: () => _confirmDelete(p),
@@ -662,6 +663,149 @@ class _CategoryDropdown extends StatelessWidget {
             .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
             .toList(),
         onChanged: (v) => onChanged(v == 'all' ? null : v),
+      ),
+    );
+  }
+}
+
+class _SwipeableProductCard extends StatefulWidget {
+  final Product product;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _SwipeableProductCard({
+    required this.product,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  State<_SwipeableProductCard> createState() => _SwipeableProductCardState();
+}
+
+class _SwipeableProductCardState extends State<_SwipeableProductCard>
+    with SingleTickerProviderStateMixin {
+  double _dragExtent = 0;
+  bool _isDragging = false;
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  static const _threshold = 0.25;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _animation = Tween<double>(begin: 0, end: 0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _isDragging = true;
+      _dragExtent += details.delta.dx;
+      _dragExtent = _dragExtent.clamp(-120.0, 120.0);
+    });
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    final width = context.size?.width ?? 300;
+    final ratio = _dragExtent.abs() / width;
+
+    if (ratio > _threshold) {
+      HapticFeedback.mediumImpact();
+      if (_dragExtent < 0) {
+        // Swipe left - delete
+        widget.onDelete();
+      } else {
+        // Swipe right - edit
+        widget.onEdit();
+      }
+    }
+
+    // Reset position
+    _animation = Tween<double>(begin: _dragExtent, end: 0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+    _controller.forward(from: 0).then((_) {
+      if (mounted) {
+        setState(() {
+          _dragExtent = 0;
+          _isDragging = false;
+        });
+      }
+    });
+
+    _controller.addListener(() {
+      if (mounted) {
+        setState(() {
+          _dragExtent = _animation.value;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+    final isDelete = _dragExtent < 0;
+    final progress = (_dragExtent.abs() / 120).clamp(0.0, 1.0);
+
+    return GestureDetector(
+      onHorizontalDragUpdate: _onDragUpdate,
+      onHorizontalDragEnd: _onDragEnd,
+      child: Stack(
+        children: [
+          // Background action
+          if (_isDragging || _dragExtent != 0)
+            Positioned.fill(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: isDelete
+                      ? theme.expiredColor.withAlpha((progress * 255).toInt())
+                      : theme.primaryColor.withAlpha((progress * 255).toInt()),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment:
+                      isDelete ? MainAxisAlignment.end : MainAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Icon(
+                        isDelete ? Icons.delete_outline : Icons.edit_outlined,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          // Card
+          Transform.translate(
+            offset: Offset(_dragExtent, 0),
+            child: Opacity(
+              opacity: 1 - (progress * 0.3),
+              child: ProductCard(
+                product: widget.product,
+                onEdit: widget.onEdit,
+                onDelete: widget.onDelete,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

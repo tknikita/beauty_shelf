@@ -43,8 +43,12 @@ class NotificationService {
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
-    // Schedule daily check
-    await _scheduleDailyCheck();
+    // Schedule daily check (may fail if exact alarms not permitted)
+    try {
+      await _scheduleDailyCheck();
+    } catch (e) {
+      debugPrint('Failed to schedule notifications: $e');
+    }
 
     _initialized = true;
   }
@@ -130,7 +134,7 @@ class NotificationService {
       'Проверяем продукты...',
       scheduledDate,
       details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );

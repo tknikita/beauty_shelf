@@ -55,6 +55,12 @@
 - [x] Haptic feedback
 - Status: DONE ✓
 
+### branch: `feat/camera-image`
+**Camera option for image upload**
+- [x] Dialog with camera/gallery choice
+- [x] Image compression (imageQuality: 80, maxWidth: 800)
+- Status: DONE ✓
+
 ### branch: `feat/bulk-actions`
 **Bulk operations**
 - [ ] Multi-select mode toggle

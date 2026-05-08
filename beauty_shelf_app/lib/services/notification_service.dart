@@ -109,9 +109,12 @@ class NotificationService {
     // Cancel existing scheduled notification
     await _notifications.cancel(999);
 
+    // Use explicit timezone instead of tz.local which may be null on some devices
+    final location = tz.getLocation('Europe/Moscow');
+    
     // Schedule for 9 AM tomorrow
-    final now = tz.TZDateTime.now(tz.local);
-    var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, 9);
+    final now = tz.TZDateTime.now(location);
+    var scheduledDate = tz.TZDateTime(location, now.year, now.month, now.day, 9);
     
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
@@ -228,12 +231,19 @@ class NotificationService {
     if (product.id == null || product.notificationDays == null) return;
 
     final daysBeforeExpiry = product.notificationDays!;
-    final notificationDate = product.effectiveExpiryDate.subtract(
+    final effectiveDate = product.effectiveExpiryDate;
+    
+    // Guard against null or invalid date
+    if (effectiveDate == null) return;
+    
+    final notificationDate = effectiveDate.subtract(
       Duration(days: daysBeforeExpiry),
     );
 
-    // Don't schedule if the notification date is in the past
-    if (notificationDate.isBefore(DateTime.now())) return;
+    // Don't schedule if the notification date is in the past (before tomorrow)
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final tomorrowMidnight = DateTime(tomorrow.year, tomorrow.month, tomorrow.day);
+    if (notificationDate.isBefore(tomorrowMidnight)) return;
 
     final notificationId = _getNotificationId(product.id!);
 
@@ -248,9 +258,12 @@ class NotificationService {
 
     const details = NotificationDetails(android: androidDetails);
 
+    // Use explicit timezone instead of tz.local which may be null
+    final location = tz.getLocation('Europe/Moscow');
+    
     // Schedule for 9 AM on the notification date
     final scheduledDate = tz.TZDateTime(
-      tz.local,
+      location,
       notificationDate.year,
       notificationDate.month,
       notificationDate.day,
@@ -271,7 +284,11 @@ class NotificationService {
 
   /// Cancel notification for a specific product
   Future<void> cancelProductNotification(int productId) async {
-    await _notifications.cancel(_getNotificationId(productId));
+    try {
+      await _notifications.cancel(_getNotificationId(productId));
+    } catch (e) {
+      debugPrint('Failed to cancel notification $productId: $e');
+    }
   }
 
   int _getNotificationId(int productId) {

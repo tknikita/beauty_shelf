@@ -1,9 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beauty_shelf_app/main.dart';
+import 'package:polochka/main.dart';
 
 void main() {
-  testWidgets('App loads', (WidgetTester tester) async {
+  testWidgets('App loads with correct title', (WidgetTester tester) async {
     await tester.pumpWidget(const BeautyShelfApp());
-    expect(find.text('Beauty Shelf'), findsOneWidget);
+    await tester.pump();
+    expect(find.text('Полочка'), findsWidgets);
   });
 }

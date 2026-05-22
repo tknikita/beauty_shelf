@@ -75,33 +75,21 @@ class AppTheme extends ChangeNotifier {
 
   void _applyDarkMode() {
     if (_isDarkMode) {
+      textColor = _darkText;
+      textLightColor = _darkTextLight;
       backgroundColor = _darkBackground;
       surfaceColor = const Color(0xFF2A2A2A);
       borderColor = _darkBorder;
-      expiredBgColor = const Color(0xFF3D1B1B);
-      expiredColor = const Color(0xFFEF9A9A);
-      todayBgColor = const Color(0xFF3D2E1B);
-      todayColor = const Color(0xFFFFCC80);
-      warningBgColor = const Color(0xFF3D3D1B);
-      warningColor = const Color(0xFFFFF176);
-      neutralBgColor = const Color(0xFF2A2A2A);
-      neutralColor = const Color(0xFFBDBDBD);
       selectionColor = const Color(0xFFE8B4BC);
       inputFocusColor = const Color(0xFFE8B4BC);
       careTypeBgColor = const Color(0xFF0D2744);
       decorativeTypeBgColor = const Color(0xFF2D1A3D);
     } else {
+      textColor = _lightText;
+      textLightColor = _lightTextLight;
       backgroundColor = _lightBackground;
       surfaceColor = Colors.white;
       borderColor = _lightBorder;
-      expiredBgColor = const Color(0xFFFFEBEE);
-      expiredColor = const Color(0xFFC62828);
-      todayBgColor = const Color(0xFFFFF3E0);
-      todayColor = const Color(0xFFEF6C00);
-      warningBgColor = const Color(0xFFFFFDE7);
-      warningColor = const Color(0xFFF9A825);
-      neutralBgColor = const Color(0xFFF5F5F5);
-      neutralColor = const Color(0xFF616161);
       selectionColor = const Color(0xFFE8B4BC);
       inputFocusColor = const Color(0xFFE8B4BC);
       careTypeBgColor = const Color(0xFFE3F2FD);
@@ -144,29 +132,52 @@ class AppTheme extends ChangeNotifier {
       (hsl.lightness - 0.1).clamp(0.0, 1.0)
     ).toColor();
     
+    // Generate status colors dynamically from primary hue
+    _generateStatusColors(hsl);
+    
     if (_isDarkMode) {
-      textColor = HSLColor.fromAHSL(
-        1.0, hsl.hue, 
-        (hsl.saturation * 0.5).clamp(0.0, 1.0),
-        0.85
-      ).toColor();
-      textLightColor = HSLColor.fromAHSL(
-        1.0, hsl.hue,
-        (hsl.saturation * 0.3).clamp(0.0, 1.0),
-        0.7
-      ).toColor();
+      backgroundColor = _darkBackground;
+      surfaceColor = const Color(0xFF2A2A2A);
+      borderColor = _darkBorder;
+      selectionColor = const Color(0xFFE8B4BC);
+      inputFocusColor = const Color(0xFFE8B4BC);
+      careTypeBgColor = const Color(0xFF0D2744);
+      decorativeTypeBgColor = const Color(0xFF2D1A3D);
     } else {
-      textColor = HSLColor.fromAHSL(
-        1.0, hsl.hue, 
-        (hsl.saturation * 0.6).clamp(0.0, 1.0),
-        0.25
-      ).toColor();
-      textLightColor = HSLColor.fromAHSL(
-        1.0, hsl.hue,
-        (hsl.saturation * 0.4).clamp(0.0, 1.0),
-        0.5
-      ).toColor();
+      backgroundColor = _lightBackground;
+      surfaceColor = Colors.white;
+      borderColor = _lightBorder;
+      selectionColor = const Color(0xFFE8B4BC);
+      inputFocusColor = const Color(0xFFE8B4BC);
+      careTypeBgColor = const Color(0xFFE3F2FD);
+      decorativeTypeBgColor = const Color(0xFFF3E5F5);
     }
+  }
+  
+  void _generateStatusColors(HSLColor baseHsl) {
+    // Expired: warm red-orange hue (alert)
+    final expiredHue = (baseHsl.hue + 20) % 360;
+    expiredColor = HSLColor.fromAHSL(1.0, expiredHue, 0.7, _isDarkMode ? 0.7 : 0.45).toColor();
+    expiredBgColor = HSLColor.fromAHSL(1.0, expiredHue, 0.5, _isDarkMode ? 0.12 : 0.94).toColor();
+
+    // Today: urgent orange
+    final todayHue = (baseHsl.hue + 30) % 360;
+    todayColor = HSLColor.fromAHSL(1.0, todayHue, 0.8, _isDarkMode ? 0.65 : 0.5).toColor();
+    todayBgColor = HSLColor.fromAHSL(1.0, todayHue, 0.6, _isDarkMode ? 0.15 : 0.95).toColor();
+
+    // Warning: golden yellow
+    final warningHue = (baseHsl.hue - 10 + 360) % 360;
+    warningColor = HSLColor.fromAHSL(1.0, warningHue, 0.85, _isDarkMode ? 0.6 : 0.55).toColor();
+    warningBgColor = HSLColor.fromAHSL(1.0, warningHue, 0.6, _isDarkMode ? 0.15 : 0.97).toColor();
+
+    // Success/OK: green, shifted from primary hue
+    final successHue = (baseHsl.hue + 140) % 360;
+    successColor = HSLColor.fromAHSL(1.0, successHue, 0.5, _isDarkMode ? 0.6 : 0.45).toColor();
+    successBgColor = HSLColor.fromAHSL(1.0, successHue, 0.4, _isDarkMode ? 0.12 : 0.94).toColor();
+
+    // Neutral: based on primary with low saturation
+    neutralColor = HSLColor.fromAHSL(1.0, baseHsl.hue, 0.15, _isDarkMode ? 0.7 : 0.4).toColor();
+    neutralBgColor = HSLColor.fromAHSL(1.0, baseHsl.hue, 0.1, _isDarkMode ? 0.15 : 0.97).toColor();
   }
 
   Future<void> _saveToStorage() async {

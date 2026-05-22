@@ -441,11 +441,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Beauty Shelf',
+                          'Полочка',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
                         ),
                         Text(
-                          'Версия 1.0.0',
+                          'Версия 0.1',
                           style: TextStyle(fontSize: 14, color: theme.textLightColor),
                         ),
                       ],

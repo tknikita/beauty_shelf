@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/product.dart';
 import '../screens/barcode_scanner_screen.dart';
 import '../services/api_service.dart';
-import '../services/storage_io.dart';
+import '../services/storage_factory.dart';
 import '../theme/app_theme.dart';
 
 class ProductForm extends StatefulWidget {
@@ -185,7 +185,7 @@ class _ProductFormState extends State<ProductForm> {
     
     try {
       // Copy image to local storage
-      final storage = MobileStorageService();
+      final storage = createStorageService();
       final localPath = await storage.saveImage(image.path);
       
       if (localPath != null && mounted) {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/product.dart';
 import '../services/storage_service.dart';
-import '../services/storage_io.dart';
+import '../services/storage_factory.dart';
 import '../services/notification_service.dart';
 import '../utils/sorting.dart';
 import '../widgets/product_card.dart';
@@ -19,7 +19,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final StorageService _storage = MobileStorageService();
+  final StorageService _storage = createStorageService();
   List<Product> _products = [];
   List<Product> _filteredProducts = [];
   bool _isLoading = true;
@@ -58,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     AppTheme.instance.addListener(_onThemeChanged);
     _loadProducts();
+    _checkExpiring();
   }
 
   @override
@@ -68,6 +69,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onThemeChanged() {
     setState(() {});
+  }
+
+  Future<void> _checkExpiring() async {
+    try {
+      await NotificationService().checkAndNotifyExpiringProducts();
+    } catch (_) {
+      // Silently ignore notification errors
+    }
   }
 
   Future<void> _loadProducts() async {
@@ -375,7 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Beauty Shelf',
+                        'Полочка',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
@@ -715,13 +724,20 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    _animation = Tween<double>(begin: 0, end: 0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _controller.addListener(_onAnimationTick);
+  }
+
+  void _onAnimationTick() {
+    if (mounted) {
+      setState(() {
+        _dragExtent = _controller.value;
+      });
+    }
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onAnimationTick);
     _controller.dispose();
     super.dispose();
   }
@@ -749,23 +765,12 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
       }
     }
 
-    // Reset position
-    _animation = Tween<double>(begin: _dragExtent, end: 0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _controller.forward(from: 0).then((_) {
+    // Reset position via animation
+    _controller.value = _dragExtent;
+    _controller.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut).then((_) {
       if (mounted) {
         setState(() {
-          _dragExtent = 0;
           _isDragging = false;
-        });
-      }
-    });
-
-    _controller.addListener(() {
-      if (mounted) {
-        setState(() {
-          _dragExtent = _animation.value;
         });
       }
     });

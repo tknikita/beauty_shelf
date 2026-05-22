@@ -46,7 +46,7 @@ class _BeautyShelfAppState extends State<BeautyShelfApp> {
     final theme = AppTheme.instance;
     
     return MaterialApp(
-      title: 'Beauty Shelf',
+      title: 'Полочка',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

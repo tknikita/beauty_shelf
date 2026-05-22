@@ -76,7 +76,6 @@ class ApiService {
               'image_url': product['image_url'] ?? product['image_front_url'],
               'category': product['categories'] ?? product['category'],
               'source': source.name,
-              ...product,
             };
           }
         }
@@ -116,7 +115,6 @@ class ApiService {
             'image_url': product['image_front_url'],
             'category': product['categories'],
             'source': 'search',
-            ...product,
           };
         }
       }

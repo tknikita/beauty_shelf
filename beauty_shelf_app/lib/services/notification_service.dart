@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import '../models/product.dart';
-import 'storage_io.dart';
+import 'storage_factory.dart';
 
 const String _notificationChannelId = 'expiring_products';
 const String _notificationChannelName = 'Срок годности';
@@ -39,7 +39,7 @@ class NotificationService {
     );
 
     await _notifications.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
@@ -107,7 +107,7 @@ class NotificationService {
     if (!enabled) return;
 
     // Cancel existing scheduled notification
-    await _notifications.cancel(999);
+    await _notifications.cancel(id: 999);
 
     // Use explicit timezone instead of tz.local which may be null on some devices
     final location = tz.getLocation('Europe/Moscow');
@@ -132,14 +132,13 @@ class NotificationService {
     const details = NotificationDetails(android: androidDetails);
 
     await _notifications.zonedSchedule(
-      999,
-      '⏰ Проверка срока годности',
-      'Проверяем продукты...',
-      scheduledDate,
-      details,
+      id: 999,
+      title: '⏰ Проверка срока годности',
+      body: 'Проверяем продукты...',
+      scheduledDate: scheduledDate,
+      notificationDetails: details,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
@@ -149,7 +148,7 @@ class NotificationService {
     if (!enabled) return;
 
     final days = await getNotificationDays();
-    final storage = MobileStorageService();
+    final storage = createStorageService();
     final expiringProducts = await storage.getExpiringProducts(days);
 
     if (expiringProducts.isNotEmpty) {
@@ -185,10 +184,10 @@ class NotificationService {
     );
 
     await _notifications.show(
-      0,
-      '⏰ Срок годности',
-      message,
-      details,
+      id: 0,
+      title: '⏰ Срок годности',
+      body: message,
+      notificationDetails: details,
       payload: 'expiring_products',
     );
   }
@@ -218,10 +217,10 @@ class NotificationService {
     const details = NotificationDetails(android: androidDetails);
 
     await _notifications.show(
-      product.id ?? product.hashCode,
-      '⏰ Срок годности',
-      message,
-      details,
+      id: product.id ?? product.hashCode,
+      title: '⏰ Срок годности',
+      body: message,
+      notificationDetails: details,
       payload: 'product_${product.id}',
     );
   }
@@ -271,13 +270,12 @@ class NotificationService {
     );
 
     await _notifications.zonedSchedule(
-      notificationId,
-      '⏰ Срок годности',
-      '${product.name} истекает через $daysBeforeExpiry дн.',
-      scheduledDate,
-      details,
+      id: notificationId,
+      title: '⏰ Срок годности',
+      body: '${product.name} истекает через $daysBeforeExpiry дн.',
+      scheduledDate: scheduledDate,
+      notificationDetails: details,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       payload: 'product_${product.id}',
     );
   }
@@ -285,7 +283,7 @@ class NotificationService {
   /// Cancel notification for a specific product
   Future<void> cancelProductNotification(int productId) async {
     try {
-      await _notifications.cancel(_getNotificationId(productId));
+      await _notifications.cancel(id: _getNotificationId(productId));
     } catch (e) {
       debugPrint('Failed to cancel notification $productId: $e');
     }
@@ -298,7 +296,7 @@ class NotificationService {
 
   /// Cancel a specific notification
   Future<void> cancelNotification(int id) async {
-    await _notifications.cancel(id);
+    await _notifications.cancel(id: id);
   }
 
   /// Cancel all notifications

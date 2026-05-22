@@ -307,14 +307,16 @@ def search_products(query: str):
 
 @app.get("/api/expiring")
 def get_expiring(days: int = 7):
-    """Get products expiring within specified days."""
+    """Get products expiring within specified days, including already expired.
+    Considers both original expiry_date and opened-date PAO."""
     conn = get_db()
     cursor = conn.execute("""
         SELECT * FROM products 
         WHERE expiry_date <= date('now', '+' || ? || ' days')
-        AND expiry_date >= date('now')
+           OR (is_opened = 1 AND opened_date IS NOT NULL 
+               AND date(opened_date, '+' || expiry_days_after_open || ' days') <= date('now', '+' || ? || ' days'))
         ORDER BY expiry_date ASC
-    """, (days,))
+    """, (days, days))
     products = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return products

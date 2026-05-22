@@ -362,7 +362,11 @@ class _HomeScreenState extends State<HomeScreen> {
     
     return Scaffold(
       backgroundColor: theme.backgroundColor,
-      body: SafeArea(
+      resizeToAvoidBottomInset: false,
+      body: Builder(
+        builder: (ctx) => MediaQuery(
+          data: MediaQuery.of(ctx).removeViewInsets(removeBottom: true),
+          child: SafeArea(
         child: Column(
           children: [
             // Header section
@@ -512,6 +516,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       ),
+          ),
+        ),
       floatingActionButton: SizedBox(
         width: 56,
         height: 56,

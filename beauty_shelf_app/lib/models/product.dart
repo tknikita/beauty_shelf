@@ -146,11 +146,17 @@ class Product {
     return url;
   }
 
-  /// Check if path is a local file path (not a remote URL)
+  /// Check whether [path] points to a local file, as opposed to a remote
+  /// URL, a web blob/data URL, or a backend API path.
+  ///
+  /// The previous implementation only matched Android paths ("/data/" ...),
+  /// so images saved on iOS/macOS/desktop were treated as network URLs.
   static bool isLocalPath(String path) {
-    return path.startsWith('/data/') ||
-           path.startsWith('/storage/') ||
-           path.startsWith('data/');
+    if (path.isEmpty) return false;
+    if (path.startsWith('http://') || path.startsWith('https://')) return false;
+    if (path.startsWith('blob:') || path.startsWith('data:')) return false;
+    if (path.startsWith('/api/') || path.startsWith('/images/')) return false;
+    return true;
   }
 
   /// Check if imageUrl is a local file path (not a remote URL)

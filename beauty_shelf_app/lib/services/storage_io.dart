@@ -237,9 +237,5 @@ class MobileStorageService implements StorageService {
     }
   }
 
-  bool _isLocalPath(String path) {
-    return path.startsWith('/data/') ||
-           path.startsWith('/storage/') ||
-           path.startsWith('data/');
-  }
+  bool _isLocalPath(String path) => Product.isLocalPath(path);
 }

@@ -243,10 +243,7 @@ class NotificationService {
 
     final daysBeforeExpiry = product.notificationDays!;
     final effectiveDate = product.effectiveExpiryDate;
-    
-    // Guard against null or invalid date
-    if (effectiveDate == null) return;
-    
+
     final notificationDate = effectiveDate.subtract(
       Duration(days: daysBeforeExpiry),
     );

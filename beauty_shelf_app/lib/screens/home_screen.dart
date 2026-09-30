@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/product.dart';
@@ -159,16 +158,13 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.pop(context);
           try {
             final notificationService = NotificationService();
-            int? productId;
 
             if (p.id == null) {
               final created = await _storage.createProduct(p);
-              productId = created.id;
               // Schedule notification for new product
               await notificationService.scheduleProductNotification(created);
             } else {
               await _storage.updateProduct(p);
-              productId = p.id;
               // Cancel old notification and schedule new one
               await notificationService.cancelProductNotification(p.id!);
               await notificationService.scheduleProductNotification(p);

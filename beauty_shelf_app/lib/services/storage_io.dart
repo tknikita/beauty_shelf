@@ -130,7 +130,6 @@ class MobileStorageService implements StorageService {
     final now = DateTime.now();
     final threshold = now.add(Duration(days: days));
     final thresholdStr = threshold.toIso8601String().split('T')[0];
-    final todayStr = now.toIso8601String().split('T')[0];
 
     // Query products expiring within `days` days, considering:
     // 1. Original expiry_date

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import '../models/product.dart';
 
 enum SortField { name, expiry, category }
@@ -30,10 +29,4 @@ List<Product> sortProducts(
     return order == SortOrder.asc ? cmp : -cmp;
   });
   return sorted;
-}
-
-/// Returns the appropriate icon for a sort field.
-IconData getSortIcon(SortField currentField, SortField targetField, SortOrder order) {
-  if (currentField != targetField) return Icons.unfold_more;
-  return order == SortOrder.asc ? Icons.arrow_upward : Icons.arrow_downward;
 }

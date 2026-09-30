@@ -23,13 +23,7 @@ class ProductForm extends StatefulWidget {
 
 class _ProductFormState extends State<ProductForm> {
   final _formKey = GlobalKey<FormState>();
-  
-  // Abbreviate category names for dropdown
-  String _abbr(String name) {
-    if (name.length <= 10) return name;
-    return '${name.substring(0, 8)}…';
-  }
-  
+
   late TextEditingController _barcodeController;
   late TextEditingController _nameController;
   late TextEditingController _purposeController;

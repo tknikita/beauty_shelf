@@ -38,10 +38,11 @@ class WebStorageService implements StorageService {
       headers: {'Content-Type': 'application/json'},
       body: json.encode(product.toJson()),
     );
-    if (response.statusCode == 200) {
+    // Backend responds with 201 Created.
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return Product.fromJson(json.decode(response.body));
     }
-    throw Exception('Failed to create product');
+    throw Exception('Failed to create product (${response.statusCode})');
   }
 
   @override

@@ -314,16 +314,26 @@ def search_products(query: str):
 
 @app.get("/api/expiring")
 def get_expiring(days: int = 7):
-    """Get products expiring within specified days, including already expired.
-    Considers both original expiry_date and opened-date PAO."""
+    """Get products whose effective expiry falls within `days` days.
+
+    Effective expiry follows the PAO rules: for an opened product with an
+    opened date it is ``opened_date + expiry_days_after_open``; otherwise the
+    printed ``expiry_date``. The window is computed in server-local time so it
+    matches the client's local-date countdown (SQLite's ``date('now')`` alone
+    is UTC). Already-expired products are included.
+    """
     conn = get_db()
     cursor = conn.execute("""
-        SELECT * FROM products 
-        WHERE expiry_date <= date('now', '+' || ? || ' days')
-           OR (is_opened = 1 AND opened_date IS NOT NULL 
-               AND date(opened_date, '+' || expiry_days_after_open || ' days') <= date('now', '+' || ? || ' days'))
+        SELECT * FROM products
+        WHERE (
+            CASE
+                WHEN is_opened = 1 AND opened_date IS NOT NULL
+                    THEN date(opened_date, '+' || expiry_days_after_open || ' days')
+                ELSE expiry_date
+            END
+        ) <= date('now', 'localtime', '+' || ? || ' days')
         ORDER BY expiry_date ASC
-    """, (days, days))
+    """, (days,))
     products = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return products

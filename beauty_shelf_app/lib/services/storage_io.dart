@@ -132,16 +132,20 @@ class MobileStorageService implements StorageService {
     final threshold = now.add(Duration(days: days));
     final thresholdStr = threshold.toIso8601String().split('T')[0];
 
-    // Query products expiring within `days` days, considering:
-    // 1. Original expiry_date
-    // 2. Opened products: opened_date + expiry_days_after_open
+    // Effective expiry follows the PAO rules: opened products use
+    // opened_date + expiry_days_after_open, otherwise the printed expiry_date.
+    // The threshold is a local date string so it matches Product.daysLeft.
     final maps = await db.rawQuery('''
-      SELECT * FROM products 
-      WHERE expiry_date <= ?
-         OR (is_opened = 1 AND opened_date IS NOT NULL 
-             AND date(opened_date, '+' || expiry_days_after_open || ' days') <= ?)
+      SELECT * FROM products
+      WHERE (
+        CASE
+          WHEN is_opened = 1 AND opened_date IS NOT NULL
+            THEN date(opened_date, '+' || expiry_days_after_open || ' days')
+          ELSE expiry_date
+        END
+      ) <= ?
       ORDER BY expiry_date ASC
-    ''', [thresholdStr, thresholdStr]);
+    ''', [thresholdStr]);
     return maps.map((map) => Product.fromMap(map)).toList();
   }
 

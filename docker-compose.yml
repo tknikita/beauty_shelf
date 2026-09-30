@@ -7,6 +7,9 @@ services:
       - db_data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
+      # Server-local timezone used by /api/expiring. Set TZ to your zone so
+      # the web expiry window matches the device's local date.
+      - TZ=${TZ:-Europe/Moscow}
 
   frontend:
     build:

@@ -11,7 +11,7 @@ StorageService createStorage() => MobileStorageService();
 class MobileStorageService implements StorageService {
   Database? _database;
   static const String _imagesDir = 'images';
-  static const int _maxImageSize = 500 * 1024; // 500KB
+  static const int _maxImageSize = 5 * 1024 * 1024; // 5 MB
 
   Future<Database> get database async {
     _database ??= await _initDatabase();
@@ -189,29 +189,31 @@ class MobileStorageService implements StorageService {
     }
   }
 
-  /// Copy image to app's local storage and return local path
+  /// Write image bytes to app's local storage and return the local path.
   @override
-  Future<String?> saveImage(String sourcePath) async {
+  Future<String?> saveImageBytes(List<int> bytes, String? fileName) async {
     try {
+      if (bytes.length > _maxImageSize) {
+        print('Image rejected: ${bytes.length} bytes exceeds $_maxImageSize');
+        return null;
+      }
+
       final dir = await getApplicationDocumentsDirectory();
       final imagesPath = path.join(dir.path, _imagesDir);
-      
+
       // Create images directory if not exists
       final imagesDir = Directory(imagesPath);
       if (!await imagesDir.exists()) {
         await imagesDir.create(recursive: true);
       }
 
-      // Generate unique filename
+      // Generate unique filename, preserving a valid extension
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final ext = path.extension(sourcePath).toLowerCase();
+      final ext = path.extension(fileName ?? '').toLowerCase();
       final validExt = ['.jpg', '.jpeg', '.png', '.gif', '.webp'].contains(ext) ? ext : '.jpg';
-      final localFileName = 'product_$timestamp$validExt';
-      final localPath = path.join(imagesPath, localFileName);
+      final localPath = path.join(imagesPath, 'product_$timestamp$validExt');
 
-      // Copy file
-      final sourceFile = File(sourcePath);
-      await sourceFile.copy(localPath);
+      await File(localPath).writeAsBytes(bytes, flush: true);
 
       return localPath;
     } catch (e) {

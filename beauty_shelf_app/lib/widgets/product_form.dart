@@ -184,15 +184,24 @@ class _ProductFormState extends State<ProductForm> {
     setState(() => _isUploadingImage = true);
     
     try {
-      // Copy image to local storage
+      // Persist the picked image (local file on mobile, upload on web).
+      final bytes = await image.readAsBytes();
       final storage = createStorageService();
-      final localPath = await storage.saveImage(image.path);
-      
-      if (localPath != null && mounted) {
-        setState(() => _imageUrl = localPath);
+      final url = await storage.saveImageBytes(bytes, image.name);
+
+      if (url != null && mounted) {
+        setState(() => _imageUrl = url);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Изображение добавлено'),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Не удалось сохранить изображение'),
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
           ),

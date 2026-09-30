@@ -12,7 +12,9 @@ abstract class StorageService {
   Future<String?> exportToJson();
   Future<int> importFromJson(String content);
   
-  // Image management (for local storage)
-  Future<String?> saveImage(String sourcePath);
+  // Image management
+  // Mobile/desktop: writes bytes to local storage, returns local path.
+  // Web: uploads bytes to the backend, returns the served URL.
+  Future<String?> saveImageBytes(List<int> bytes, String? fileName);
   Future<void> deleteImage(String? imagePath);
 }

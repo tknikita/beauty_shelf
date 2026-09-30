@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:typed_data';
 // ignore: avoid_web_libraries
 import 'dart:html' as html;
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'storage_service.dart';
 import '../models/product.dart';
 
@@ -133,10 +133,51 @@ class WebStorageService implements StorageService {
     }
   }
 
-  // Web uses remote URLs - local image operations are no-ops
+  /// Upload image bytes to the backend and return the served URL.
   @override
-  Future<String?> saveImage(String sourcePath) async => null;
+  Future<String?> saveImageBytes(List<int> bytes, String? fileName) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$_baseUrl/images/upload'),
+      )..files.add(http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: fileName ?? 'image.jpg',
+          contentType: _mediaTypeFor(fileName),
+        ));
 
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        return data['url'] as String?;
+      }
+      print('Image upload failed: ${response.statusCode}');
+      return null;
+    } catch (e) {
+      print('Image upload error: $e');
+      return null;
+    }
+  }
+
+  MediaType _mediaTypeFor(String? fileName) {
+    final ext = (fileName ?? '').split('.').last.toLowerCase();
+    switch (ext) {
+      case 'png':
+        return MediaType('image', 'png');
+      case 'gif':
+        return MediaType('image', 'gif');
+      case 'webp':
+        return MediaType('image', 'webp');
+      case 'jpg':
+      case 'jpeg':
+      default:
+        return MediaType('image', 'jpeg');
+    }
+  }
+
+  // Web stores remote URLs, so deleting a local file is a no-op.
   @override
   Future<void> deleteImage(String? imagePath) async {}
 }

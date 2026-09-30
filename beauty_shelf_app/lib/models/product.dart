@@ -177,19 +177,24 @@ class Product {
     int? expiryDaysAfterOpen,
     String? imageUrl,
     int? notificationDays,
+    bool clearPurpose = false,
+    bool clearOpenedDate = false,
+    bool clearImageUrl = false,
+    bool clearNotificationDays = false,
   }) {
     return Product(
       id: id ?? this.id,
       name: name ?? this.name,
       type: type ?? this.type,
       category: category ?? this.category,
-      purpose: purpose ?? this.purpose,
+      purpose: clearPurpose ? null : (purpose ?? this.purpose),
       expiryDate: expiryDate ?? this.expiryDate,
       isOpened: isOpened ?? this.isOpened,
-      openedDate: openedDate ?? this.openedDate,
+      openedDate: clearOpenedDate ? null : (openedDate ?? this.openedDate),
       expiryDaysAfterOpen: expiryDaysAfterOpen ?? this.expiryDaysAfterOpen,
-      imageUrl: imageUrl ?? this.imageUrl,
-      notificationDays: notificationDays ?? this.notificationDays,
+      imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
+      notificationDays:
+          clearNotificationDays ? null : (notificationDays ?? this.notificationDays),
     );
   }
 }

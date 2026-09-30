@@ -1,7 +1,10 @@
-import 'dart:io';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../theme/app_theme.dart';
-import '../services/storage_io.dart';
+import '../services/storage_service.dart';
+import '../services/storage_factory.dart';
 import '../services/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -12,7 +15,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final _storage = MobileStorageService();
+  final StorageService _storage = createStorageService();
   bool _notificationsEnabled = false;
   int _notificationDays = 7;
   bool _loading = true;
@@ -38,7 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleNotifications(bool value) async {
     final service = NotificationService();
-    if (value && Platform.isAndroid) {
+    if (value && !kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       final granted = await service.requestPermission();
       if (!granted) {
         if (mounted) {
@@ -88,16 +91,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _importData(BuildContext context) async {
-    // Note: Import requires file picker which is implemented in platform-specific code
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Импорт временно недоступен на Android'),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
-        ),
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
       );
+      if (result == null || result.files.isEmpty) return;
+
+      final bytes = result.files.single.bytes;
+      if (bytes == null) {
+        if (context.mounted) _showMessage(context, 'Не удалось прочитать файл');
+        return;
+      }
+
+      final count = await _storage.importFromJson(utf8.decode(bytes));
+      if (context.mounted) {
+        _showMessage(
+          context,
+          count > 0 ? 'Импортировано продуктов: $count' : 'Не удалось импортировать',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) _showMessage(context, 'Ошибка импорта: $e');
     }
+  }
+
+  void _showMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
+      ),
+    );
   }
 
   static const _presets = [

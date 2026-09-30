@@ -1,5 +1,7 @@
+// This file is only compiled for the web target, where dart:html is required.
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:convert';
-// ignore: avoid_web_libraries
+import 'package:flutter/foundation.dart';
 import 'dart:html' as html;
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -109,7 +111,7 @@ class WebStorageService implements StorageService {
       html.Url.revokeObjectUrl(url);
       return 'Downloaded';
     } catch (e) {
-      print('Export error: $e');
+      debugPrint('Export error: $e');
       return null;
     }
   }
@@ -128,7 +130,7 @@ class WebStorageService implements StorageService {
       }
       return count;
     } catch (e) {
-      print('Import error: $e');
+      debugPrint('Import error: $e');
       return 0;
     }
   }
@@ -153,10 +155,10 @@ class WebStorageService implements StorageService {
         final data = json.decode(response.body) as Map<String, dynamic>;
         return data['url'] as String?;
       }
-      print('Image upload failed: ${response.statusCode}');
+      debugPrint('Image upload failed: ${response.statusCode}');
       return null;
     } catch (e) {
-      print('Image upload error: $e');
+      debugPrint('Image upload error: $e');
       return null;
     }
   }

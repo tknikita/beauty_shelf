@@ -196,7 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Switch(
                       value: theme.isDarkMode,
                       onChanged: (_) => theme.toggleDarkMode(),
-                      activeColor: theme.primaryColor,
+                        activeThumbColor: theme.primaryColor,
                     ),
                   ],
                 ),
@@ -215,12 +215,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: _presets.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
                   itemBuilder: (context, index) {
                     final preset = _presets[index];
                     final primary = Color(preset['primary'] as int);
                     final bg = Color(preset['bg'] as int);
-                    final isSelected = theme.primaryColor.value == primary.value;
+                    final isSelected =
+                        theme.primaryColor.toARGB32() == primary.toARGB32();
                     
                     return _PresetChip(
                       name: preset['name'] as String,
@@ -385,7 +386,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       trailing: Switch(
                         value: _notificationsEnabled,
                         onChanged: _loading ? null : _toggleNotifications,
-                        activeColor: theme.primaryColor,
+                      activeThumbColor: theme.primaryColor,
                       ),
                     ),
                     if (_notificationsEnabled) ...[
@@ -612,7 +613,8 @@ class _ColorPickerColumn extends StatelessWidget {
               runSpacing: 6,
               children: _palette.map((colorValue) {
                 final color = Color(colorValue);
-                final isSelected = currentColor.value == color.value;
+                final isSelected =
+                    currentColor.toARGB32() == color.toARGB32();
                 
                 return GestureDetector(
                   onTap: () => onColorSelected(color),
@@ -672,7 +674,7 @@ class _CompactHexInputState extends State<_CompactHexInput> {
   }
 
   String _colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+    return '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
   }
 
   Color? _hexToColor(String hex) {

@@ -343,14 +343,14 @@ class _ProductFormState extends State<ProductForm> {
                                   fit: BoxFit.cover,
                                   cacheWidth: 160,
                                   cacheHeight: 160,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+                                  errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported),
                                 )
                               : Image.network(
                                   Product.getDisplayUrl(_imageUrl) ?? _imageUrl!,
                                   fit: BoxFit.cover,
                                   cacheWidth: 160,
                                   cacheHeight: 160,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+                                  errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported),
                                 ),
                         ),
                       ),
@@ -398,7 +398,7 @@ class _ProductFormState extends State<ProductForm> {
               // Type & Category row
               // Type & Category - stacked on narrow screens
               DropdownButtonFormField<String>(
-                value: _type,
+                initialValue: _type,
                 dropdownColor: theme.surfaceColor,
                 decoration: InputDecoration(
                   labelText: 'Тип',
@@ -421,7 +421,7 @@ class _ProductFormState extends State<ProductForm> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: categories.containsKey(_category) ? _category : categories.keys.first,
+                initialValue: categories.containsKey(_category) ? _category : categories.keys.first,
                 dropdownColor: theme.surfaceColor,
                 decoration: InputDecoration(
                   labelText: 'Категория',
@@ -611,12 +611,12 @@ class _ProductFormState extends State<ProductForm> {
                     ? Image.file(
                         File(imageUrl),
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => _buildPreviewError(theme),
+                        errorBuilder: (_, _, _) => _buildPreviewError(theme),
                       )
                     : Image.network(
                         Product.getDisplayUrl(imageUrl) ?? imageUrl,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => _buildPreviewError(theme),
+                        errorBuilder: (_, _, _) => _buildPreviewError(theme),
                       ),
               ),
             ),

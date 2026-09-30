@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
@@ -164,7 +165,7 @@ class MobileStorageService implements StorageService {
 
       return filePath;
     } catch (e) {
-      print('Export error: $e');
+      debugPrint('Export error: $e');
       return null;
     }
   }
@@ -183,7 +184,7 @@ class MobileStorageService implements StorageService {
       }
       return count;
     } catch (e) {
-      print('Import error: $e');
+      debugPrint('Import error: $e');
       return 0;
     }
   }
@@ -193,7 +194,7 @@ class MobileStorageService implements StorageService {
   Future<String?> saveImageBytes(List<int> bytes, String? fileName) async {
     try {
       if (bytes.length > _maxImageSize) {
-        print('Image rejected: ${bytes.length} bytes exceeds $_maxImageSize');
+        debugPrint('Image rejected: ${bytes.length} bytes exceeds $_maxImageSize');
         return null;
       }
 
@@ -216,7 +217,7 @@ class MobileStorageService implements StorageService {
 
       return localPath;
     } catch (e) {
-      print('Error saving image: $e');
+      debugPrint('Error saving image: $e');
       return null;
     }
   }
@@ -232,7 +233,7 @@ class MobileStorageService implements StorageService {
         await file.delete();
       }
     } catch (e) {
-      print('Error deleting image: $e');
+      debugPrint('Error deleting image: $e');
     }
   }
 

@@ -163,7 +163,7 @@ class ProductCard extends StatelessWidget {
         fit: BoxFit.cover,
         cacheWidth: size,
         cacheHeight: size,
-        errorBuilder: (_, __, ___) => _buildPlaceholder(theme),
+        errorBuilder: (_, _, _) => _buildPlaceholder(theme),
       );
     }
     
@@ -173,7 +173,7 @@ class ProductCard extends StatelessWidget {
       fit: BoxFit.cover,
       cacheWidth: size,
       cacheHeight: size,
-      errorBuilder: (_, __, ___) => _buildPlaceholder(theme),
+      errorBuilder: (_, _, _) => _buildPlaceholder(theme),
     );
   }
 
@@ -220,12 +220,12 @@ void _showImagePreview(BuildContext context, Product product) {
                   ? Image.file(
                       File(product.effectiveImageUrl!),
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => _buildPreviewError(theme),
+                      errorBuilder: (_, _, _) => _buildPreviewError(theme),
                     )
                   : Image.network(
                       product.effectiveImageUrl!,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => _buildPreviewError(theme),
+                      errorBuilder: (_, _, _) => _buildPreviewError(theme),
                     ),
             ),
           ),

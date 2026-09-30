@@ -5,10 +5,15 @@ import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize notification service
-  await NotificationService().initialize();
-  
+
+  // Initialize notification service. Never let a plugin failure (e.g. on
+  // platforms without support) prevent the app from starting.
+  try {
+    await NotificationService().initialize();
+  } catch (e) {
+    debugPrint('Notification init failed: $e');
+  }
+
   await Future.wait([
     loadThemeFromStorage(),
     loadDarkMode(),

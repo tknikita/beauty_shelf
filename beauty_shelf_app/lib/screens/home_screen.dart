@@ -717,11 +717,12 @@ class _SwipeableProductCard extends StatefulWidget {
 class _SwipeableProductCardState extends State<_SwipeableProductCard>
     with SingleTickerProviderStateMixin {
   double _dragExtent = 0;
+  double _animationStartExtent = 0;
   bool _isDragging = false;
   late AnimationController _controller;
-  late Animation<double> _animation;
 
   static const _threshold = 0.25;
+  static const _maxDragExtent = 120.0;
 
   @override
   void initState() {
@@ -734,11 +735,12 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
   }
 
   void _onAnimationTick() {
-    if (mounted) {
-      setState(() {
-        _dragExtent = _controller.value;
-      });
-    }
+    if (!mounted) return;
+    // Interpolate the drag extent (pixels) down to 0 using the controller.
+    final eased = Curves.easeOut.transform(_controller.value);
+    setState(() {
+      _dragExtent = _animationStartExtent * (1 - eased);
+    });
   }
 
   @override
@@ -751,8 +753,8 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
   void _onDragUpdate(DragUpdateDetails details) {
     setState(() {
       _isDragging = true;
-      _dragExtent += details.delta.dx;
-      _dragExtent = _dragExtent.clamp(-120.0, 120.0);
+      _dragExtent = (_dragExtent + details.delta.dx)
+          .clamp(-_maxDragExtent, _maxDragExtent);
     });
   }
 
@@ -771,11 +773,12 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
       }
     }
 
-    // Reset position via animation
-    _controller.value = _dragExtent;
-    _controller.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut).then((_) {
+    // Animate the card back to its resting position.
+    _animationStartExtent = _dragExtent;
+    _controller.forward(from: 0).whenComplete(() {
       if (mounted) {
         setState(() {
+          _dragExtent = 0;
           _isDragging = false;
         });
       }
@@ -786,7 +789,7 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
     final isDelete = _dragExtent < 0;
-    final progress = (_dragExtent.abs() / 120).clamp(0.0, 1.0);
+    final progress = (_dragExtent.abs() / _maxDragExtent).clamp(0.0, 1.0);
 
     return GestureDetector(
       onHorizontalDragUpdate: _onDragUpdate,

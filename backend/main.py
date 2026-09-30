@@ -104,37 +104,26 @@ def init_db():
 # Barcode lookup endpoint (proxy to avoid CORS)
 @app.get("/api/barcode/{barcode}")
 async def lookup_barcode(barcode: str):
-    """Lookup product by barcode using OpenFoodFacts API."""
+    """Lookup a product by barcode.
+
+    Beauty/cosmetics sources are queried first, then food as a fallback.
+    """
     import httpx
-    
-    # Try OpenFoodFacts first
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                OPEN_FOOD_FACTS_URL.format(barcode=barcode),
-                headers={"User-Agent": "BeautyShelf/1.0"}
-            )
+
+    for url_template in (OPEN_BEAUTY_FACTS_URL, OPEN_FOOD_FACTS_URL):
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                response = await client.get(
+                    url_template.format(barcode=barcode),
+                    headers={"User-Agent": "BeautyShelf/1.0"},
+                )
             if response.status_code == 200:
                 data = response.json()
                 if data.get("status") == 1:
                     return data.get("product", {})
-    except Exception:
-        pass
-    
-    # Fallback to OpenBeautyFacts
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                OPEN_BEAUTY_FACTS_URL.format(barcode=barcode),
-                headers={"User-Agent": "BeautyShelf/1.0"}
-            )
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("status") == 1:
-                    return data.get("product", {})
-    except Exception:
-        pass
-    
+        except Exception:
+            continue
+
     return {}
 
 

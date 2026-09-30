@@ -3,15 +3,24 @@ Beauty Shelf - Backend API (FastAPI + SQLite)
 """
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
-from datetime import date, datetime
+from datetime import date
+from contextlib import asynccontextmanager
 import sqlite3
 from pathlib import Path
 import os
 import uuid
 
-app = FastAPI(title="Beauty Shelf API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize the database when the application starts."""
+    init_db()
+    yield
+
+
+app = FastAPI(title="Beauty Shelf API", version="0.1.0", lifespan=lifespan)
 
 # CORS for web frontend.
 # "*" must not be combined with credentials, so use an explicit allowlist.
@@ -56,9 +65,8 @@ def get_db():
     return conn
 
 
-@app.on_event("startup")
 def init_db():
-    """Initialize database on startup."""
+    """Initialize database (called from the application lifespan)."""
     DB_DIR.mkdir(parents=True, exist_ok=True)
     conn = get_db()
     with conn:
@@ -182,8 +190,7 @@ class Product(BaseModel):
     created_at: Optional[str]
     updated_at: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Products endpoints

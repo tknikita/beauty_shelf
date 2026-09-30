@@ -62,6 +62,7 @@ def init_db():
                 opened_date DATE,
                 expiry_days_after_open INTEGER DEFAULT 30,
                 image_url TEXT,
+                notification_days INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -82,6 +83,10 @@ def init_db():
             pass
         try:
             conn.execute("ALTER TABLE products ADD COLUMN image_url TEXT")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            conn.execute("ALTER TABLE products ADD COLUMN notification_days INTEGER")
         except sqlite3.OperationalError:
             pass
         
@@ -144,6 +149,7 @@ class ProductCreate(BaseModel):
     opened_date: Optional[date] = None
     expiry_days_after_open: int = 30
     image_url: Optional[str] = None
+    notification_days: Optional[int] = None
 
 
 class ProductUpdate(BaseModel):
@@ -156,6 +162,7 @@ class ProductUpdate(BaseModel):
     opened_date: Optional[date] = None
     expiry_days_after_open: Optional[int] = None
     image_url: Optional[str] = None
+    notification_days: Optional[int] = None
 
 
 class Product(BaseModel):
@@ -169,6 +176,7 @@ class Product(BaseModel):
     opened_date: Optional[str]
     expiry_days_after_open: int
     image_url: Optional[str]
+    notification_days: Optional[int]
     created_at: Optional[str]
     updated_at: Optional[str]
 
@@ -207,8 +215,8 @@ def create_product(product: ProductCreate):
     """Create a new product."""
     conn = get_db()
     cursor = conn.execute(
-        """INSERT INTO products (name, type, category, purpose, expiry_date, is_opened, opened_date, expiry_days_after_open, image_url)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO products (name, type, category, purpose, expiry_date, is_opened, opened_date, expiry_days_after_open, image_url, notification_days)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             product.name,
             product.type,
@@ -218,7 +226,8 @@ def create_product(product: ProductCreate):
             1 if product.is_opened else 0,
             product.opened_date.isoformat() if product.opened_date else None,
             product.expiry_days_after_open,
-            product.image_url
+            product.image_url,
+            product.notification_days
         )
     )
     conn.commit()

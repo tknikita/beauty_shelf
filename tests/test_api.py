@@ -169,6 +169,31 @@ class TestProductsAPI:
         response = client.get("/api/products/99999")
         assert response.status_code == 404
 
+    def test_notification_days_round_trip(self):
+        """notification_days is persisted and returned."""
+        create_resp = client.post("/api/products", json={
+            "name": "Крем",
+            "type": "care",
+            "category": "face_cream",
+            "expiry_date": "2025-09-01",
+            "notification_days": 7,
+        })
+        assert create_resp.status_code == 201
+        product_id = create_resp.json()["id"]
+        assert create_resp.json()["notification_days"] == 7
+
+        update_resp = client.put(f"/api/products/{product_id}", json={
+            "notification_days": 14,
+        })
+        assert update_resp.status_code == 200
+        assert update_resp.json()["notification_days"] == 14
+
+        # Explicit null disables the reminder.
+        clear_resp = client.put(f"/api/products/{product_id}", json={
+            "notification_days": None,
+        })
+        assert clear_resp.json()["notification_days"] is None
+
     def test_update_clears_nullable_fields(self):
         """Explicitly sending null must clear nullable fields."""
         create_resp = client.post("/api/products", json={

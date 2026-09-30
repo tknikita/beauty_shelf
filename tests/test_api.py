@@ -168,3 +168,26 @@ class TestProductsAPI:
         """Test getting a non-existent product."""
         response = client.get("/api/products/99999")
         assert response.status_code == 404
+
+    def test_update_clears_nullable_fields(self):
+        """Explicitly sending null must clear nullable fields."""
+        create_resp = client.post("/api/products", json={
+            "name": "Сыворотка",
+            "type": "care",
+            "category": "serum",
+            "purpose": "Увлажнение",
+            "image_url": "/api/images/x.jpg",
+            "expiry_date": "2025-08-01",
+        })
+        product_id = create_resp.json()["id"]
+
+        response = client.put(f"/api/products/{product_id}", json={
+            "purpose": None,
+            "image_url": None,
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert data["purpose"] is None
+        assert data["image_url"] is None
+        # Untouched fields must remain intact.
+        assert data["name"] == "Сыворотка"

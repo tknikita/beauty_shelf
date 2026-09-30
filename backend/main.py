@@ -231,45 +231,34 @@ def create_product(product: ProductCreate):
 
 @app.put("/api/products/{product_id}", response_model=Product)
 def update_product(product_id: int, product: ProductUpdate):
-    """Update an existing product."""
+    """Update an existing product.
+
+    Only fields explicitly present in the request body are changed, so
+    passing ``null`` for a nullable field (purpose, opened_date, image_url,
+    notification_days) clears it.
+    """
     conn = get_db()
-    cursor = conn.execute("SELECT * FROM products WHERE id = ?", (product_id,))
+    cursor = conn.execute("SELECT id FROM products WHERE id = ?", (product_id,))
     if not cursor.fetchone():
         conn.close()
         raise HTTPException(status_code=404, detail="Product not found")
-    
+
+    # Only fields the client actually sent (explicit null counts as "sent").
+    data = product.model_dump(exclude_unset=True)
+
     updates, values = [], []
-    if product.name is not None:
-        updates.append("name = ?")
-        values.append(product.name)
-    if product.type is not None:
-        updates.append("type = ?")
-        values.append(product.type)
-    if product.category is not None:
-        updates.append("category = ?")
-        values.append(product.category)
-    if product.purpose is not None:
-        updates.append("purpose = ?")
-        values.append(product.purpose)
-    if product.expiry_date is not None:
-        updates.append("expiry_date = ?")
-        values.append(product.expiry_date.isoformat())
-    if product.is_opened is not None:
-        updates.append("is_opened = ?")
-        values.append(1 if product.is_opened else 0)
-    if product.opened_date is not None:
-        updates.append("opened_date = ?")
-        values.append(product.opened_date.isoformat() if product.opened_date else None)
-    if product.expiry_days_after_open is not None:
-        updates.append("expiry_days_after_open = ?")
-        values.append(product.expiry_days_after_open)
-    if product.image_url is not None:
-        updates.append("image_url = ?")
-        values.append(product.image_url)
-    
+    for field, value in data.items():
+        if field == "is_opened":
+            values.append(1 if value else 0)
+        elif field in ("expiry_date", "opened_date"):
+            values.append(value.isoformat() if value is not None else None)
+        else:
+            values.append(value)
+        updates.append(f"{field} = ?")
+
     updates.append("updated_at = CURRENT_TIMESTAMP")
     values.append(product_id)
-    
+
     conn.execute(f"UPDATE products SET {', '.join(updates)} WHERE id = ?", values)
     conn.commit()
     cursor = conn.execute("SELECT * FROM products WHERE id = ?", (product_id,))

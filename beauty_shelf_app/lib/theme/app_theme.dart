@@ -16,8 +16,6 @@ class AppTheme extends ChangeNotifier {
   static const _lightBorder = Color(0xFFE8E8E8);
 
   // Dark theme colors
-  static const _darkPrimary = Color(0xFFE8B4BC);
-  static const _darkPrimaryDark = Color(0xFFD49BA5);
   static const _darkBackground = Color(0xFF1A1A1A);
   static const _darkText = Color(0xFFF5F5F5);
   static const _darkTextLight = Color(0xFFAAAAAA);
@@ -65,11 +63,19 @@ class AppTheme extends ChangeNotifier {
   static const _keyCategories = 'beauty_shelf_categories';
 
   void toggleDarkMode() {
-    _savedPrimaryColor = primaryColor;
-    _instancePrimarySet = true;
     _isDarkMode = !_isDarkMode;
     _applyDarkMode();
     _saveDarkMode();
+    notifyListeners();
+  }
+
+  /// Apply a dark-mode value loaded from storage and notify listeners.
+  ///
+  /// Kept as a public method so top-level loaders don't call the protected
+  /// [notifyListeners] directly.
+  void applyLoadedDarkMode(bool dark) {
+    _isDarkMode = dark;
+    _applyDarkMode();
     notifyListeners();
   }
 
@@ -98,9 +104,6 @@ class AppTheme extends ChangeNotifier {
     adjustColors();
   }
   
-  static bool _instancePrimarySet = false;
-  Color _savedPrimaryColor = _lightPrimary;
-
   Future<void> _saveDarkMode() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -112,7 +115,6 @@ class AppTheme extends ChangeNotifier {
 
   void applyPreset(Color primary, Color background) {
     primaryColor = primary;
-    _savedPrimaryColor = primary;
     if (!_isDarkMode) {
       backgroundColor = background;
     }
@@ -185,7 +187,7 @@ class AppTheme extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
         _keyTheme,
-        '${primaryColor.toARGB32()},${backgroundColor.toARGB32()},${_savedPrimaryColor.toARGB32()}',
+        '${primaryColor.toARGB32()},${backgroundColor.toARGB32()}',
       );
     } catch (e) {
       debugPrint('_saveToStorage error: $e');
@@ -310,14 +312,7 @@ Future<void> loadDarkMode() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('beauty_shelf_dark');
-    if (saved == '1') {
-      AppTheme.instance._isDarkMode = true;
-      AppTheme.instance._applyDarkMode();
-      AppTheme.instance.notifyListeners();
-    } else {
-      AppTheme.instance._isDarkMode = false;
-      AppTheme.instance._applyDarkMode();
-    }
+    AppTheme.instance.applyLoadedDarkMode(saved == '1');
   } catch (e) {
     debugPrint('loadDarkMode error: $e');
   }
@@ -346,9 +341,7 @@ Future<void> loadThemeFromStorage() async {
         final bg = int.tryParse(parts[1]);
         if (primary != null && bg != null) {
           AppTheme.instance.primaryColor = Color(primary);
-          AppTheme.instance._savedPrimaryColor = Color(primary);
-          AppTheme._instancePrimarySet = true;
-          
+
           if (!AppTheme.instance._isDarkMode) {
             AppTheme.instance.backgroundColor = Color(bg);
             AppTheme.instance.surfaceColor = Colors.white;

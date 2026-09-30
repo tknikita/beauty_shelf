@@ -19,27 +19,56 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def test_db():
-    """Use a temporary database for tests."""
+    """Use a temporary database and image directory for tests."""
     # Create temp file for test database
     with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
         temp_db = f.name
-    
-    # Monkey-patch the db path
+
+    # Monkey-patch the db path and image dir
     import backend.main as main_module
+    import shutil
     original_path = main_module.DB_PATH
+    original_img_dir = main_module.IMG_DIR
+    temp_img_dir = tempfile.mkdtemp()
     main_module.DB_PATH = temp_db
-    
+    main_module.IMG_DIR = Path(temp_img_dir)
+
     # Re-init db
     init_db()
-    
+
     yield temp_db
-    
+
     # Cleanup
     main_module.DB_PATH = original_path
+    main_module.IMG_DIR = original_img_dir
     try:
         os.unlink(temp_db)
-    except:
+    except Exception:
         pass
+    shutil.rmtree(temp_img_dir, ignore_errors=True)
+
+
+class TestImagesAPI:
+    def test_upload_valid_image(self):
+        """A valid image is stored and served back."""
+        response = client.post(
+            "/api/images/upload",
+            files={"file": ("photo.png", b"\x89PNG\r\n\x1a\n fake-bytes", "image/png")},
+        )
+        assert response.status_code == 200
+        url = response.json()["url"]
+        assert url.startswith("/api/images/")
+
+        get_resp = client.get(url)
+        assert get_resp.status_code == 200
+
+    def test_upload_rejects_invalid_extension(self):
+        """Non-image extensions are rejected."""
+        response = client.post(
+            "/api/images/upload",
+            files={"file": ("evil.exe", b"MZ", "application/octet-stream")},
+        )
+        assert response.status_code == 400
 
 
 class TestHealthEndpoint:

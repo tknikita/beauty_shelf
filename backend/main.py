@@ -13,10 +13,21 @@ import uuid
 
 app = FastAPI(title="Beauty Shelf API", version="0.1.0")
 
-# CORS for web frontend
+# CORS for web frontend.
+# "*" must not be combined with credentials, so use an explicit allowlist.
+# Override with ALLOWED_ORIGINS="https://app.example.com,https://admin.example.com".
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000",
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,6 +40,8 @@ DB_PATH = DB_DIR / "beauty_shelf.db"
 # Image storage
 IMG_DIR = DB_DIR / "images"
 IMG_DIR.mkdir(parents=True, exist_ok=True)
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
+ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
 
 # External API URLs
 OPEN_FOOD_FACTS_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
@@ -319,22 +332,28 @@ def health_check():
 @app.post("/api/images/upload")
 async def upload_image(file: UploadFile = File(...)):
     """Upload an image and return its URL."""
-    # Validate file type
-    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
-    if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: jpeg, png, gif, webp")
-    
-    # Generate unique filename
-    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    # Validate by extension: multipart clients (Flutter web) may send
+    # "application/octet-stream" as the content type.
+    original_name = file.filename or ""
+    ext = original_name.rsplit(".", 1)[-1].lower() if "." in original_name else ""
+    if ext not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Allowed: " + ", ".join(sorted(ALLOWED_IMAGE_EXTENSIONS)),
+        )
+
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+        )
+
     filename = f"{uuid.uuid4().hex}.{ext}"
     filepath = IMG_DIR / filename
-    
-    # Save file
-    contents = await file.read()
     with open(filepath, "wb") as f:
         f.write(contents)
-    
-    # Return URL
+
     return {"url": f"/api/images/{filename}"}
 
 

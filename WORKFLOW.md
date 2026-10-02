@@ -1,23 +1,36 @@
 # Beauty Shelf - Workflow Guide
 
-## Быстрый старт (Docker)
+## Быстрый старт
+
+Приложение **Android-only** и работает локально. Backend опционален.
 
 ```bash
-# 1. Собрать Flutter и запустить
-cd beauty_shelf_app && flutter build web
-cd ..
-docker-compose build frontend
-docker-compose up -d --build
+# 1. Запустить приложение на эмуляторе
+flutter emulators --launch BeautyShelf
+cd beauty_shelf_app && flutter run -d emulator-5554
 
-# 2. Открыть
+# 2. (Опционально) Поднять backend
+docker-compose up -d
 # Backend API: http://localhost:8000
-# Frontend:    http://localhost:8080
 # Swagger:     http://localhost:8000/docs
 ```
 
 ## Локальная разработка
 
-### Backend
+### Android app (Flutter)
+```bash
+cd beauty_shelf_app
+
+# Запуск на эмуляторе
+flutter emulators --launch BeautyShelf
+flutter run -d emulator-5554
+
+# Или с выбором устройства
+flutter devices
+flutter run -d <device_id>
+```
+
+### Backend (FastAPI, опционально)
 ```bash
 cd backend
 python3 -m venv venv
@@ -26,21 +39,16 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-### Frontend (Flutter)
-```bash
-cd beauty_shelf_app
-
-# Запуск в Chrome
-flutter run -d chrome
-
-# Или с выбором устройства
-flutter devices
-flutter run -d <device_id>
-```
-
 ## Тесты
 
 ```bash
+# Flutter: unit/widget (headless)
+cd beauty_shelf_app
+flutter test
+
+# Flutter: integration (на устройстве)
+flutter test integration_test/theme_categories_test.dart -d emulator-5554
+
 # Backend тесты
 cd backend
 source venv/bin/activate
@@ -62,7 +70,6 @@ docker-compose down
 
 # Логи
 docker-compose logs -f backend
-docker-compose logs -f frontend
 
 # Пересборка
 docker-compose up -d --build
@@ -76,23 +83,15 @@ docker-compose up -d --build
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                   nginx:alpine                  │
-│  Frontend (port 8080)                         │
-│  ┌─────────────────────────────────────────┐ │
-│  │  Flutter Web App                         │ │
-│  │  SPA routing + API proxy (/api → backend) │ │
-│  └─────────────────────────────────────────┘ │
-└─────────────────────┬───────────────────────┘ │
-                      │ proxy_pass
-                      ▼
-┌─────────────────────────────────────────────────┐
-│               python:3.12-slim                   │
+│                  python:3.12-slim                │
 │  Backend API (port 8000)                         │
 │  ┌─────────────────────────────────────────┐   │
 │  │  FastAPI + SQLite (/app/data/)           │   │
 │  └─────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────┘
 ```
+
+Мобильное приложение запускается отдельно через Flutter и backend не требует.
 
 ## API Endpoints
 
@@ -109,21 +108,19 @@ docker-compose up -d --build
 
 ## Развёртывание
 
-### Локально (Docker)
+### Локально (Docker + APK)
 ```bash
-# Flutter build
-cd beauty_shelf_app && flutter build web && cd ..
+# Android APK
+cd beauty_shelf_app && flutter build apk --release && cd ..
+# → beauty_shelf_app/build/app/outputs/flutter-apk/app-release.apk
 
-# Docker deploy
-docker-compose build frontend
-docker-compose up -d frontend
+# Backend
+docker-compose up -d --build
 ```
 
 ### На сервере
 ```bash
 git pull
-cd beauty_shelf_app && flutter build web && cd ..
-docker-compose build frontend
 docker-compose up -d --build
 ```
 
@@ -131,9 +128,6 @@ docker-compose up -d --build
 ```bash
 # Backend
 http://YOUR_IP:8000
-
-# Frontend  
-http://YOUR_IP:8080
 ```
 
 ## Файлы
@@ -144,20 +138,21 @@ beauty_shelf/
 │   ├── main.py           # FastAPI app
 │   ├── Dockerfile
 │   └── requirements.txt
-├── beauty_shelf_app/     # Flutter web app
+├── beauty_shelf_app/     # Flutter Android app
 │   ├── lib/
 │   │   ├── main.dart
 │   │   ├── models/
 │   │   ├── services/
 │   │   ├── screens/
 │   │   ├── theme/
+│   │   ├── utils/
 │   │   └── widgets/
-│   ├── pubspec.yaml
-│   └── Dockerfile
+│   ├── test/                 # Unit + widget tests
+│   ├── integration_test/     # On-device tests
+│   └── pubspec.yaml
 ├── tests/
 │   └── test_api.py      # pytest tests
 ├── docker-compose.yml
-├── nginx.conf
 └── deploy.sh
 ```
 
@@ -165,19 +160,25 @@ beauty_shelf/
 
 ```
 beauty_shelf_app/lib/
-├── main.dart              # App entry point + theme provider
+├── main.dart              # App entry point
 ├── models/
 │   └── product.dart      # Product model + categories
 ├── services/
-│   └── api_service.dart  # HTTP API client
+│   ├── storage_service.dart      # Storage interface
+│   ├── storage_io.dart           # MobileStorageService (SQLite)
+│   ├── storage_factory.dart      # Returns mobile storage
+│   ├── api_service.dart          # Public barcode APIs
+│   ├── database_service.dart
+│   └── notification_service.dart
 ├── screens/
-│   ├── home_screen.dart      # Main product list
-│   └── settings_screen.dart   # Theme settings
+│   ├── home_screen.dart          # Main product list
+│   ├── settings_screen.dart      # Theme + categories
+│   └── barcode_scanner_screen.dart
 ├── theme/
-│   └── app_theme.dart    # Theme singleton + localStorage
+│   └── app_theme.dart    # Theme singleton + SharedPreferences
+├── utils/
+│   └── sorting.dart
 └── widgets/
     ├── product_card.dart     # Product card widget
-    ├── product_table.dart   # Product table widget
-    ├── product_form.dart    # Add/Edit form
-    └── barcode_scanner.dart # Barcode input widget
+    └── product_form.dart     # Add/Edit form
 ```

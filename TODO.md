@@ -1,5 +1,7 @@
 # Beauty Shelf - TODO
 
+> Приложение **Android-only** (Flutter). Web-версия удалена; backend опционален.
+
 ## Done (v1.0) ✓
 - [x] Table view toggle fix
 - [x] Table view rows rendering
@@ -12,6 +14,10 @@
 - [x] Navigation bar safe area
 - [x] Android platform support
 - [x] Image optimization (cacheWidth/cacheHeight)
+- [x] Fix: выбор цветового пресета меняет фон приложения (adjustColors больше не перезаписывает выбранный фон)
+- [x] Удаление встроенных категорий (persist в `beauty_shelf_removed_categories`; повторное добавление того же ключа возвращает категорию)
+- [x] Unit/widget тесты (`test/`, включая `app_theme_test.dart`)
+- [x] On-device integration тесты (`integration_test/`)
 
 ## Feature Branches
 
@@ -84,14 +90,13 @@
 - Status: TODO
 
 ## Low Priority
-- [ ] PWA support for offline mode
 - [ ] Cloud backup (Google Drive/iCloud)
 - [ ] Voice input for product names
 - [ ] Home screen widget
 - [ ] Open Beauty Facts integration (expanded data)
 
 ## Tech Debt
-- [ ] Remove dart:html, migrate to `web` package
+- [x] ~~Remove dart:html, migrate to `web` package~~ — web-версия удалена, задача неактуальна
 - [ ] Fix deprecated `value` parameter in DropdownButtonFormField
-- [ ] Add unit tests for theme system
+- [x] Add unit tests for theme system (`app_theme_test.dart`)
 - [ ] Add widget tests for ProductForm

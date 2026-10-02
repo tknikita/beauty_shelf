@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../theme/app_theme.dart';
@@ -41,7 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleNotifications(bool value) async {
     final service = NotificationService();
-    if (value && !kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    if (value && defaultTargetPlatform == TargetPlatform.android) {
       final granted = await service.requestPermission();
       if (!granted) {
         if (mounted) {

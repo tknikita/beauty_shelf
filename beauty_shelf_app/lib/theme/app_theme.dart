@@ -29,6 +29,11 @@ class AppTheme extends ChangeNotifier {
   Color textLightColor = _lightTextLight;
   Color borderColor = _lightBorder;
 
+  /// User-selected light-mode background. [backgroundColor] is derived from
+  /// this (or the dark palette) inside [adjustColors], so a chosen preset
+  /// background is not clobbered by subsequent [adjustColors] passes.
+  Color _lightBackgroundColor = _lightBackground;
+
   // Status colors
   Color expiredColor = const Color(0xFFC62828);
   Color expiredBgColor = const Color(0xFFFFEBEE);
@@ -57,10 +62,26 @@ class AppTheme extends ChangeNotifier {
   // Custom categories
   Map<String, Map<String, String>> customCategories = {};
 
+  /// Built-in categories hidden by the user, stored as `type|key` entries.
+  /// Needed because built-ins come from [_getDefaultCategories] and would
+  /// otherwise reappear after removal.
+  final Set<String> _removedCategories = {};
+
+  bool isCategoryRemoved(String type, String key) =>
+      _removedCategories.contains('$type|$key');
+
+  /// Clears custom and hidden categories. Test-only helper.
+  @visibleForTesting
+  void resetCategoriesForTest() {
+    customCategories.clear();
+    _removedCategories.clear();
+  }
+
   // Storage keys
   static const _keyDark = 'beauty_shelf_dark';
   static const _keyTheme = 'beauty_shelf_theme';
   static const _keyCategories = 'beauty_shelf_categories';
+  static const _keyRemovedCategories = 'beauty_shelf_removed_categories';
 
   void toggleDarkMode() {
     _isDarkMode = !_isDarkMode;
@@ -115,9 +136,10 @@ class AppTheme extends ChangeNotifier {
 
   void applyPreset(Color primary, Color background) {
     primaryColor = primary;
-    if (!_isDarkMode) {
-      backgroundColor = background;
-    }
+    // Always store the chosen light-mode background so it applies whenever
+    // the user switches back to light mode (in dark mode the dark palette is
+    // used regardless).
+    _lightBackgroundColor = background;
     adjustColors();
     _saveToStorage();
     notifyListeners();
@@ -146,7 +168,7 @@ class AppTheme extends ChangeNotifier {
       careTypeBgColor = const Color(0xFF0D2744);
       decorativeTypeBgColor = const Color(0xFF2D1A3D);
     } else {
-      backgroundColor = _lightBackground;
+      backgroundColor = _lightBackgroundColor;
       surfaceColor = Colors.white;
       borderColor = _lightBorder;
       selectionColor = const Color(0xFFE8B4BC);
@@ -187,7 +209,7 @@ class AppTheme extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
         _keyTheme,
-        '${primaryColor.toARGB32()},${backgroundColor.toARGB32()}',
+        '${primaryColor.toARGB32()},${_lightBackgroundColor.toARGB32()}',
       );
     } catch (e) {
       debugPrint('_saveToStorage error: $e');
@@ -200,12 +222,17 @@ class AppTheme extends ChangeNotifier {
       customCategories[type] = {};
     }
     customCategories[type]![key] = name;
+    // Re-adding a previously removed built-in makes it visible again.
+    _removedCategories.remove('$type|$key');
     _saveCategories();
     notifyListeners();
   }
 
   void removeCategory(String type, String key) {
     customCategories[type]?.remove(key);
+    // Remember the removal so a built-in category does not reappear from
+    // [_getDefaultCategories] on the next rebuild.
+    _removedCategories.add('$type|$key');
     _saveCategories();
     notifyListeners();
   }
@@ -213,6 +240,7 @@ class AppTheme extends ChangeNotifier {
   void reorderCategories(String type, List<String> keys) {
     final reordered = <String, String>{};
     for (final key in keys) {
+      if (isCategoryRemoved(type, key)) continue;
       final name = _getDefaultCategories()[type]?[key] ?? customCategories[type]?[key];
       if (name != null) {
         reordered[key] = name;
@@ -225,10 +253,9 @@ class AppTheme extends ChangeNotifier {
 
   Future<void> _saveCategories() async {
     try {
-      final encoded = customCategories.map((type, cats) =>
-        MapEntry(type, cats.map((k, v) => MapEntry(k, v))));
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyCategories, _encodeMap(encoded));
+      await prefs.setString(_keyCategories, _encodeMap(customCategories));
+      await prefs.setString(_keyRemovedCategories, _removedCategories.join(';'));
     } catch (e) {
       debugPrint('_saveCategories error: $e');
     }
@@ -262,17 +289,28 @@ class AppTheme extends ChangeNotifier {
     final defaults = _getDefaultCategories();
     final result = <String, Map<String, String>>{};
     for (final type in defaults.keys) {
-      final def = defaults[type]!;
-      final custom = customCategories[type] ?? {};
-      result[type] = Map<String, String>.from(def)..addAll(custom);
+      result[type] = getCategoriesByType(type);
     }
     return result;
   }
 
+  /// Visible categories for [type]: built-ins minus removed ones, overridden
+  /// by custom categories.
   Map<String, String> getCategoriesByType(String type) {
+    final result = <String, String>{};
     final defaults = _getDefaultCategories()[type] ?? {};
+    for (final entry in defaults.entries) {
+      if (!isCategoryRemoved(type, entry.key)) {
+        result[entry.key] = entry.value;
+      }
+    }
     final custom = customCategories[type] ?? {};
-    return Map<String, String>.from(defaults)..addAll(custom);
+    for (final entry in custom.entries) {
+      if (!isCategoryRemoved(type, entry.key)) {
+        result[entry.key] = entry.value;
+      }
+    }
+    return result;
   }
 
   Map<String, Map<String, String>> _getDefaultCategories() {
@@ -325,6 +363,12 @@ Future<void> loadCategories() async {
     if (saved != null && saved.isNotEmpty) {
       AppTheme.instance.customCategories = AppTheme.instance._decodeMap(saved);
     }
+    final removed = prefs.getString('beauty_shelf_removed_categories');
+    if (removed != null && removed.isNotEmpty) {
+      AppTheme.instance._removedCategories
+        ..clear()
+        ..addAll(removed.split(';').where((e) => e.isNotEmpty));
+    }
   } catch (e) {
     debugPrint('loadCategories error: $e');
   }
@@ -341,12 +385,7 @@ Future<void> loadThemeFromStorage() async {
         final bg = int.tryParse(parts[1]);
         if (primary != null && bg != null) {
           AppTheme.instance.primaryColor = Color(primary);
-
-          if (!AppTheme.instance._isDarkMode) {
-            AppTheme.instance.backgroundColor = Color(bg);
-            AppTheme.instance.surfaceColor = Colors.white;
-            AppTheme.instance.borderColor = AppTheme._lightBorder;
-          }
+          AppTheme.instance._lightBackgroundColor = Color(bg);
           AppTheme.instance.adjustColors();
         }
       }

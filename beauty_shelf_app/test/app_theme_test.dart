@@ -172,6 +172,45 @@ void main() {
       AppTheme.instance.resetSort('care');
       expect(AppTheme.instance.isManualSort('care'), isFalse);
     });
+
+    test('manual layout can move a leaf into an empty group and out again', () {
+      AppTheme.instance.addGroup('care', 'empty_g', 'Пусто');
+
+      // Move 'cream' into the empty group.
+      AppTheme.instance.applyManualLayout(
+        'care',
+        ['empty_g', 'creams', 'cleansing', 'face_care'],
+        {
+          'empty_g': ['cream'],
+          'creams': ['face_cream', 'eye_cream'],
+          'cleansing': ['basic_care', 'cleanser', 'tonic'],
+          'face_care': ['serum', 'mask', 'special', 'sunscreen'],
+        },
+      );
+      expect(AppTheme.instance.groupOf('care', 'cream'), 'empty_g');
+      expect(
+        AppTheme.instance
+            .getCategoryTree('care')
+            .firstWhere((g) => g.key == 'empty_g')
+            .leaves
+            .keys
+            .toList(),
+        ['cream'],
+      );
+
+      // Then drag it to the very top (explicitly un-grouped).
+      AppTheme.instance.applyManualLayout(
+        'care',
+        ['empty_g', 'creams', 'cleansing', 'face_care'],
+        {
+          'creams': ['face_cream', 'eye_cream'],
+          'cleansing': ['basic_care', 'cleanser', 'tonic'],
+          'face_care': ['serum', 'mask', 'special', 'sunscreen'],
+          '': ['cream'],
+        },
+      );
+      expect(AppTheme.instance.groupOf('care', 'cream'), isNull);
+    });
   });
 
   group('product types', () {

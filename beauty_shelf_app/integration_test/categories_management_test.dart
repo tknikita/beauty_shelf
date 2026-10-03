@@ -183,4 +183,44 @@ void main() {
         .toList();
     expect(after, isNot(equals(before)));
   });
+
+  testWidgets('a category can be dragged above an empty group', (tester) async {
+    AppTheme.instance.addGroup('care', 'empty_g', 'Пусто');
+    AppTheme.instance.applyManualLayout(
+      'care',
+      ['empty_g', 'creams', 'cleansing', 'face_care'],
+      {
+        'empty_g': [],
+        'creams': ['cream', 'face_cream', 'eye_cream'],
+        'cleansing': ['basic_care', 'cleanser', 'tonic'],
+        'face_care': ['serum', 'mask', 'special', 'sunscreen'],
+      },
+    );
+
+    await _openSettings(tester);
+    await _expandCategoryTab(tester, 'Уходовая');
+    expect(AppTheme.instance.isManualSort('care'), isTrue);
+    expect(find.text('Пусто'), findsOneWidget);
+    expect(AppTheme.instance.groupOf('care', 'cream'), 'creams');
+
+    final handle = find
+        .descendant(
+          of: find.byKey(const ValueKey('leaf_care_cream')),
+          matching: find.byIcon(Icons.drag_indicator),
+        )
+        .first;
+    await _scrollTo(tester, handle);
+
+    // Drag the leaf to the very top — above the empty group's header.
+    final gesture = await tester.startGesture(tester.getCenter(handle));
+    await tester.pump(const Duration(milliseconds: 200));
+    for (var i = 0; i < 6; i++) {
+      await gesture.moveBy(const Offset(0, -40));
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(AppTheme.instance.groupOf('care', 'cream'), isNull);
+  });
 }

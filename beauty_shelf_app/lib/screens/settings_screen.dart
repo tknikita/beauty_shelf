@@ -1179,7 +1179,7 @@ class _CategoryTabState extends State<_CategoryTab> {
     ];
   }
 
-  Widget _groupHeader(AppTheme theme, CategoryGroup group, {int? dragIndex}) {
+  Widget _groupHeader(AppTheme theme, CategoryGroup group) {
     final id = group.key!;
     final expanded = _isExpandedGroup(id);
     return InkWell(
@@ -1213,15 +1213,6 @@ class _CategoryTabState extends State<_CategoryTab> {
               '${group.leaves.length}',
               style: TextStyle(fontSize: 12, color: theme.textLightColor),
             ),
-            if (dragIndex != null)
-              ReorderableDragStartListener(
-                index: dragIndex,
-                child: Icon(
-                  Icons.drag_indicator,
-                  size: 18,
-                  color: theme.textLightColor,
-                ),
-              ),
             IconButton(
               icon: const Icon(Icons.add, size: 18),
               color: theme.primaryColor,
@@ -1250,93 +1241,199 @@ class _CategoryTabState extends State<_CategoryTab> {
     );
   }
 
-  /// Manual mode: groups (and their leaves) are drag-reorderable.
+  /// Manual mode: one flat, fully drag-reorderable list. Group headers and
+  /// categories move together, and a category can be dropped above or into any
+  /// group — including an empty one — which re-assigns its group.
   List<Widget> _buildManual(AppTheme theme, List<CategoryGroup> tree) {
-    final ungrouped = tree.where((g) => g.isUngrouped);
-    final groups = tree.where((g) => !g.isUngrouped).toList();
+    final groupsMap = AppTheme.instance.getGroupsByType(widget.type);
+    final leavesMap = AppTheme.instance.getCategoriesByType(widget.type);
+
+    final rows = <_CatRow>[];
+    for (final g in tree) {
+      if (!g.isUngrouped) rows.add(_CatRow.header(g.key!));
+      for (final leafKey in g.leaves.keys) {
+        rows.add(_CatRow.leaf(leafKey));
+      }
+    }
+
+    final counts = <String, int>{};
+    String? current;
+    for (final r in rows) {
+      if (r.isHeader) {
+        current = r.groupKey;
+        counts[r.groupKey!] = 0;
+      } else if (current != null) {
+        counts[current] = counts[current]! + 1;
+      }
+    }
 
     return [
-      for (final g in ungrouped) _manualLeafList(theme, null, g.leaves),
-      if (groups.isNotEmpty)
-        ReorderableListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          buildDefaultDragHandles: false,
-          itemCount: groups.length,
-          onReorder: (oldIndex, newIndex) {
-            if (newIndex > oldIndex) newIndex--;
-            final keys = groups.map((g) => g.key!).toList();
-            final moved = keys.removeAt(oldIndex);
-            keys.insert(newIndex, moved);
-            AppTheme.instance.reorderGroups(widget.type, keys);
-          },
-          itemBuilder: (context, index) {
-            final group = groups[index];
-            return Column(
-              key: ValueKey('grp_${group.key}'),
-              children: [
-                _groupHeader(theme, group, dragIndex: index),
-                if (_isExpandedGroup(group.key!))
-                  _manualLeafList(theme, group.key, group.leaves),
-              ],
+      ReorderableListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        buildDefaultDragHandles: false,
+        itemCount: rows.length,
+        onReorder: (o, n) => _onReorderRows(rows, o, n),
+        itemBuilder: (context, index) {
+          final row = rows[index];
+          if (row.isHeader) {
+            return _manualHeader(
+              theme,
+              row.groupKey!,
+              groupsMap[row.groupKey] ?? row.groupKey!,
+              counts[row.groupKey] ?? 0,
+              index,
             );
-          },
-        ),
+          }
+          return _manualLeaf(
+            theme,
+            row.leafKey!,
+            leavesMap[row.leafKey] ?? row.leafKey!,
+            index,
+            _hasHeaderAbove(rows, index) ? 40.0 : 20.0,
+          );
+        },
+      ),
     ];
   }
 
-  Widget _manualLeafList(
-    AppTheme theme,
-    String? groupKey,
-    Map<String, String> leaves,
-  ) {
-    final entries = leaves.entries.toList();
-    if (entries.isEmpty) return const SizedBox.shrink();
-    final indent = groupKey == null ? 20.0 : 40.0;
+  bool _hasHeaderAbove(List<_CatRow> rows, int index) {
+    for (var i = index - 1; i >= 0; i--) {
+      if (rows[i].isHeader) return true;
+    }
+    return false;
+  }
 
-    return ReorderableListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      buildDefaultDragHandles: false,
-      itemCount: entries.length,
-      onReorder: (oldIndex, newIndex) {
-        if (newIndex > oldIndex) newIndex--;
-        final keys = entries.map((e) => e.key).toList();
-        final moved = keys.removeAt(oldIndex);
-        keys.insert(newIndex, moved);
-        AppTheme.instance.reorderLeaves(widget.type, groupKey, keys);
-      },
-      itemBuilder: (context, index) {
-        final e = entries[index];
-        return Container(
-          key: ValueKey('leaf_${widget.type}_${e.key}'),
-          padding: EdgeInsets.fromLTRB(indent, 6, 12, 6),
-          child: Row(
-            children: [
-              ReorderableDragStartListener(
-                index: index,
-                child: Icon(
-                  Icons.drag_indicator,
-                  size: 18,
-                  color: theme.textLightColor,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(e.value, style: TextStyle(color: theme.textColor)),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, size: 18),
-                color: theme.expiredColor,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                padding: EdgeInsets.zero,
-                onPressed: () =>
-                    AppTheme.instance.removeCategory(widget.type, e.key),
-              ),
+  void _onReorderRows(List<_CatRow> rows, int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex--;
+    final working = List<_CatRow>.of(rows);
+    final moved = working[oldIndex];
+
+    if (moved.isHeader) {
+      // A group header moves together with its (trailing) leaves.
+      var end = oldIndex + 1;
+      while (end < working.length && !working[end].isHeader) {
+        end++;
+      }
+      final block = working.sublist(oldIndex, end);
+      working.removeRange(oldIndex, end);
+      var target = newIndex;
+      if (target > oldIndex) target -= block.length;
+      target = target.clamp(0, working.length);
+      working.insertAll(target, block);
+    } else {
+      final item = working.removeAt(oldIndex);
+      final target = newIndex.clamp(0, working.length);
+      working.insert(target, item);
+    }
+
+    _applyRows(working);
+  }
+
+  void _applyRows(List<_CatRow> rows) {
+    final groupKeys = <String>[];
+    final leavesByGroup = <String, List<String>>{};
+    String? current;
+    for (final row in rows) {
+      if (row.isHeader) {
+        current = row.groupKey;
+        groupKeys.add(row.groupKey!);
+        leavesByGroup.putIfAbsent(row.groupKey!, () => []);
+      } else {
+        final g = current ?? '';
+        leavesByGroup.putIfAbsent(g, () => []).add(row.leafKey!);
+      }
+    }
+    AppTheme.instance.applyManualLayout(widget.type, groupKeys, leavesByGroup);
+  }
+
+  Widget _manualHeader(
+    AppTheme theme,
+    String groupKey,
+    String name,
+    int count,
+    int index,
+  ) {
+    return Container(
+      key: ValueKey('grp_$groupKey'),
+      color: theme.neutralBgColor,
+      padding: const EdgeInsets.only(left: 8, right: 4),
+      child: Row(
+        children: [
+          ReorderableDragStartListener(
+            index: index,
+            child: Icon(
+              Icons.drag_indicator,
+              size: 18,
+              color: theme.textLightColor,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              name,
+              style: TextStyle(fontWeight: FontWeight.w600, color: theme.textColor),
+            ),
+          ),
+          Text('$count', style: TextStyle(fontSize: 12, color: theme.textLightColor)),
+          IconButton(
+            icon: const Icon(Icons.add, size: 18),
+            color: theme.primaryColor,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            tooltip: 'Добавить в раздел',
+            onPressed: () => _addCategory(groupKey),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Раздел',
+            icon: Icon(Icons.more_vert, size: 18, color: theme.textLightColor),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            onSelected: (v) {
+              if (v == 'rename') _renameGroup(groupKey, name);
+              if (v == 'delete') _removeGroup(groupKey, name);
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'rename', child: Text('Переименовать')),
+              PopupMenuItem(value: 'delete', child: Text('Удалить')),
             ],
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+
+  Widget _manualLeaf(
+    AppTheme theme,
+    String leafKey,
+    String name,
+    int index,
+    double indent,
+  ) {
+    return Container(
+      key: ValueKey('leaf_${widget.type}_$leafKey'),
+      padding: EdgeInsets.fromLTRB(indent, 6, 12, 6),
+      child: Row(
+        children: [
+          ReorderableDragStartListener(
+            index: index,
+            child: Icon(
+              Icons.drag_indicator,
+              size: 18,
+              color: theme.textLightColor,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(name, style: TextStyle(color: theme.textColor))),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 18),
+            color: theme.expiredColor,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            onPressed: () => AppTheme.instance.removeCategory(widget.type, leafKey),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1387,4 +1484,15 @@ class _StatusBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+/// One row of the flat manual-sort editor: either a group header or a leaf.
+class _CatRow {
+  final String? groupKey;
+  final String? leafKey;
+
+  const _CatRow.header(this.groupKey) : leafKey = null;
+  const _CatRow.leaf(this.leafKey) : groupKey = null;
+
+  bool get isHeader => leafKey == null;
 }

@@ -315,9 +315,13 @@ class AppTheme extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Group key that [leafKey] belongs to, or null when un-grouped.
-  String? groupOf(String type, String leafKey) =>
-      leafParent['$type|$leafKey'] ?? _getDefaultLeafParent()[type]?[leafKey];
+  /// Group key that [leafKey] belongs to, or null when un-grouped. An empty
+  /// override (`''`) means "explicitly no group" (used by manual reordering).
+  String? groupOf(String type, String leafKey) {
+    final override = leafParent['$type|$leafKey'];
+    if (override != null) return override.isEmpty ? null : override;
+    return _getDefaultLeafParent()[type]?[leafKey];
+  }
 
   bool isManualSort(String type) => categorySortMode[type] == 'manual';
 
@@ -347,6 +351,32 @@ class AppTheme extends ChangeNotifier {
   void reorderLeaves(String type, String? groupKey, List<String> keys) {
     categorySortMode[type] = 'manual';
     leafOrder.putIfAbsent(type, () => {})[groupKey ?? ''] = List.of(keys);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  /// Applies a whole manual layout produced by the flat reorder editor:
+  /// group order, per-group leaf order and leaf -> group assignment.
+  void applyManualLayout(
+    String type,
+    List<String> groupKeys,
+    Map<String, List<String>> leavesByGroup,
+  ) {
+    categorySortMode[type] = 'manual';
+    groupOrder[type] = List.of(groupKeys);
+
+    final perGroup = <String, List<String>>{};
+    for (final e in leavesByGroup.entries) {
+      perGroup[e.key] = List.of(e.value);
+    }
+    leafOrder[type] = perGroup;
+
+    for (final e in leavesByGroup.entries) {
+      for (final leaf in e.value) {
+        // '' means explicitly un-grouped, keeping the choice sticky.
+        leafParent['$type|$leaf'] = e.key;
+      }
+    }
     _saveCategories();
     notifyListeners();
   }

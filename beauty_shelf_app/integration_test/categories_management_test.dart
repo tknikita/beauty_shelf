@@ -223,4 +223,34 @@ void main() {
 
     expect(AppTheme.instance.groupOf('care', 'cream'), isNull);
   });
+
+  testWidgets('dragging a group moves its categories with it', (tester) async {
+    await _openSettings(tester);
+    await _expandCategoryTab(tester, 'Уходовая');
+
+    await tester.tap(find.byIcon(Icons.sort_by_alpha).first);
+    await tester.pumpAndSettle();
+
+    final orderBefore = AppTheme.instance.getGroupsByType('care').keys.toList();
+
+    // Build/scroll the editor into view, then drive the list's reorder
+    // callback directly (physical header drags are unreliable in the harness
+    // because the outer settings list scrolls).
+    await _scrollTo(tester, find.byKey(const ValueKey('leaf_care_cream')));
+    final list = tester.widget<ReorderableListView>(
+      find.byType(ReorderableListView),
+    );
+    list.onReorder(0, 8); // move the first group's block down past group #2
+    await tester.pumpAndSettle();
+
+    // Categories still belong to 'creams' — they moved with the header.
+    for (final key in ['cream', 'face_cream', 'eye_cream']) {
+      expect(AppTheme.instance.groupOf('care', key), 'creams');
+    }
+    // And the group actually changed position.
+    expect(
+      AppTheme.instance.getGroupsByType('care').keys.toList(),
+      isNot(equals(orderBefore)),
+    );
+  });
 }

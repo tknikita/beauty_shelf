@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/backup_service.dart';
 import '../services/notification_service.dart';
+import '../utils/category_layout.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -1248,11 +1249,11 @@ class _CategoryTabState extends State<_CategoryTab> {
     final groupsMap = AppTheme.instance.getGroupsByType(widget.type);
     final leavesMap = AppTheme.instance.getCategoriesByType(widget.type);
 
-    final rows = <_CatRow>[];
+    final rows = <CategoryRow>[];
     for (final g in tree) {
-      if (!g.isUngrouped) rows.add(_CatRow.header(g.key!));
+      if (!g.isUngrouped) rows.add(CategoryRow.header(g.key!));
       for (final leafKey in g.leaves.keys) {
-        rows.add(_CatRow.leaf(leafKey));
+        rows.add(CategoryRow.leaf(leafKey));
       }
     }
 
@@ -1297,54 +1298,20 @@ class _CategoryTabState extends State<_CategoryTab> {
     ];
   }
 
-  bool _hasHeaderAbove(List<_CatRow> rows, int index) {
+  bool _hasHeaderAbove(List<CategoryRow> rows, int index) {
     for (var i = index - 1; i >= 0; i--) {
       if (rows[i].isHeader) return true;
     }
     return false;
   }
 
-  void _onReorderRows(List<_CatRow> rows, int oldIndex, int newIndex) {
-    if (newIndex > oldIndex) newIndex--;
-    final working = List<_CatRow>.of(rows);
-    final moved = working[oldIndex];
-
-    if (moved.isHeader) {
-      // A group header moves together with its (trailing) leaves.
-      var end = oldIndex + 1;
-      while (end < working.length && !working[end].isHeader) {
-        end++;
-      }
-      final block = working.sublist(oldIndex, end);
-      working.removeRange(oldIndex, end);
-      var target = newIndex;
-      if (target > oldIndex) target -= block.length;
-      target = target.clamp(0, working.length);
-      working.insertAll(target, block);
-    } else {
-      final item = working.removeAt(oldIndex);
-      final target = newIndex.clamp(0, working.length);
-      working.insert(target, item);
-    }
-
-    _applyRows(working);
-  }
-
-  void _applyRows(List<_CatRow> rows) {
-    final groupKeys = <String>[];
-    final leavesByGroup = <String, List<String>>{};
-    String? current;
-    for (final row in rows) {
-      if (row.isHeader) {
-        current = row.groupKey;
-        groupKeys.add(row.groupKey!);
-        leavesByGroup.putIfAbsent(row.groupKey!, () => []);
-      } else {
-        final g = current ?? '';
-        leavesByGroup.putIfAbsent(g, () => []).add(row.leafKey!);
-      }
-    }
-    AppTheme.instance.applyManualLayout(widget.type, groupKeys, leavesByGroup);
+  void _onReorderRows(List<CategoryRow> rows, int oldIndex, int newIndex) {
+    final layout = layoutFromRows(reorderCategoryRows(rows, oldIndex, newIndex));
+    AppTheme.instance.applyManualLayout(
+      widget.type,
+      layout.groupKeys,
+      layout.leavesByGroup,
+    );
   }
 
   Widget _manualHeader(
@@ -1484,15 +1451,4 @@ class _StatusBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-/// One row of the flat manual-sort editor: either a group header or a leaf.
-class _CatRow {
-  final String? groupKey;
-  final String? leafKey;
-
-  const _CatRow.header(this.groupKey) : leafKey = null;
-  const _CatRow.leaf(this.leafKey) : groupKey = null;
-
-  bool get isHeader => leafKey == null;
 }

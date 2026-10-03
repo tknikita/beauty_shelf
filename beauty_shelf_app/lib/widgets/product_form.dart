@@ -48,7 +48,8 @@ class _ProductFormState extends State<ProductForm> {
     _barcodeController = TextEditingController(text: '');
     _nameController = TextEditingController(text: p?.name ?? '');
     _purposeController = TextEditingController(text: p?.purpose ?? '');
-    _type = p?.type ?? 'care';
+    final visibleTypes = AppTheme.instance.visibleTypes();
+    _type = p?.type ?? (visibleTypes.isNotEmpty ? visibleTypes.first : 'care');
     _category = p?.category ?? 'basic_care';
     _expiryDate = p?.expiryDate ?? DateTime.now().add(const Duration(days: 180));
     _isOpened = p?.isOpened ?? false;
@@ -216,6 +217,21 @@ class _ProductFormState extends State<ProductForm> {
         setState(() => _isUploadingImage = false);
       }
     }
+  }
+
+  /// Type options: visible types (+ the current one even if hidden).
+  List<DropdownMenuItem<String>> _typeItems(AppTheme theme) {
+    final types = AppTheme.instance.visibleTypes();
+    if (!types.contains(_type)) types.add(_type);
+    return types
+        .map((t) => DropdownMenuItem(
+              value: t,
+              child: Text(
+                AppTheme.instance.typeName(t),
+                style: TextStyle(color: theme.textColor),
+              ),
+            ))
+        .toList();
   }
 
   /// Grouped dropdown items: a disabled header per group, leaves indented.
@@ -438,10 +454,7 @@ class _ProductFormState extends State<ProductForm> {
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                   focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                 ),
-                items: [
-                  DropdownMenuItem(value: 'care', child: Text('Уходовая', style: TextStyle(color: theme.textColor))),
-                  DropdownMenuItem(value: 'decorative', child: Text('Декоративная', style: TextStyle(color: theme.textColor))),
-                ],
+                items: _typeItems(theme),
                 onChanged: (v) {
                   setState(() {
                     _type = v!;

@@ -147,10 +147,10 @@ void main() {
     expect(find.text('Крем Уход'), findsOneWidget);
     expect(find.text('Помада Декор'), findsOneWidget);
 
-    // Open the first dropdown (type filter) and pick "Уход".
+    // Open the first dropdown (type filter) and pick "Уходовая".
     await tester.tap(find.byType(DropdownButton<String>).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Уход').last);
+    await tester.tap(find.text('Уходовая').last);
     await tester.pumpAndSettle();
 
     expect(find.text('Крем Уход'), findsOneWidget);

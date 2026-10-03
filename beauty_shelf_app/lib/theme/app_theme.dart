@@ -69,6 +69,28 @@ class AppTheme extends ChangeNotifier {
   /// the built-in assignment so built-in leaves can be reorganised.
   Map<String, String> leafParent = {};
 
+  /// Per-type sort mode: `'auto'` (alphabetical by name) or `'manual'`.
+  Map<String, String> categorySortMode = {};
+
+  /// Manual group order per type (`type -> [groupKey, ...]`).
+  Map<String, List<String>> groupOrder = {};
+
+  /// Manual leaf order per type and group id (`''` = un-grouped):
+  /// `type -> groupId -> [leafKey, ...]`.
+  Map<String, Map<String, List<String>>> leafOrder = {};
+
+  /// Product-type label overrides (`care -> 'Уходовая'`).
+  Map<String, String> typeNames = {};
+
+  /// Product types hidden by the user.
+  final Set<String> _removedTypes = {};
+
+  static const List<String> _defaultTypeKeys = ['care', 'decorative'];
+  static const Map<String, String> _defaultTypeNames = {
+    'care': 'Уходовая',
+    'decorative': 'Декоративная',
+  };
+
   /// Built-in categories hidden by the user, stored as `type|key` entries.
   /// Needed because built-ins come from [_getDefaultCategories] and would
   /// otherwise reappear after removal.
@@ -88,6 +110,11 @@ class AppTheme extends ChangeNotifier {
     leafParent.clear();
     _removedCategories.clear();
     _removedGroups.clear();
+    categorySortMode.clear();
+    groupOrder.clear();
+    leafOrder.clear();
+    typeNames.clear();
+    _removedTypes.clear();
   }
 
   // Storage keys
@@ -98,6 +125,11 @@ class AppTheme extends ChangeNotifier {
   static const _keyGroups = 'beauty_shelf_groups';
   static const _keyLeafParent = 'beauty_shelf_leaf_parent';
   static const _keyRemovedGroups = 'beauty_shelf_removed_groups';
+  static const _keySortMode = 'beauty_shelf_sort_mode';
+  static const _keyGroupOrder = 'beauty_shelf_group_order';
+  static const _keyLeafOrder = 'beauty_shelf_leaf_order';
+  static const _keyTypeNames = 'beauty_shelf_type_names';
+  static const _keyRemovedTypes = 'beauty_shelf_removed_types';
 
   void toggleDarkMode() {
     _isDarkMode = !_isDarkMode;
@@ -287,6 +319,68 @@ class AppTheme extends ChangeNotifier {
   String? groupOf(String type, String leafKey) =>
       leafParent['$type|$leafKey'] ?? _getDefaultLeafParent()[type]?[leafKey];
 
+  bool isManualSort(String type) => categorySortMode[type] == 'manual';
+
+  /// Switches a type between alphabetical ('auto') and manual ordering.
+  void setManualSort(String type, bool manual) {
+    categorySortMode[type] = manual ? 'manual' : 'auto';
+    _saveCategories();
+    notifyListeners();
+  }
+
+  /// Returns a type to alphabetical order and forgets manual positions.
+  void resetSort(String type) {
+    categorySortMode.remove(type);
+    groupOrder.remove(type);
+    leafOrder.remove(type);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  void reorderGroups(String type, List<String> keys) {
+    categorySortMode[type] = 'manual';
+    groupOrder[type] = List.of(keys);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  void reorderLeaves(String type, String? groupKey, List<String> keys) {
+    categorySortMode[type] = 'manual';
+    leafOrder.putIfAbsent(type, () => {})[groupKey ?? ''] = List.of(keys);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  // Product types -----------------------------------------------------------
+  List<String> allTypes() => List.of(_defaultTypeKeys);
+
+  List<String> visibleTypes() =>
+      _defaultTypeKeys.where((t) => !_removedTypes.contains(t)).toList();
+
+  bool isTypeRemoved(String type) => _removedTypes.contains(type);
+
+  String typeName(String type) =>
+      typeNames[type] ?? _defaultTypeNames[type] ?? type;
+
+  void renameType(String type, String name) {
+    typeNames[type] = name;
+    _removedTypes.remove(type);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  void removeType(String type) {
+    _removedTypes.add(type);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  void restoreType(String type) {
+    _removedTypes.remove(type);
+    _saveCategories();
+    notifyListeners();
+  }
+
   /// Serializable snapshot of theme + category state for backups.
   Map<String, dynamic> toBackup() => {
         'customCategories': customCategories,
@@ -294,6 +388,11 @@ class AppTheme extends ChangeNotifier {
         'leafParent': leafParent,
         'removedCategories': _removedCategories.toList(),
         'removedGroups': _removedGroups.toList(),
+        'categorySortMode': categorySortMode,
+        'groupOrder': groupOrder,
+        'leafOrder': leafOrder,
+        'typeNames': typeNames,
+        'removedTypes': _removedTypes.toList(),
         'primary': primaryColor.toARGB32(),
         'background': _lightBackgroundColor.toARGB32(),
         'dark': _isDarkMode,
@@ -312,6 +411,14 @@ class AppTheme extends ChangeNotifier {
       _removedGroups
         ..clear()
         ..addAll(((data['removedGroups'] as List?) ?? const [])
+            .map((e) => e.toString()));
+      categorySortMode = _readFlat(data['categorySortMode']);
+      groupOrder = _readListMap(data['groupOrder']);
+      leafOrder = _readLeafOrder(data['leafOrder']);
+      typeNames = _readFlat(data['typeNames']);
+      _removedTypes
+        ..clear()
+        ..addAll(((data['removedTypes'] as List?) ?? const [])
             .map((e) => e.toString()));
 
       if (data['primary'] is int) primaryColor = Color(data['primary'] as int);
@@ -352,6 +459,26 @@ class AppTheme extends ChangeNotifier {
     return out;
   }
 
+  Map<String, List<String>> _readListMap(dynamic src) {
+    final out = <String, List<String>>{};
+    if (src is Map) {
+      src.forEach((k, v) {
+        if (v is List) out['$k'] = v.map((e) => '$e').toList();
+      });
+    }
+    return out;
+  }
+
+  Map<String, Map<String, List<String>>> _readLeafOrder(dynamic src) {
+    final out = <String, Map<String, List<String>>>{};
+    if (src is Map) {
+      src.forEach((k, v) {
+        if (v is Map) out['$k'] = _readListMap(v);
+      });
+    }
+    return out;
+  }
+
   Future<void> _saveCategories() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -360,6 +487,11 @@ class AppTheme extends ChangeNotifier {
       await prefs.setString(_keyGroups, _encodeMap(customGroups));
       await prefs.setString(_keyLeafParent, _encodeFlat(leafParent));
       await prefs.setString(_keyRemovedGroups, _removedGroups.join(';'));
+      await prefs.setString(_keySortMode, _encodeFlat(categorySortMode));
+      await prefs.setString(_keyGroupOrder, _encodeLists(groupOrder));
+      await prefs.setString(_keyLeafOrder, _encodeLeafOrder(leafOrder));
+      await prefs.setString(_keyTypeNames, _encodeFlat(typeNames));
+      await prefs.setString(_keyRemovedTypes, _removedTypes.join(';'));
     } catch (e) {
       debugPrint('_saveCategories error: $e');
     }
@@ -404,6 +536,47 @@ class AppTheme extends ChangeNotifier {
     return result;
   }
 
+  String _encodeLists(Map<String, List<String>> data) => data.entries
+      .map((e) => '${e.key}:${e.value.join(',')}')
+      .join(';');
+
+  Map<String, List<String>> _decodeLists(String encoded) {
+    final result = <String, List<String>>{};
+    if (encoded.isEmpty) return result;
+    for (final entry in encoded.split(';')) {
+      final idx = entry.indexOf(':');
+      if (idx > 0) {
+        final rest = entry.substring(idx + 1);
+        result[entry.substring(0, idx)] =
+            rest.isEmpty ? [] : rest.split(',');
+      }
+    }
+    return result;
+  }
+
+  String _encodeLeafOrder(Map<String, Map<String, List<String>>> data) =>
+      data.entries
+          .map((e) => '${e.key}=${e.value.entries.map((g) => '${g.key}:${g.value.join(',')}').join('|')}')
+          .join(';');
+
+  Map<String, Map<String, List<String>>> _decodeLeafOrder(String encoded) {
+    final result = <String, Map<String, List<String>>>{};
+    if (encoded.isEmpty) return result;
+    for (final entry in encoded.split(';')) {
+      final idx = entry.indexOf('=');
+      if (idx <= 0) continue;
+      final groups = <String, List<String>>{};
+      for (final g in entry.substring(idx + 1).split('|')) {
+        final gi = g.indexOf(':');
+        if (gi < 0) continue;
+        final rest = g.substring(gi + 1);
+        groups[g.substring(0, gi)] = rest.isEmpty ? [] : rest.split(',');
+      }
+      result[entry.substring(0, idx)] = groups;
+    }
+    return result;
+  }
+
   Map<String, Map<String, String>> get categories {
     final defaults = _getDefaultCategories();
     final result = <String, Map<String, String>>{};
@@ -432,21 +605,19 @@ class AppTheme extends ChangeNotifier {
     return _sortedByName(result);
   }
 
-  /// Groups (subcategory buckets) for [type]: built-ins in a fixed order
-  /// (minus hidden ones), custom groups appended sorted by name.
+  /// Groups (subcategory buckets) for [type], minus hidden ones. Ordered
+  /// manually when the type is in manual mode, otherwise by name.
   Map<String, String> getGroupsByType(String type) {
-    final result = <String, String>{};
+    final base = <String, String>{};
     (_getDefaultGroups()[type] ?? const {}).forEach((k, v) {
-      if (!_removedGroups.contains('$type|$k')) result[k] = v;
+      if (!_removedGroups.contains('$type|$k')) base[k] = v;
     });
-    final custom = customGroups[type] ?? {};
-    final sorted = custom.entries.toList()
-      ..sort((a, b) => a.value.toLowerCase().compareTo(b.value.toLowerCase()));
-    for (final e in sorted) {
-      if (_removedGroups.contains('$type|${e.key}')) continue;
-      result[e.key] = e.value;
-    }
-    return result;
+    (customGroups[type] ?? const {}).forEach((k, v) {
+      if (!_removedGroups.contains('$type|$k')) base[k] = v;
+    });
+
+    if (!isManualSort(type)) return _sortedByName(base);
+    return _applyOrder(base, groupOrder[type]);
   }
 
   /// Ready-to-render one-level tree for the settings / forms UI.
@@ -469,17 +640,57 @@ class AppTheme extends ChangeNotifier {
       result.add(CategoryGroup(
         key: null,
         name: '',
-        leaves: _sortedByName(ungrouped),
+        leaves: _orderLeaves(type, null, ungrouped),
       ));
     }
     for (final g in groups.entries) {
       result.add(CategoryGroup(
         key: g.key,
         name: g.value,
-        leaves: _sortedByName(byGroup[g.key] ?? const {}),
+        leaves: _orderLeaves(type, g.key, byGroup[g.key] ?? const {}),
       ));
     }
     return result;
+  }
+
+  /// Orders leaves for a group: manual positions when the type is manual (new
+  /// keys appended alphabetically), otherwise alphabetical by name.
+  Map<String, String> _orderLeaves(
+    String type,
+    String? groupKey,
+    Map<String, String> leaves,
+  ) {
+    if (!isManualSort(type)) return _sortedByName(leaves);
+    final order = leafOrder[type]?[groupKey ?? ''];
+    if (order == null || order.isEmpty) return _sortedByName(leaves);
+
+    final result = <String, String>{};
+    for (final k in order) {
+      if (leaves.containsKey(k)) result[k] = leaves[k]!;
+    }
+    for (final k in _extras(leaves, result)) {
+      result[k] = leaves[k]!;
+    }
+    return result;
+  }
+
+  /// Applies a manual [order] to [base], appending unknown keys by name.
+  Map<String, String> _applyOrder(Map<String, String> base, List<String>? order) {
+    if (order == null || order.isEmpty) return _sortedByName(base);
+    final result = <String, String>{};
+    for (final k in order) {
+      if (base.containsKey(k)) result[k] = base[k]!;
+    }
+    for (final k in _extras(base, result)) {
+      result[k] = base[k]!;
+    }
+    return result;
+  }
+
+  /// Keys of [base] not yet in [taken], sorted by their display name.
+  List<String> _extras(Map<String, String> base, Map<String, String> taken) {
+    return base.keys.where((k) => !taken.containsKey(k)).toList()
+      ..sort((a, b) => base[a]!.toLowerCase().compareTo(base[b]!.toLowerCase()));
   }
 
   /// Leaf keys that a filter on [groupOrLeaf] should match: the leaf itself, or
@@ -626,6 +837,28 @@ Future<void> loadCategories() async {
       AppTheme.instance._removedGroups
         ..clear()
         ..addAll(removedGroups.split(';').where((e) => e.isNotEmpty));
+    }
+    final sortMode = prefs.getString('beauty_shelf_sort_mode');
+    if (sortMode != null && sortMode.isNotEmpty) {
+      AppTheme.instance.categorySortMode = AppTheme.instance._decodeFlat(sortMode);
+    }
+    final groupOrder = prefs.getString('beauty_shelf_group_order');
+    if (groupOrder != null && groupOrder.isNotEmpty) {
+      AppTheme.instance.groupOrder = AppTheme.instance._decodeLists(groupOrder);
+    }
+    final leafOrder = prefs.getString('beauty_shelf_leaf_order');
+    if (leafOrder != null && leafOrder.isNotEmpty) {
+      AppTheme.instance.leafOrder = AppTheme.instance._decodeLeafOrder(leafOrder);
+    }
+    final typeNames = prefs.getString('beauty_shelf_type_names');
+    if (typeNames != null && typeNames.isNotEmpty) {
+      AppTheme.instance.typeNames = AppTheme.instance._decodeFlat(typeNames);
+    }
+    final removedTypes = prefs.getString('beauty_shelf_removed_types');
+    if (removedTypes != null && removedTypes.isNotEmpty) {
+      AppTheme.instance._removedTypes
+        ..clear()
+        ..addAll(removedTypes.split(';').where((e) => e.isNotEmpty));
     }
   } catch (e) {
     debugPrint('loadCategories error: $e');

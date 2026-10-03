@@ -452,10 +452,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 18),
                         style: TextStyle(fontSize: 12, color: theme.textColor),
                         dropdownColor: theme.surfaceColor,
-                        items: const [
-                          DropdownMenuItem(value: 'all', child: Text('Все')),
-                          DropdownMenuItem(value: 'care', child: Text('Уход')),
-                          DropdownMenuItem(value: 'decorative', child: Text('Декор.')),
+                        items: [
+                          const DropdownMenuItem(value: 'all', child: Text('Все')),
+                          ...AppTheme.instance.visibleTypes().map(
+                            (t) => DropdownMenuItem(
+                              value: t,
+                              child: Text(AppTheme.instance.typeName(t)),
+                            ),
+                          ),
                         ],
                         onChanged: (v) {
                           if (v != null) _setTypeFilter(v);
@@ -661,7 +665,8 @@ class _CategoryDropdown extends StatelessWidget {
     final items = <DropdownMenuItem<String>>[
       const DropdownMenuItem(value: 'all', child: Text('Все')),
     ];
-    final types = typeFilter == 'all' ? ['care', 'decorative'] : [typeFilter];
+    final types =
+        typeFilter == 'all' ? AppTheme.instance.visibleTypes() : [typeFilter];
     for (final type in types) {
       for (final group in AppTheme.instance.getCategoryTree(type)) {
         if (!group.isUngrouped) {

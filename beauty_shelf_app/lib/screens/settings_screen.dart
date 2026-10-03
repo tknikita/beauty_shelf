@@ -120,6 +120,104 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<String?> _promptText(
+    BuildContext context,
+    String title,
+    String initial,
+  ) {
+    final controller = TextEditingController(text: initial);
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Название'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Rename / delete / restore the product types (Уходовая, Декоративная).
+  Future<void> _manageTypes(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Типы средств'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final t in AppTheme.instance.allTypes())
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(AppTheme.instance.typeName(t)),
+                  subtitle: AppTheme.instance.isTypeRemoved(t)
+                      ? const Text('Скрыт')
+                      : null,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        tooltip: 'Переименовать',
+                        onPressed: () async {
+                          final name = await _promptText(
+                            ctx,
+                            'Переименовать тип',
+                            AppTheme.instance.typeName(t),
+                          );
+                          if (name != null && name.isNotEmpty) {
+                            AppTheme.instance.renameType(t, name);
+                            setLocal(() {});
+                          }
+                        },
+                      ),
+                      if (AppTheme.instance.isTypeRemoved(t))
+                        IconButton(
+                          icon: const Icon(Icons.restore, size: 18),
+                          tooltip: 'Вернуть',
+                          onPressed: () {
+                            AppTheme.instance.restoreType(t);
+                            setLocal(() {});
+                          },
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          tooltip: 'Удалить',
+                          onPressed: () {
+                            AppTheme.instance.removeType(t);
+                            setLocal(() {});
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Готово'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   static const _presets = [
     {'name': 'Розовый', 'primary': 0xFFE8B4BC, 'bg': 0xFFFDF9FA},
     {'name': 'Лаванда', 'primary': 0xFFB4A7E8, 'bg': 0xFFF5F3FA},
@@ -135,7 +233,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       listenable: AppTheme.instance,
       builder: (context, _) {
         final theme = AppTheme.instance;
-        
+        final visibleTypes = AppTheme.instance.visibleTypes();
+
         return Scaffold(
           backgroundColor: theme.backgroundColor,
           appBar: AppBar(
@@ -325,9 +424,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
 
               // Categories
-              Text(
-                'Категории',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+              Row(
+                children: [
+                  Text(
+                    'Категории',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () => _manageTypes(context),
+                    icon: const Icon(Icons.tune, size: 18),
+                    label: const Text('Типы'),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               Container(
@@ -338,9 +447,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 child: Column(
                   children: [
-                    _CategoryTab(type: 'care', label: 'Уходовая'),
-                    const Divider(height: 1),
-                    _CategoryTab(type: 'decorative', label: 'Декоративная'),
+                    for (var i = 0; i < visibleTypes.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      _CategoryTab(
+                        type: visibleTypes[i],
+                        label: AppTheme.instance.typeName(visibleTypes[i]),
+                      ),
+                    ],
+                    if (visibleTypes.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Все типы скрыты. Нажмите «Типы», чтобы вернуть.',
+                          style: TextStyle(color: theme.textLightColor),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -958,13 +1079,14 @@ class _CategoryTabState extends State<_CategoryTab> {
     final theme = AppTheme.instance;
     final tree = AppTheme.instance.getCategoryTree(widget.type);
     final total = tree.fold<int>(0, (sum, g) => sum + g.leaves.length);
+    final manual = AppTheme.instance.isManualSort(widget.type);
 
     return Column(
       children: [
         InkWell(
           onTap: () => setState(() => _expanded = !_expanded),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
             child: Row(
               children: [
                 Icon(
@@ -985,12 +1107,37 @@ class _CategoryTabState extends State<_CategoryTab> {
                   '$total шт.',
                   style: TextStyle(fontSize: 12, color: theme.textLightColor),
                 ),
+                IconButton(
+                  icon: Icon(
+                    manual ? Icons.swap_vert : Icons.sort_by_alpha,
+                    size: 18,
+                    color: theme.primaryColor,
+                  ),
+                  tooltip: manual ? 'Ручной порядок' : 'По алфавиту',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () =>
+                      AppTheme.instance.setManualSort(widget.type, !manual),
+                ),
+                if (manual)
+                  IconButton(
+                    icon: Icon(
+                      Icons.restart_alt,
+                      size: 18,
+                      color: theme.textLightColor,
+                    ),
+                    tooltip: 'Сбросить порядок',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => AppTheme.instance.resetSort(widget.type),
+                  ),
               ],
             ),
           ),
         ),
         if (_expanded) ...[
-          for (final group in tree) ..._buildGroup(theme, group),
+          if (manual)
+            ..._buildManual(theme, tree)
+          else
+            for (final group in tree) ..._buildGroup(theme, group),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
             child: Row(
@@ -1025,68 +1172,172 @@ class _CategoryTabState extends State<_CategoryTab> {
     final indent = isUngrouped ? 20.0 : 40.0;
 
     return [
-      if (!isUngrouped)
-        InkWell(
-          onTap: () => setState(() {
-            if (_collapsed.contains(id)) {
-              _collapsed.remove(id);
-            } else {
-              _collapsed.add(id);
-            }
-          }),
-          child: Container(
-            color: theme.neutralBgColor,
-            padding: const EdgeInsets.only(left: 8, right: 4),
-            child: Row(
-              children: [
-                Icon(
-                  expanded ? Icons.arrow_drop_down : Icons.arrow_right,
-                  size: 22,
-                  color: theme.textLightColor,
-                ),
-                Expanded(
-                  child: Text(
-                    group.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: theme.textColor,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${group.leaves.length}',
-                  style: TextStyle(fontSize: 12, color: theme.textLightColor),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add, size: 18),
-                  color: theme.primaryColor,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  padding: EdgeInsets.zero,
-                  tooltip: 'Добавить в раздел',
-                  onPressed: () => _addCategory(group.key),
-                ),
-                PopupMenuButton<String>(
-                  tooltip: 'Раздел',
-                  icon: Icon(Icons.more_vert, size: 18, color: theme.textLightColor),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  onSelected: (v) {
-                    if (v == 'rename') _renameGroup(group.key!, group.name);
-                    if (v == 'delete') _removeGroup(group.key!, group.name);
-                  },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'rename', child: Text('Переименовать')),
-                    PopupMenuItem(value: 'delete', child: Text('Удалить')),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+      if (!isUngrouped) _groupHeader(theme, group),
       if (expanded)
         for (final leaf in group.leaves.entries)
           _buildLeaf(theme, leaf.key, leaf.value, indent),
     ];
+  }
+
+  Widget _groupHeader(AppTheme theme, CategoryGroup group, {int? dragIndex}) {
+    final id = group.key!;
+    final expanded = _isExpandedGroup(id);
+    return InkWell(
+      onTap: () => setState(() {
+        if (_collapsed.contains(id)) {
+          _collapsed.remove(id);
+        } else {
+          _collapsed.add(id);
+        }
+      }),
+      child: Container(
+        color: theme.neutralBgColor,
+        padding: const EdgeInsets.only(left: 8, right: 4),
+        child: Row(
+          children: [
+            Icon(
+              expanded ? Icons.arrow_drop_down : Icons.arrow_right,
+              size: 22,
+              color: theme.textLightColor,
+            ),
+            Expanded(
+              child: Text(
+                group.name,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: theme.textColor,
+                ),
+              ),
+            ),
+            Text(
+              '${group.leaves.length}',
+              style: TextStyle(fontSize: 12, color: theme.textLightColor),
+            ),
+            if (dragIndex != null)
+              ReorderableDragStartListener(
+                index: dragIndex,
+                child: Icon(
+                  Icons.drag_indicator,
+                  size: 18,
+                  color: theme.textLightColor,
+                ),
+              ),
+            IconButton(
+              icon: const Icon(Icons.add, size: 18),
+              color: theme.primaryColor,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: EdgeInsets.zero,
+              tooltip: 'Добавить в раздел',
+              onPressed: () => _addCategory(group.key),
+            ),
+            PopupMenuButton<String>(
+              tooltip: 'Раздел',
+              icon: Icon(Icons.more_vert, size: 18, color: theme.textLightColor),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              onSelected: (v) {
+                if (v == 'rename') _renameGroup(group.key!, group.name);
+                if (v == 'delete') _removeGroup(group.key!, group.name);
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'rename', child: Text('Переименовать')),
+                PopupMenuItem(value: 'delete', child: Text('Удалить')),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Manual mode: groups (and their leaves) are drag-reorderable.
+  List<Widget> _buildManual(AppTheme theme, List<CategoryGroup> tree) {
+    final ungrouped = tree.where((g) => g.isUngrouped);
+    final groups = tree.where((g) => !g.isUngrouped).toList();
+
+    return [
+      for (final g in ungrouped) _manualLeafList(theme, null, g.leaves),
+      if (groups.isNotEmpty)
+        ReorderableListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          buildDefaultDragHandles: false,
+          itemCount: groups.length,
+          onReorder: (oldIndex, newIndex) {
+            if (newIndex > oldIndex) newIndex--;
+            final keys = groups.map((g) => g.key!).toList();
+            final moved = keys.removeAt(oldIndex);
+            keys.insert(newIndex, moved);
+            AppTheme.instance.reorderGroups(widget.type, keys);
+          },
+          itemBuilder: (context, index) {
+            final group = groups[index];
+            return Column(
+              key: ValueKey('grp_${group.key}'),
+              children: [
+                _groupHeader(theme, group, dragIndex: index),
+                if (_isExpandedGroup(group.key!))
+                  _manualLeafList(theme, group.key, group.leaves),
+              ],
+            );
+          },
+        ),
+    ];
+  }
+
+  Widget _manualLeafList(
+    AppTheme theme,
+    String? groupKey,
+    Map<String, String> leaves,
+  ) {
+    final entries = leaves.entries.toList();
+    if (entries.isEmpty) return const SizedBox.shrink();
+    final indent = groupKey == null ? 20.0 : 40.0;
+
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: entries.length,
+      onReorder: (oldIndex, newIndex) {
+        if (newIndex > oldIndex) newIndex--;
+        final keys = entries.map((e) => e.key).toList();
+        final moved = keys.removeAt(oldIndex);
+        keys.insert(newIndex, moved);
+        AppTheme.instance.reorderLeaves(widget.type, groupKey, keys);
+      },
+      itemBuilder: (context, index) {
+        final e = entries[index];
+        return Container(
+          key: ValueKey('leaf_${widget.type}_${e.key}'),
+          padding: EdgeInsets.fromLTRB(indent, 6, 12, 6),
+          child: Row(
+            children: [
+              ReorderableDragStartListener(
+                index: index,
+                child: Icon(
+                  Icons.drag_indicator,
+                  size: 18,
+                  color: theme.textLightColor,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(e.value, style: TextStyle(color: theme.textColor)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 18),
+                color: theme.expiredColor,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                padding: EdgeInsets.zero,
+                onPressed: () =>
+                    AppTheme.instance.removeCategory(widget.type, e.key),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildLeaf(AppTheme theme, String key, String name, double indent) {

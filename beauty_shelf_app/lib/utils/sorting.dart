@@ -1,6 +1,6 @@
 import '../models/product.dart';
 
-enum SortField { name, expiry, category }
+enum SortField { name, expiry, category, position }
 
 enum SortOrder { asc, desc }
 
@@ -24,6 +24,9 @@ List<Product> sortProducts(
         final catA = Categories.getCategoryName(a.type, a.category).toLowerCase();
         final catB = Categories.getCategoryName(b.type, b.category).toLowerCase();
         cmp = catA.compareTo(catB);
+        break;
+      case SortField.position:
+        cmp = a.position.compareTo(b.position);
         break;
     }
     return order == SortOrder.asc ? cmp : -cmp;

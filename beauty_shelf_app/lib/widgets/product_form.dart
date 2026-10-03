@@ -27,6 +27,7 @@ class _ProductFormState extends State<ProductForm> {
 
   late TextEditingController _barcodeController;
   late TextEditingController _nameController;
+  late TextEditingController _brandController;
   late TextEditingController _purposeController;
   late String _type;
   late String _category;
@@ -49,6 +50,7 @@ class _ProductFormState extends State<ProductForm> {
     final p = widget.product;
     _barcodeController = TextEditingController(text: '');
     _nameController = TextEditingController(text: p?.name ?? '');
+    _brandController = TextEditingController(text: p?.brand ?? '');
     _purposeController = TextEditingController(text: p?.purpose ?? '');
     final visibleTypes = AppTheme.instance.visibleTypes();
     _type = p?.type ?? (visibleTypes.isNotEmpty ? visibleTypes.first : 'care');
@@ -71,6 +73,7 @@ class _ProductFormState extends State<ProductForm> {
   void dispose() {
     _barcodeController.dispose();
     _nameController.dispose();
+    _brandController.dispose();
     _purposeController.dispose();
     _notificationDaysController.dispose();
     AppTheme.instance.removeListener(_onThemeChanged);
@@ -105,11 +108,17 @@ class _ProductFormState extends State<ProductForm> {
           if (result != null) {
             _lookupResult = result['name'] ?? result['product_name'] ?? 'Найден товар';
             _lookupError = null;
-            // Auto-fill name if empty
+            // Auto-fill name/brand if empty
             if (_nameController.text.trim().isEmpty) {
               final name = result['name'] ?? result['product_name'];
               if (name != null) {
                 _nameController.text = name;
+              }
+            }
+            if (_brandController.text.trim().isEmpty) {
+              final brand = result['brand'];
+              if (brand is String && brand.trim().isNotEmpty) {
+                _brandController.text = brand.trim();
               }
             }
           } else {
@@ -138,6 +147,7 @@ class _ProductFormState extends State<ProductForm> {
         type: _type,
         category: _category,
         purpose: _purposeController.text.trim().isEmpty ? null : _purposeController.text.trim(),
+        brand: _brandController.text.trim().isEmpty ? null : _brandController.text.trim(),
         expiryDate: _expiryDate,
         isOpened: _isOpened,
         openedDate: _isOpened ? _openedDate : null,
@@ -474,6 +484,23 @@ class _ProductFormState extends State<ProductForm> {
                   focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                 ),
                 validator: (v) => v == null || v.trim().isEmpty ? 'Введите название' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Brand
+              TextFormField(
+                controller: _brandController,
+                style: TextStyle(color: theme.textColor),
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: 'Бренд',
+                  labelStyle: TextStyle(color: theme.textColor),
+                  hintText: 'Например: CeraVe',
+                  hintStyle: TextStyle(color: theme.textLightColor),
+                  border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
+                ),
               ),
               const SizedBox(height: 16),
 

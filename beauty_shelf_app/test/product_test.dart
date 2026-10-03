@@ -18,6 +18,8 @@ Product _p({
   int pao = 30,
   int? notificationDays,
   String? imageUrl,
+  String? brand,
+  int position = 0,
 }) {
   return Product(
     name: name,
@@ -29,6 +31,8 @@ Product _p({
     expiryDaysAfterOpen: pao,
     notificationDays: notificationDays,
     imageUrl: imageUrl,
+    brand: brand,
+    position: position,
   );
 }
 
@@ -138,6 +142,21 @@ void main() {
       expect(Product.fromMap(map).notificationDays, 21);
     });
 
+    test('brand and position round-trip', () {
+      final p = _p(name: 'X', brand: 'CeraVe', position: 5);
+
+      expect(p.toJson()['brand'], 'CeraVe');
+      expect(p.toJson()['position'], 5);
+      expect(Product.fromJson(p.toJson()).brand, 'CeraVe');
+      expect(Product.fromJson(p.toJson()).position, 5);
+      expect(Product.fromMap(p.toMap()).brand, 'CeraVe');
+      expect(Product.fromMap(p.toMap()).position, 5);
+
+      expect(p.copyWith(brand: 'La Roche-Posay').brand, 'La Roche-Posay');
+      expect(p.copyWith(clearBrand: true).brand, isNull);
+      expect(p.copyWith(position: 9).position, 9);
+    });
+
     test('quantity defaults to 1 and round-trips', () {
       final base = Product(
         name: 'X',
@@ -218,6 +237,13 @@ void main() {
         _p(name: 'near', expiry: _dayOffset(1)),
       ];
       expect(sortProducts(list, SortField.expiry, SortOrder.asc).first.name, 'near');
+    });
+
+    test('by manual position', () {
+      final a = _p(name: 'A', position: 2);
+      final b = _p(name: 'B', position: 1);
+      final sorted = sortProducts([a, b], SortField.position, SortOrder.asc);
+      expect(sorted.map((p) => p.name).toList(), ['B', 'A']);
     });
 
     test('by category sorts by localized name', () {

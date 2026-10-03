@@ -112,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         if (!p.name.toLowerCase().contains(q) &&
+            !(p.brand?.toLowerCase().contains(q) ?? false) &&
             !(p.purpose?.toLowerCase().contains(q) ?? false)) {
           return false;
         }
@@ -157,6 +158,27 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       _showSnackBar('Ошибка обновления количества');
     }
+  }
+
+  /// Manual reordering is only offered when the list is not filtered/searched.
+  bool get _manualOrder =>
+      _sortField == SortField.position &&
+      _searchQuery.isEmpty &&
+      _typeFilter == 'all' &&
+      _categoryFilter == null;
+
+  Future<void> _onReorderProducts(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex--;
+    final list = List<Product>.of(_sortedFilteredProducts);
+    final moved = list.removeAt(oldIndex);
+    list.insert(newIndex, moved);
+    for (var i = 0; i < list.length; i++) {
+      final p = list[i];
+      if (p.id != null && p.position != i) {
+        await _storage.updateProduct(p.copyWith(position: i));
+      }
+    }
+    _loadProducts();
   }
 
   void _showFormModal(Product? product) {
@@ -512,22 +534,45 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? _buildError()
                     : _filteredProducts.isEmpty
                         ? _buildEmpty()
-                        : ListView.builder(
-                            padding: const EdgeInsets.only(top: 4, bottom: 80),
-                            itemCount: _sortedFilteredProducts.length,
-                            itemBuilder: (context, index) {
-                              final p = _sortedFilteredProducts[index];
-                              return Padding(
-                                padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                                child: _SwipeableProductCard(
-                                  product: p,
-                                  onEdit: () => _showEditModal(p),
-                                  onDelete: () => _confirmDelete(p),
-                                  onQuantityChanged: (q) => _changeQuantity(p, q),
-                                ),
-                              );
-                            },
-                          ),
+                        : _manualOrder
+                            ? ReorderableListView.builder(
+                                padding: const EdgeInsets.only(top: 4, bottom: 80),
+                                buildDefaultDragHandles: false,
+                                itemCount: _sortedFilteredProducts.length,
+                                onReorder: _onReorderProducts,
+                                itemBuilder: (context, index) {
+                                  final p = _sortedFilteredProducts[index];
+                                  return KeyedSubtree(
+                                    key: ValueKey('product_${p.id}'),
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                                      child: _SwipeableProductCard(
+                                        product: p,
+                                        onEdit: () => _showEditModal(p),
+                                        onDelete: () => _confirmDelete(p),
+                                        onQuantityChanged: (q) => _changeQuantity(p, q),
+                                        reorderIndex: index,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.only(top: 4, bottom: 80),
+                                itemCount: _sortedFilteredProducts.length,
+                                itemBuilder: (context, index) {
+                                  final p = _sortedFilteredProducts[index];
+                                  return Padding(
+                                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                                    child: _SwipeableProductCard(
+                                      product: p,
+                                      onEdit: () => _showEditModal(p),
+                                      onDelete: () => _confirmDelete(p),
+                                      onQuantityChanged: (q) => _changeQuantity(p, q),
+                                    ),
+                                  );
+                                },
+                              ),
           ),
         ],
       ),
@@ -630,6 +675,10 @@ class _SortButton extends StatelessWidget {
           value: SortField.category,
           child: _buildSortItem('По категории', SortField.category),
         ),
+        PopupMenuItem(
+          value: SortField.position,
+          child: _buildSortItem('Вручную', SortField.position),
+        ),
       ],
     );
   }
@@ -729,12 +778,14 @@ class _SwipeableProductCard extends StatefulWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final ValueChanged<int>? onQuantityChanged;
+  final int? reorderIndex;
 
   const _SwipeableProductCard({
     required this.product,
     required this.onEdit,
     required this.onDelete,
     this.onQuantityChanged,
+    this.reorderIndex,
   });
 
   @override
@@ -861,6 +912,7 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
                 onEdit: widget.onEdit,
                 onDelete: widget.onDelete,
                 onQuantityChanged: widget.onQuantityChanged,
+                reorderIndex: widget.reorderIndex,
               ),
             ),
           ),

@@ -8,6 +8,7 @@ class ProductCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final ValueChanged<int>? onQuantityChanged;
+  final int? reorderIndex;
 
   const ProductCard({
     super.key,
@@ -15,6 +16,7 @@ class ProductCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     this.onQuantityChanged,
+    this.reorderIndex,
   });
 
   (Color, Color) _getStatusStyle() {
@@ -31,6 +33,13 @@ class ProductCard extends StatelessWidget {
     if (days == 0) return 'Сегодня';
     if (days < 30) return 'Скоро · $days дн.';
     return 'OK · $days дн.';
+  }
+
+  String _subtitle() {
+    final category = Categories.getCategoryName(product.type, product.category);
+    final brand = product.brand?.trim();
+    if (brand != null && brand.isNotEmpty) return '$brand · $category';
+    return category;
   }
 
   String _getDateText() {
@@ -86,7 +95,7 @@ class ProductCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      Categories.getCategoryName(product.type, product.category),
+                      _subtitle(),
                       style: TextStyle(
                         fontSize: 14,
                         color: theme.textLightColor,
@@ -131,6 +140,15 @@ class ProductCard extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  if (reorderIndex != null)
+                    ReorderableDragStartListener(
+                      index: reorderIndex!,
+                      child: Icon(
+                        Icons.drag_indicator,
+                        color: theme.textLightColor,
+                        size: 20,
+                      ),
+                    ),
                   PopupMenuButton<String>(
                   padding: EdgeInsets.zero,
                   icon: Icon(Icons.more_vert, color: theme.textLightColor, size: 20),

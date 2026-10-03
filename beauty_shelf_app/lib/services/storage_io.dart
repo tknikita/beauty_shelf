@@ -24,7 +24,7 @@ class MobileStorageService implements StorageService {
 
     return await openDatabase(
       dbFile,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE products (
@@ -40,6 +40,8 @@ class MobileStorageService implements StorageService {
             image_url TEXT,
             notification_days INTEGER,
             quantity INTEGER DEFAULT 1,
+            brand TEXT,
+            position INTEGER DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
           )
@@ -55,6 +57,14 @@ class MobileStorageService implements StorageService {
           await db.execute(
             'ALTER TABLE products ADD COLUMN quantity INTEGER DEFAULT 1',
           );
+        }
+        if (oldVersion < 4) {
+          await db.execute('ALTER TABLE products ADD COLUMN brand TEXT');
+          await db.execute(
+            'ALTER TABLE products ADD COLUMN position INTEGER DEFAULT 0',
+          );
+          // Give existing rows a stable manual order.
+          await db.execute('UPDATE products SET position = id');
         }
       },
     );
@@ -83,8 +93,15 @@ class MobileStorageService implements StorageService {
   Future<Product> createProduct(Product product) async {
     final db = await database;
     final map = product.toMap()..remove('id');
+    // Append new products to the end of the manual order.
+    if ((map['position'] as int?) == null || (map['position'] as int) == 0) {
+      final r = await db.rawQuery(
+        'SELECT COALESCE(MAX(position), 0) + 1 AS next FROM products',
+      );
+      map['position'] = (r.first['next'] as int?) ?? 1;
+    }
     final id = await db.insert('products', map);
-    return product.copyWith(id: id);
+    return product.copyWith(id: id, position: map['position'] as int);
   }
 
   @override

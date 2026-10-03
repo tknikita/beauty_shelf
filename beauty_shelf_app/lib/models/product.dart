@@ -13,6 +13,8 @@ class Product {
   final String? imageUrl;
   final int? notificationDays; // null = no notification, 1-365 = days before expiry
   final int quantity; // number of identical items, default 1
+  final String? brand; // manufacturer / brand, optional
+  final int position; // manual sort order (lower = earlier)
 
   Product({
     this.id,
@@ -27,6 +29,8 @@ class Product {
     this.imageUrl,
     this.notificationDays,
     this.quantity = 1,
+    this.brand,
+    this.position = 0,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -45,6 +49,8 @@ class Product {
       imageUrl: json['image_url'] as String?,
       notificationDays: json['notification_days'] as int?,
       quantity: json['quantity'] as int? ?? 1,
+      brand: json['brand'] as String?,
+      position: json['position'] as int? ?? 0,
     );
   }
 
@@ -62,6 +68,8 @@ class Product {
       'image_url': imageUrl,
       if (notificationDays != null) 'notification_days': notificationDays,
       'quantity': quantity,
+      'brand': brand,
+      'position': position,
     };
   }
 
@@ -82,6 +90,8 @@ class Product {
       imageUrl: map['image_url'] as String?,
       notificationDays: map['notification_days'] as int?,
       quantity: map['quantity'] as int? ?? 1,
+      brand: map['brand'] as String?,
+      position: map['position'] as int? ?? 0,
     );
   }
 
@@ -99,6 +109,8 @@ class Product {
       'image_url': imageUrl,
       if (notificationDays != null) 'notification_days': notificationDays,
       'quantity': quantity,
+      'brand': brand,
+      'position': position,
     };
   }
 
@@ -184,10 +196,13 @@ class Product {
     String? imageUrl,
     int? notificationDays,
     int? quantity,
+    String? brand,
+    int? position,
     bool clearPurpose = false,
     bool clearOpenedDate = false,
     bool clearImageUrl = false,
     bool clearNotificationDays = false,
+    bool clearBrand = false,
   }) {
     return Product(
       id: id ?? this.id,
@@ -203,6 +218,8 @@ class Product {
       notificationDays:
           clearNotificationDays ? null : (notificationDays ?? this.notificationDays),
       quantity: quantity ?? this.quantity,
+      brand: clearBrand ? null : (brand ?? this.brand),
+      position: position ?? this.position,
     );
   }
 }

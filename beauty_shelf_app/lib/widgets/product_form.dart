@@ -54,7 +54,9 @@ class _ProductFormState extends State<ProductForm> {
     _purposeController = TextEditingController(text: p?.purpose ?? '');
     final visibleTypes = AppTheme.instance.visibleTypes();
     _type = p?.type ?? (visibleTypes.isNotEmpty ? visibleTypes.first : 'care');
-    _category = p?.category ?? 'basic_care';
+    final initialCategories = AppTheme.instance.getCategoriesByType(_type);
+    _category = p?.category ??
+        (initialCategories.isNotEmpty ? initialCategories.keys.first : 'basic_care');
     _expiryDate = p?.expiryDate ?? DateTime.now().add(const Duration(days: 180));
     _isOpened = p?.isOpened ?? false;
     _openedDate = p?.openedDate;
@@ -315,13 +317,23 @@ class _ProductFormState extends State<ProductForm> {
         ));
       }
     }
+    // Never silently drop the product's category: keep it selectable even if it
+    // is not part of the current list (e.g. a deleted custom category).
+    if (!items.any((i) => i.value == _category)) {
+      items.add(DropdownMenuItem<String>(
+        value: _category,
+        child: Text(
+          Categories.getCategoryName(_type, _category),
+          style: TextStyle(color: theme.textColor),
+        ),
+      ));
+    }
     return items;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
-    final categories = theme.getCategoriesByType(_type);
     final mediaQuery = MediaQuery.of(context);
     final bottomPadding = mediaQuery.viewInsets.bottom + mediaQuery.padding.bottom + 24;
 
@@ -528,14 +540,18 @@ class _ProductFormState extends State<ProductForm> {
                 onChanged: (v) {
                   setState(() {
                     _type = v!;
+                    // Keep the chosen category if it is still valid for the new
+                    // type; only fall back when it no longer exists.
                     final cats = theme.getCategoriesByType(_type);
-                    _category = cats.keys.first;
+                    if (!cats.containsKey(_category) && cats.isNotEmpty) {
+                      _category = cats.keys.first;
+                    }
                   });
                 },
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                initialValue: categories.containsKey(_category) ? _category : categories.keys.first,
+                initialValue: _category,
                 dropdownColor: theme.surfaceColor,
                 decoration: InputDecoration(
                   labelText: 'Категория',

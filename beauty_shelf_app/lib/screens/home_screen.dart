@@ -149,6 +149,16 @@ class _HomeScreenState extends State<HomeScreen> {
     _showFormModal(product);
   }
 
+  Future<void> _changeQuantity(Product product, int quantity) async {
+    if (quantity < 1 || quantity == product.quantity) return;
+    try {
+      await _storage.updateProduct(product.copyWith(quantity: quantity));
+      _loadProducts();
+    } catch (e) {
+      _showSnackBar('Ошибка обновления количества');
+    }
+  }
+
   void _showFormModal(Product? product) {
     showModalBottomSheet(
       context: context,
@@ -513,6 +523,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   product: p,
                                   onEdit: () => _showEditModal(p),
                                   onDelete: () => _confirmDelete(p),
+                                  onQuantityChanged: (q) => _changeQuantity(p, q),
                                 ),
                               );
                             },
@@ -717,11 +728,13 @@ class _SwipeableProductCard extends StatefulWidget {
   final Product product;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final ValueChanged<int>? onQuantityChanged;
 
   const _SwipeableProductCard({
     required this.product,
     required this.onEdit,
     required this.onDelete,
+    this.onQuantityChanged,
   });
 
   @override
@@ -847,6 +860,7 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
                 product: widget.product,
                 onEdit: widget.onEdit,
                 onDelete: widget.onDelete,
+                onQuantityChanged: widget.onQuantityChanged,
               ),
             ),
           ),

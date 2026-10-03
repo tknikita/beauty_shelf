@@ -37,7 +37,7 @@ class _ProductFormState extends State<ProductForm> {
   String? _imageUrl;
   bool _isUploadingImage = false;
   late TextEditingController _notificationDaysController;
-  late TextEditingController _quantityController;
+  late int _quantity;
   
   bool _isLookingUp = false;
   String? _lookupResult;
@@ -61,9 +61,7 @@ class _ProductFormState extends State<ProductForm> {
     _notificationDaysController = TextEditingController(
       text: p?.notificationDays?.toString() ?? '',
     );
-    _quantityController = TextEditingController(
-      text: (p?.quantity ?? 1).toString(),
-    );
+    _quantity = p?.quantity ?? 1;
 
     // Listen for theme changes
     AppTheme.instance.addListener(_onThemeChanged);
@@ -75,7 +73,6 @@ class _ProductFormState extends State<ProductForm> {
     _nameController.dispose();
     _purposeController.dispose();
     _notificationDaysController.dispose();
-    _quantityController.dispose();
     AppTheme.instance.removeListener(_onThemeChanged);
     super.dispose();
   }
@@ -135,8 +132,6 @@ class _ProductFormState extends State<ProductForm> {
   void _submit() {
     if (_formKey.currentState!.validate()) {
       final notificationDays = int.tryParse(_notificationDaysController.text.trim());
-      final parsedQuantity = int.tryParse(_quantityController.text.trim()) ?? 1;
-      final quantity = parsedQuantity < 1 ? 1 : parsedQuantity;
       final product = Product(
         id: widget.product?.id,
         name: _nameController.text.trim(),
@@ -149,7 +144,7 @@ class _ProductFormState extends State<ProductForm> {
         expiryDaysAfterOpen: _expiryDaysAfterOpen,
         imageUrl: _imageUrl,
         notificationDays: notificationDays,
-        quantity: quantity,
+        quantity: _quantity,
       );
       widget.onSave(product);
     }
@@ -535,19 +530,49 @@ class _ProductFormState extends State<ProductForm> {
               ),
               const SizedBox(height: 16),
 
-              // Quantity
-              TextFormField(
-                controller: _quantityController,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: theme.textColor),
-                decoration: InputDecoration(
-                  labelText: 'Количество',
-                  labelStyle: TextStyle(color: theme.textColor),
-                  helperText: 'Сколько одинаковых единиц (по умолчанию 1)',
-                  helperStyle: TextStyle(color: theme.textLightColor, fontSize: 11),
-                  border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
-                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
-                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
+              // Quantity stepper
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: theme.borderColor),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'Количество',
+                      style: TextStyle(color: theme.textColor, fontSize: 16),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: _quantity > 1
+                          ? () => setState(() => _quantity--)
+                          : null,
+                      icon: const Icon(Icons.remove_circle_outline),
+                      color: theme.primaryColor,
+                      iconSize: 28,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    SizedBox(
+                      width: 36,
+                      child: Text(
+                        '$_quantity',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: theme.textColor,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => setState(() => _quantity++),
+                      icon: const Icon(Icons.add_circle_outline),
+                      color: theme.primaryColor,
+                      iconSize: 28,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),

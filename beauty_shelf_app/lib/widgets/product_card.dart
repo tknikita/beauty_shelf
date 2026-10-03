@@ -7,12 +7,14 @@ class ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final ValueChanged<int>? onQuantityChanged;
 
   const ProductCard({
     super.key,
     required this.product,
     required this.onEdit,
     required this.onDelete,
+    this.onQuantityChanged,
   });
 
   (Color, Color) _getStatusStyle() {
@@ -72,38 +74,15 @@ class ProductCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            product.name,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: theme.textColor,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (product.quantity != 1)
-                          Container(
-                            margin: const EdgeInsets.only(left: 6),
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: theme.primaryColor.withAlpha(40),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '×${product.quantity}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: theme.textColor,
-                              ),
-                            ),
-                          ),
-                      ],
+                    Text(
+                      product.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -133,26 +112,26 @@ class ProductCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _getDateText(),
-                            style: TextStyle(fontSize: 12, color: theme.textLightColor),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
                       ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _getDateText(),
+                      style: TextStyle(fontSize: 12, color: theme.textLightColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
             ),
-            // Menu
+            // Right controls: menu + quantity stepper
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Center(
-                child: PopupMenuButton<String>(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  PopupMenuButton<String>(
                   padding: EdgeInsets.zero,
                   icon: Icon(Icons.more_vert, color: theme.textLightColor, size: 20),
                   onSelected: (value) {
@@ -182,6 +161,19 @@ class ProductCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (onQuantityChanged != null && product.quantity > 1) ...[
+                  const SizedBox(height: 2),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {},
+                    child: _QuantityStepper(
+                      quantity: product.quantity,
+                      theme: theme,
+                      onChanged: onQuantityChanged!,
+                    ),
+                  ),
+                ],
+                ],
               ),
             ),
           ],
@@ -288,4 +280,64 @@ void _showImagePreview(BuildContext context, Product product) {
       ),
     ),
   );
+}
+
+/// Compact "− N +" control shown on the card.
+class _QuantityStepper extends StatelessWidget {
+  final int quantity;
+  final AppTheme theme;
+  final ValueChanged<int> onChanged;
+
+  const _QuantityStepper({
+    required this.quantity,
+    required this.theme,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.borderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _btn(Icons.remove, quantity > 1 ? () => onChanged(quantity - 1) : null),
+          SizedBox(
+            width: 22,
+            child: Text(
+              '$quantity',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.textColor,
+              ),
+            ),
+          ),
+          _btn(Icons.add, () => onChanged(quantity + 1)),
+        ],
+      ),
+    );
+  }
+
+  Widget _btn(IconData icon, VoidCallback? onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Icon(
+          icon,
+          size: 20,
+          color: onTap == null
+              ? theme.textLightColor.withAlpha(80)
+              : theme.primaryColor,
+        ),
+      ),
+    );
+  }
 }

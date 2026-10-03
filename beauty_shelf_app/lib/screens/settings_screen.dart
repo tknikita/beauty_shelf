@@ -526,12 +526,14 @@ class _CustomColorSectionState extends State<_CustomColorSection> with SingleTic
                 children: [
                   _ColorPickerColumn(
                     currentColor: theme.primaryColor,
+                    palette: _ColorPickerColumn.primaryPalette,
                     onColorSelected: (color) {
                       AppTheme.instance.setCustomColors(color, theme.backgroundColor);
                     },
                   ),
                   _ColorPickerColumn(
                     currentColor: theme.backgroundColor,
+                    palette: _ColorPickerColumn.backgroundPalette,
                     onColorSelected: (color) {
                       AppTheme.instance.setCustomColors(theme.primaryColor, color);
                     },
@@ -550,17 +552,28 @@ class _ColorPickerColumn extends StatelessWidget {
   const _ColorPickerColumn({
     required this.currentColor,
     required this.onColorSelected,
+    required this.palette,
   });
 
   final Color currentColor;
   final ValueChanged<Color> onColorSelected;
+  final List<int> palette;
 
-  static const _palette = [
+  /// Saturated accent palette.
+  static const primaryPalette = [
     0xFFE8B4BC, 0xFFE8A7B4, 0xFFD9848C, 0xFFE88C8C,
     0xFFB4A7E8, 0xFFA7B4E8, 0xFF9B8AD9, 0xFF8A7CC9,
     0xFFA7C4E8, 0xFFA7D4E8, 0xFF8FC9A3, 0xFF7CB98C,
     0xFFA7E8C4, 0xFFD4E8A7, 0xFFE8D4A7, 0xFFE8C4A7,
     0xFF666666, 0xFF888888, 0xFFAAAAAA, 0xFFCCCCCC,
+  ];
+
+  /// Pale background palette (tints, matching the built-in preset backgrounds).
+  static const backgroundPalette = [
+    0xFFFFFFFF, 0xFFFDF9FA, 0xFFF5F3FA, 0xFFF3FAF5,
+    0xFFFAF5F3, 0xFFF3F5FA, 0xFFF9FBE7, 0xFFF1F8E9,
+    0xFFFFF3E0, 0xFFFFEBEE, 0xFFE8F5E9, 0xFFE3F2FD,
+    0xFFF3E5F5, 0xFFECEFF1,
   ];
 
   @override
@@ -596,7 +609,7 @@ class _ColorPickerColumn extends StatelessWidget {
             child: Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: _palette.map((colorValue) {
+              children: palette.map((colorValue) {
                 final color = Color(colorValue);
                 final isSelected =
                     currentColor.toARGB32() == color.toARGB32();

@@ -650,35 +650,68 @@ class AppTheme extends ChangeNotifier {
     return _applyOrder(base, groupOrder[type]);
   }
 
-  /// Ready-to-render one-level tree for the settings / forms UI.
+  /// Key of the pseudo-section that holds categories without a group. It is a
+  /// first-class section: it can be moved anywhere (even after other sections)
+  /// and collapsed like any other.
+  static const String ungroupedSectionKey = '';
+  static const String ungroupedSectionName = 'Без раздела';
+
+  /// Ready-to-render one-level tree for the settings / forms UI. Includes the
+  /// "Без раздела" section (always in manual mode, when non-empty otherwise).
   List<CategoryGroup> getCategoryTree(String type) {
     final leaves = getCategoriesByType(type);
-    final groups = getGroupsByType(type);
-    final byGroup = <String?, Map<String, String>>{};
+    final realGroups = getGroupsByType(type);
+
+    final byGroup = <String, Map<String, String>>{};
     for (final entry in leaves.entries) {
-      final g = groupOf(type, entry.key);
+      final g0 = groupOf(type, entry.key);
+      // Leaves whose group was removed fall into "Без раздела".
+      final g = (g0 == null || !realGroups.containsKey(g0))
+          ? ungroupedSectionKey
+          : g0;
       byGroup.putIfAbsent(g, () => {})[entry.key] = entry.value;
     }
 
+    final ungroupedLeaves = byGroup[ungroupedSectionKey] ?? const {};
+    final showUngrouped = ungroupedLeaves.isNotEmpty || isManualSort(type);
+
+    CategoryGroup ungrouped() => CategoryGroup(
+          key: ungroupedSectionKey,
+          name: ungroupedSectionName,
+          leaves: _orderLeaves(type, ungroupedSectionKey, ungroupedLeaves),
+        );
+    CategoryGroup group(String key, String name) => CategoryGroup(
+          key: key,
+          name: name,
+          leaves: _orderLeaves(type, key, byGroup[key] ?? const {}),
+        );
+
     final result = <CategoryGroup>[];
-    // Un-grouped leaves first (no parent, or parent that no longer exists).
-    final ungrouped = <String, String>{};
-    byGroup.forEach((g, items) {
-      if (g == null || !groups.containsKey(g)) ungrouped.addAll(items);
-    });
-    if (ungrouped.isNotEmpty) {
-      result.add(CategoryGroup(
-        key: null,
-        name: '',
-        leaves: _orderLeaves(type, null, ungrouped),
-      ));
+
+    if (!isManualSort(type)) {
+      if (showUngrouped) result.add(ungrouped());
+      for (final e in realGroups.entries) {
+        result.add(group(e.key, e.value));
+      }
+      return result;
     }
-    for (final g in groups.entries) {
-      result.add(CategoryGroup(
-        key: g.key,
-        name: g.value,
-        leaves: _orderLeaves(type, g.key, byGroup[g.key] ?? const {}),
-      ));
+
+    // Manual: honour the stored bucket order (may include the un-grouped '').
+    final order = groupOrder[type] ?? const <String>[];
+    final seen = <String>{};
+    for (final key in order) {
+      if (!seen.add(key)) continue;
+      if (key == ungroupedSectionKey) {
+        if (showUngrouped) result.add(ungrouped());
+      } else if (realGroups.containsKey(key)) {
+        result.add(group(key, realGroups[key]!));
+      }
+    }
+    for (final e in realGroups.entries) {
+      if (!seen.contains(e.key)) result.add(group(e.key, e.value));
+    }
+    if (showUngrouped && !seen.contains(ungroupedSectionKey)) {
+      result.insert(0, ungrouped()); // default position: top
     }
     return result;
   }
@@ -828,7 +861,7 @@ class CategoryGroup {
 
   const CategoryGroup({required this.key, required this.name, required this.leaves});
 
-  bool get isUngrouped => key == null;
+  bool get isUngrouped => key == null || key!.isEmpty;
 }
 
 Future<void> loadDarkMode() async {

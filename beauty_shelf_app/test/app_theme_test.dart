@@ -211,6 +211,23 @@ void main() {
       );
       expect(AppTheme.instance.groupOf('care', 'cream'), isNull);
     });
+
+    test('the un-grouped section can sit after another section', () {
+      AppTheme.instance.applyManualLayout('care', ['creams', ''], {
+        'creams': ['cream', 'eye_cream', 'face_cream'],
+        '': ['basic_care'],
+      });
+
+      final tree = AppTheme.instance.getCategoryTree('care');
+      final keys = tree.map((g) => g.key).toList();
+
+      expect(keys.indexOf('creams'), 0);
+      expect(keys.indexOf(''), 1);
+
+      final ungrouped = tree.firstWhere((g) => g.isUngrouped);
+      expect(ungrouped.name, 'Без раздела');
+      expect(ungrouped.leaves.keys, ['basic_care']);
+    });
   });
 
   group('product types', () {

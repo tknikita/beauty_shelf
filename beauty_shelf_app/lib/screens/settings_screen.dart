@@ -929,8 +929,6 @@ class _CategoryTabState extends State<_CategoryTab> {
   // Groups start expanded; this tracks the ones the user collapsed.
   final Set<String> _collapsed = {};
 
-  static const _ungroupedId = '__ungrouped__';
-
   String _newKey() => 'custom_${DateTime.now().microsecondsSinceEpoch}';
 
   bool _isExpandedGroup(String id) => !_collapsed.contains(id);
@@ -1167,21 +1165,20 @@ class _CategoryTabState extends State<_CategoryTab> {
   }
 
   List<Widget> _buildGroup(AppTheme theme, CategoryGroup group) {
-    final isUngrouped = group.isUngrouped;
-    final id = group.key ?? _ungroupedId;
-    final expanded = isUngrouped || _isExpandedGroup(id);
-    final indent = isUngrouped ? 20.0 : 40.0;
+    final id = group.key ?? '';
+    final expanded = _isExpandedGroup(id);
 
     return [
-      if (!isUngrouped) _groupHeader(theme, group),
+      _groupHeader(theme, group),
       if (expanded)
         for (final leaf in group.leaves.entries)
-          _buildLeaf(theme, leaf.key, leaf.value, indent),
+          _buildLeaf(theme, leaf.key, leaf.value, 40.0),
     ];
   }
 
   Widget _groupHeader(AppTheme theme, CategoryGroup group) {
-    final id = group.key!;
+    final id = group.key ?? '';
+    final isUngrouped = group.isUngrouped;
     final expanded = _isExpandedGroup(id);
     return InkWell(
       onTap: () => setState(() {
@@ -1222,49 +1219,50 @@ class _CategoryTabState extends State<_CategoryTab> {
               tooltip: 'Добавить в раздел',
               onPressed: () => _addCategory(group.key),
             ),
-            PopupMenuButton<String>(
-              tooltip: 'Раздел',
-              icon: Icon(Icons.more_vert, size: 18, color: theme.textLightColor),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              onSelected: (v) {
-                if (v == 'rename') _renameGroup(group.key!, group.name);
-                if (v == 'delete') _removeGroup(group.key!, group.name);
-              },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'rename', child: Text('Переименовать')),
-                PopupMenuItem(value: 'delete', child: Text('Удалить')),
-              ],
-            ),
+            if (!isUngrouped)
+              PopupMenuButton<String>(
+                tooltip: 'Раздел',
+                icon: Icon(Icons.more_vert, size: 18, color: theme.textLightColor),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onSelected: (v) {
+                  if (v == 'rename') _renameGroup(group.key!, group.name);
+                  if (v == 'delete') _removeGroup(group.key!, group.name);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'rename', child: Text('Переименовать')),
+                  PopupMenuItem(value: 'delete', child: Text('Удалить')),
+                ],
+              ),
           ],
         ),
       ),
     );
   }
 
-  /// Manual mode: one flat, fully drag-reorderable list. Group headers and
-  /// categories move together, and a category can be dropped above or into any
-  /// group — including an empty one — which re-assigns its group.
+  /// Manual mode: one flat, fully drag-reorderable list. Sections (including
+  /// "Без раздела") move together with their categories, can be collapsed, and
+  /// a category can be dropped into any section.
   List<Widget> _buildManual(AppTheme theme, List<CategoryGroup> tree) {
-    final groupsMap = AppTheme.instance.getGroupsByType(widget.type);
     final leavesMap = AppTheme.instance.getCategoriesByType(widget.type);
 
     final rows = <CategoryRow>[];
-    for (final g in tree) {
-      if (!g.isUngrouped) rows.add(CategoryRow.header(g.key!));
-      for (final leafKey in g.leaves.keys) {
-        rows.add(CategoryRow.leaf(leafKey));
-      }
-    }
-
+    final hidden = <String, List<String>>{};
+    final names = <String, String>{};
     final counts = <String, int>{};
-    String? current;
-    for (final r in rows) {
-      if (r.isHeader) {
-        current = r.groupKey;
-        counts[r.groupKey!] = 0;
-      } else if (current != null) {
-        counts[current] = counts[current]! + 1;
+
+    for (final g in tree) {
+      final key = g.key ?? '';
+      names[key] = g.name;
+      counts[key] = g.leaves.length;
+      rows.add(CategoryRow.header(key));
+      final expanded = _isExpandedGroup(key);
+      for (final leafKey in g.leaves.keys) {
+        if (expanded) {
+          rows.add(CategoryRow.leaf(leafKey));
+        } else {
+          hidden.putIfAbsent(key, () => []).add(leafKey);
+        }
       }
     }
 
@@ -1274,15 +1272,16 @@ class _CategoryTabState extends State<_CategoryTab> {
         physics: const NeverScrollableScrollPhysics(),
         buildDefaultDragHandles: false,
         itemCount: rows.length,
-        onReorder: (o, n) => _onReorderRows(rows, o, n),
+        onReorder: (o, n) => _onReorderRows(rows, hidden, o, n),
         itemBuilder: (context, index) {
           final row = rows[index];
           if (row.isHeader) {
+            final key = row.groupKey ?? '';
             return _manualHeader(
               theme,
-              row.groupKey!,
-              groupsMap[row.groupKey] ?? row.groupKey!,
-              counts[row.groupKey] ?? 0,
+              key,
+              names[key] ?? key,
+              counts[key] ?? 0,
               index,
             );
           }
@@ -1291,22 +1290,30 @@ class _CategoryTabState extends State<_CategoryTab> {
             row.leafKey!,
             leavesMap[row.leafKey] ?? row.leafKey!,
             index,
-            _hasHeaderAbove(rows, index) ? 40.0 : 20.0,
           );
         },
       ),
     ];
   }
 
-  bool _hasHeaderAbove(List<CategoryRow> rows, int index) {
-    for (var i = index - 1; i >= 0; i--) {
-      if (rows[i].isHeader) return true;
+  void _onReorderRows(
+    List<CategoryRow> rows,
+    Map<String, List<String>> hidden,
+    int oldIndex,
+    int newIndex,
+  ) {
+    final moved = reorderCategoryRows(rows, oldIndex, newIndex);
+    // Re-attach collapsed sections' hidden leaves right after their header.
+    final full = <CategoryRow>[];
+    for (final row in moved) {
+      full.add(row);
+      if (row.isHeader) {
+        for (final leaf in hidden[row.groupKey ?? ''] ?? const <String>[]) {
+          full.add(CategoryRow.leaf(leaf));
+        }
+      }
     }
-    return false;
-  }
-
-  void _onReorderRows(List<CategoryRow> rows, int oldIndex, int newIndex) {
-    final layout = layoutFromRows(reorderCategoryRows(rows, oldIndex, newIndex));
+    final layout = layoutFromRows(full);
     AppTheme.instance.applyManualLayout(
       widget.type,
       layout.groupKeys,
@@ -1321,13 +1328,34 @@ class _CategoryTabState extends State<_CategoryTab> {
     int count,
     int index,
   ) {
+    final isUngrouped = groupKey.isEmpty;
+    final expanded = _isExpandedGroup(groupKey);
     return Container(
       key: ValueKey('grp_$groupKey'),
       color: theme.neutralBgColor,
       padding: const EdgeInsets.only(left: 8, right: 4),
       child: Row(
         children: [
-          // Drag anywhere on the header (except the buttons) to reorder.
+          // Collapse/expand is a dedicated tap target so it doesn't fight the
+          // drag gesture.
+          IconButton(
+            icon: Icon(
+              expanded ? Icons.arrow_drop_down : Icons.arrow_right,
+              size: 22,
+              color: theme.textLightColor,
+            ),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            tooltip: expanded ? 'Свернуть' : 'Развернуть',
+            onPressed: () => setState(() {
+              if (_collapsed.contains(groupKey)) {
+                _collapsed.remove(groupKey);
+              } else {
+                _collapsed.add(groupKey);
+              }
+            }),
+          ),
+          // Drag anywhere on the name area to reorder.
           Expanded(
             child: ReorderableDragStartListener(
               index: index,
@@ -1346,6 +1374,8 @@ class _CategoryTabState extends State<_CategoryTab> {
                         fontWeight: FontWeight.w600,
                         color: theme.textColor,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -1361,20 +1391,21 @@ class _CategoryTabState extends State<_CategoryTab> {
             tooltip: 'Добавить в раздел',
             onPressed: () => _addCategory(groupKey),
           ),
-          PopupMenuButton<String>(
-            tooltip: 'Раздел',
-            icon: Icon(Icons.more_vert, size: 18, color: theme.textLightColor),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            onSelected: (v) {
-              if (v == 'rename') _renameGroup(groupKey, name);
-              if (v == 'delete') _removeGroup(groupKey, name);
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'rename', child: Text('Переименовать')),
-              PopupMenuItem(value: 'delete', child: Text('Удалить')),
-            ],
-          ),
+          if (!isUngrouped)
+            PopupMenuButton<String>(
+              tooltip: 'Раздел',
+              icon: Icon(Icons.more_vert, size: 18, color: theme.textLightColor),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              onSelected: (v) {
+                if (v == 'rename') _renameGroup(groupKey, name);
+                if (v == 'delete') _removeGroup(groupKey, name);
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'rename', child: Text('Переименовать')),
+                PopupMenuItem(value: 'delete', child: Text('Удалить')),
+              ],
+            ),
         ],
       ),
     );
@@ -1385,11 +1416,10 @@ class _CategoryTabState extends State<_CategoryTab> {
     String leafKey,
     String name,
     int index,
-    double indent,
   ) {
     return Container(
       key: ValueKey('leaf_${widget.type}_$leafKey'),
-      padding: EdgeInsets.fromLTRB(indent, 6, 12, 6),
+      padding: const EdgeInsets.fromLTRB(40, 6, 12, 6),
       child: Row(
         children: [
           // Drag anywhere on the row (except the delete button).

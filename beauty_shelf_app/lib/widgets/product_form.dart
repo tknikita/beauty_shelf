@@ -240,6 +240,8 @@ class _ProductFormState extends State<ProductForm> {
     try {
       return await ImageCropper().cropImage(
         sourcePath: picked.path,
+        // Square only (1:1) — matches the card media.
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
         compressFormat: ImageCompressFormat.jpg,
         compressQuality: 85,
         uiSettings: [
@@ -247,11 +249,17 @@ class _ProductFormState extends State<ProductForm> {
             toolbarTitle: 'Обрезка фото',
             toolbarColor: AppTheme.instance.primaryColor,
             toolbarWidgetColor: Colors.white,
-            lockAspectRatio: false,
+            lockAspectRatio: true,
             hideBottomControls: false,
-            initAspectRatio: CropAspectRatioPreset.original,
+            initAspectRatio: CropAspectRatioPreset.square,
+            aspectRatioPresets: [CropAspectRatioPreset.square],
           ),
-          IOSUiSettings(title: 'Обрезка фото'),
+          IOSUiSettings(
+            title: 'Обрезка фото',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPresets: [CropAspectRatioPreset.square],
+          ),
         ],
       );
     } catch (e) {

@@ -1327,19 +1327,29 @@ class _CategoryTabState extends State<_CategoryTab> {
       padding: const EdgeInsets.only(left: 8, right: 4),
       child: Row(
         children: [
-          ReorderableDragStartListener(
-            index: index,
-            child: Icon(
-              Icons.drag_indicator,
-              size: 18,
-              color: theme.textLightColor,
-            ),
-          ),
-          const SizedBox(width: 6),
+          // Drag anywhere on the header (except the buttons) to reorder.
           Expanded(
-            child: Text(
-              name,
-              style: TextStyle(fontWeight: FontWeight.w600, color: theme.textColor),
+            child: ReorderableDragStartListener(
+              index: index,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.drag_indicator,
+                    size: 18,
+                    color: theme.textLightColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: theme.textColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           Text('$count', style: TextStyle(fontSize: 12, color: theme.textLightColor)),
@@ -1382,16 +1392,25 @@ class _CategoryTabState extends State<_CategoryTab> {
       padding: EdgeInsets.fromLTRB(indent, 6, 12, 6),
       child: Row(
         children: [
-          ReorderableDragStartListener(
-            index: index,
-            child: Icon(
-              Icons.drag_indicator,
-              size: 18,
-              color: theme.textLightColor,
+          // Drag anywhere on the row (except the delete button).
+          Expanded(
+            child: ReorderableDragStartListener(
+              index: index,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.drag_indicator,
+                    size: 18,
+                    color: theme.textLightColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(name, style: TextStyle(color: theme.textColor)),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(name, style: TextStyle(color: theme.textColor))),
           IconButton(
             icon: const Icon(Icons.delete_outline, size: 18),
             color: theme.expiredColor,

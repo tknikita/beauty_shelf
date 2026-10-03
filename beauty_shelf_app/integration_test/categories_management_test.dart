@@ -233,14 +233,17 @@ void main() {
 
     final orderBefore = AppTheme.instance.getGroupsByType('care').keys.toList();
 
-    // Build/scroll the editor into view, then drive the list's reorder
-    // callback directly (physical header drags are unreliable in the harness
-    // because the outer settings list scrolls).
-    await _scrollTo(tester, find.byKey(const ValueKey('leaf_care_cream')));
-    final list = tester.widget<ReorderableListView>(
-      find.byType(ReorderableListView),
-    );
-    list.onReorder(0, 8); // move the first group's block down past group #2
+    // Drag the group header itself (its centre is now a drag area).
+    final header = find.byKey(const ValueKey('grp_creams'));
+    await _scrollTo(tester, header);
+
+    final gesture = await tester.startGesture(tester.getCenter(header));
+    await tester.pump(const Duration(milliseconds: 300));
+    for (var i = 0; i < 10; i++) {
+      await gesture.moveBy(const Offset(0, 50));
+      await tester.pump(const Duration(milliseconds: 80));
+    }
+    await gesture.up();
     await tester.pumpAndSettle();
 
     // Categories still belong to 'creams' — they moved with the header.

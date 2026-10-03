@@ -219,6 +219,10 @@ class _ProductFormState extends State<ProductForm> {
     }
   }
 
+  String _formatDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}.'
+      '${d.month.toString().padLeft(2, '0')}.${d.year}';
+
   /// Type options: visible types (+ the current one even if hidden).
   List<DropdownMenuItem<String>> _typeItems(AppTheme theme) {
     final types = AppTheme.instance.visibleTypes();
@@ -515,7 +519,7 @@ class _ProductFormState extends State<ProductForm> {
                     suffixIcon: Icon(Icons.calendar_today, color: theme.textLightColor),
                   ),
                   child: Text(
-                    '${_expiryDate.day}.${_expiryDate.month.toString().padLeft(2, '0')}.${_expiryDate.year}',
+                    _formatDate(_expiryDate),
                     style: TextStyle(color: theme.textColor),
                   ),
                 ),
@@ -577,8 +581,7 @@ class _ProductFormState extends State<ProductForm> {
                             border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                           ),
                           child: Text(
-                            _openedDate != null
-                                ? '${_openedDate!.day}.${_openedDate!.month.toString().padLeft(2, '0')}.${_openedDate!.year}'
+                            _openedDate != null ? _formatDate(_openedDate!)
                                 : 'Выберите дату',
                             style: TextStyle(color: theme.textColor),
                           ),

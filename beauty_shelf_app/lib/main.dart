@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/home_screen.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
@@ -53,6 +54,13 @@ class _BeautyShelfAppState extends State<BeautyShelfApp> {
     return MaterialApp(
       title: 'Полочка',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('ru'),
+      supportedLocales: const [Locale('ru'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: theme.primaryColor,

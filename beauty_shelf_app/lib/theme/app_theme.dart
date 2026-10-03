@@ -74,6 +74,9 @@ class AppTheme extends ChangeNotifier {
   /// otherwise reappear after removal.
   final Set<String> _removedCategories = {};
 
+  /// Built-in groups hidden by the user, stored as `type|groupKey`.
+  final Set<String> _removedGroups = {};
+
   bool isCategoryRemoved(String type, String key) =>
       _removedCategories.contains('$type|$key');
 
@@ -84,6 +87,7 @@ class AppTheme extends ChangeNotifier {
     customGroups.clear();
     leafParent.clear();
     _removedCategories.clear();
+    _removedGroups.clear();
   }
 
   // Storage keys
@@ -93,6 +97,7 @@ class AppTheme extends ChangeNotifier {
   static const _keyRemovedCategories = 'beauty_shelf_removed_categories';
   static const _keyGroups = 'beauty_shelf_groups';
   static const _keyLeafParent = 'beauty_shelf_leaf_parent';
+  static const _keyRemovedGroups = 'beauty_shelf_removed_groups';
 
   void toggleDarkMode() {
     _isDarkMode = !_isDarkMode;
@@ -255,12 +260,23 @@ class AppTheme extends ChangeNotifier {
   /// Adds a one-level group (subcategory bucket).
   void addGroup(String type, String key, String name) {
     customGroups.putIfAbsent(type, () => {})[key] = name;
+    _removedGroups.remove('$type|$key');
     _saveCategories();
     notifyListeners();
   }
 
+  /// Renames a group. Works for built-ins too (stored as an override).
+  void renameGroup(String type, String key, String name) {
+    customGroups.putIfAbsent(type, () => {})[key] = name;
+    _removedGroups.remove('$type|$key');
+    _saveCategories();
+    notifyListeners();
+  }
+
+  /// Hides a group (built-in or custom). Its leaves become un-grouped.
   void removeGroup(String type, String key) {
     customGroups[type]?.remove(key);
+    _removedGroups.add('$type|$key');
     // Leaves that pointed at this group fall back to their default/un-grouped.
     leafParent.removeWhere((k, v) => v == key && k.startsWith('$type|'));
     _saveCategories();
@@ -271,16 +287,13 @@ class AppTheme extends ChangeNotifier {
   String? groupOf(String type, String leafKey) =>
       leafParent['$type|$leafKey'] ?? _getDefaultLeafParent()[type]?[leafKey];
 
-  /// Whether [key] is a built-in group (cannot be deleted).
-  bool isDefaultGroup(String type, String key) =>
-      (_getDefaultGroups()[type] ?? const {}).containsKey(key);
-
   /// Serializable snapshot of theme + category state for backups.
   Map<String, dynamic> toBackup() => {
         'customCategories': customCategories,
         'customGroups': customGroups,
         'leafParent': leafParent,
         'removedCategories': _removedCategories.toList(),
+        'removedGroups': _removedGroups.toList(),
         'primary': primaryColor.toARGB32(),
         'background': _lightBackgroundColor.toARGB32(),
         'dark': _isDarkMode,
@@ -295,6 +308,10 @@ class AppTheme extends ChangeNotifier {
       _removedCategories
         ..clear()
         ..addAll(((data['removedCategories'] as List?) ?? const [])
+            .map((e) => e.toString()));
+      _removedGroups
+        ..clear()
+        ..addAll(((data['removedGroups'] as List?) ?? const [])
             .map((e) => e.toString()));
 
       if (data['primary'] is int) primaryColor = Color(data['primary'] as int);
@@ -342,6 +359,7 @@ class AppTheme extends ChangeNotifier {
       await prefs.setString(_keyRemovedCategories, _removedCategories.join(';'));
       await prefs.setString(_keyGroups, _encodeMap(customGroups));
       await prefs.setString(_keyLeafParent, _encodeFlat(leafParent));
+      await prefs.setString(_keyRemovedGroups, _removedGroups.join(';'));
     } catch (e) {
       debugPrint('_saveCategories error: $e');
     }
@@ -414,15 +432,18 @@ class AppTheme extends ChangeNotifier {
     return _sortedByName(result);
   }
 
-  /// Groups (subcategory buckets) for [type]: built-ins in a fixed order,
-  /// custom groups appended sorted by name.
+  /// Groups (subcategory buckets) for [type]: built-ins in a fixed order
+  /// (minus hidden ones), custom groups appended sorted by name.
   Map<String, String> getGroupsByType(String type) {
     final result = <String, String>{};
-    result.addAll(_getDefaultGroups()[type] ?? const {});
+    (_getDefaultGroups()[type] ?? const {}).forEach((k, v) {
+      if (!_removedGroups.contains('$type|$k')) result[k] = v;
+    });
     final custom = customGroups[type] ?? {};
     final sorted = custom.entries.toList()
       ..sort((a, b) => a.value.toLowerCase().compareTo(b.value.toLowerCase()));
     for (final e in sorted) {
+      if (_removedGroups.contains('$type|${e.key}')) continue;
       result[e.key] = e.value;
     }
     return result;
@@ -599,6 +620,12 @@ Future<void> loadCategories() async {
     final parents = prefs.getString('beauty_shelf_leaf_parent');
     if (parents != null && parents.isNotEmpty) {
       AppTheme.instance.leafParent = AppTheme.instance._decodeFlat(parents);
+    }
+    final removedGroups = prefs.getString('beauty_shelf_removed_groups');
+    if (removedGroups != null && removedGroups.isNotEmpty) {
+      AppTheme.instance._removedGroups
+        ..clear()
+        ..addAll(removedGroups.split(';').where((e) => e.isNotEmpty));
     }
   } catch (e) {
     debugPrint('loadCategories error: $e');

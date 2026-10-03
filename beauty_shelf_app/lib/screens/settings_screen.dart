@@ -902,6 +902,36 @@ class _CategoryTabState extends State<_CategoryTab> {
     );
   }
 
+  Future<void> _renameGroup(String key, String current) async {
+    final controller = TextEditingController(text: current);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Переименовать раздел · ${widget.label}'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Название'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final name = controller.text.trim();
+              if (name.isEmpty) return;
+              AppTheme.instance.renameGroup(widget.type, key, name);
+              Navigator.pop(ctx);
+            },
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _removeGroup(String key, String name) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -992,8 +1022,6 @@ class _CategoryTabState extends State<_CategoryTab> {
     final isUngrouped = group.isUngrouped;
     final id = group.key ?? _ungroupedId;
     final expanded = isUngrouped || _isExpandedGroup(id);
-    final deletable =
-        !isUngrouped && !AppTheme.instance.isDefaultGroup(widget.type, group.key!);
     final indent = isUngrouped ? 20.0 : 40.0;
 
     return [
@@ -1037,14 +1065,20 @@ class _CategoryTabState extends State<_CategoryTab> {
                   tooltip: 'Добавить в раздел',
                   onPressed: () => _addCategory(group.key),
                 ),
-                if (deletable)
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    color: theme.expiredColor,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    padding: EdgeInsets.zero,
-                    onPressed: () => _removeGroup(group.key!, group.name),
-                  ),
+                PopupMenuButton<String>(
+                  tooltip: 'Раздел',
+                  icon: Icon(Icons.more_vert, size: 18, color: theme.textLightColor),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  onSelected: (v) {
+                    if (v == 'rename') _renameGroup(group.key!, group.name);
+                    if (v == 'delete') _removeGroup(group.key!, group.name);
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'rename', child: Text('Переименовать')),
+                    PopupMenuItem(value: 'delete', child: Text('Удалить')),
+                  ],
+                ),
               ],
             ),
           ),

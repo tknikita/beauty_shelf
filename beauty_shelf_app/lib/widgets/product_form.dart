@@ -218,6 +218,37 @@ class _ProductFormState extends State<ProductForm> {
     }
   }
 
+  /// Grouped dropdown items: a disabled header per group, leaves indented.
+  List<DropdownMenuItem<String>> _buildCategoryItems(AppTheme theme) {
+    final items = <DropdownMenuItem<String>>[];
+    for (final group in AppTheme.instance.getCategoryTree(_type)) {
+      if (!group.isUngrouped) {
+        items.add(DropdownMenuItem<String>(
+          enabled: false,
+          value: '_group_${group.key}',
+          child: Text(
+            group.name,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: theme.textLightColor,
+            ),
+          ),
+        ));
+      }
+      for (final leaf in group.leaves.entries) {
+        items.add(DropdownMenuItem<String>(
+          value: leaf.key,
+          child: Padding(
+            padding: EdgeInsets.only(left: group.isUngrouped ? 0 : 12),
+            child: Text(leaf.value, style: TextStyle(color: theme.textColor)),
+          ),
+        ));
+      }
+    }
+    return items;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
@@ -430,10 +461,7 @@ class _ProductFormState extends State<ProductForm> {
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                   focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                 ),
-                items: (categories.entries.toList()
-                      ..sort((a, b) => a.value.compareTo(b.value)))
-                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: TextStyle(color: theme.textColor))))
-                    .toList(),
+                items: _buildCategoryItems(theme),
                 onChanged: (v) => setState(() => _category = v!),
               ),
               const SizedBox(height: 16),

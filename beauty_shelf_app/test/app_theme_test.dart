@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:polochka/theme/app_theme.dart';
@@ -54,16 +56,42 @@ void main() {
       );
     });
 
-    test('a removed built-in stays removed after reordering', () {
-      AppTheme.instance.removeCategory('decorative', 'mascara');
-      final visible =
-          AppTheme.instance.getCategoriesByType('decorative').keys.toList();
-
-      AppTheme.instance.reorderCategories('decorative', visible.reversed.toList());
-
+    test('built-in leaves are grouped into subcategories', () {
+      final tree = AppTheme.instance.getCategoryTree('care');
+      final creams = tree.firstWhere((g) => g.key == 'creams');
+      expect(creams.name, 'Кремы');
       expect(
-        AppTheme.instance.getCategoriesByType('decorative').containsKey('mascara'),
-        isFalse,
+        creams.leaves.keys,
+        containsAll(['cream', 'face_cream', 'eye_cream']),
+      );
+    });
+
+    test('a new category can be added into a group', () {
+      AppTheme.instance.addCategory('care', 'custom_x', 'Мой крем', groupKey: 'creams');
+
+      final tree = AppTheme.instance.getCategoryTree('care');
+      final creams = tree.firstWhere((g) => g.key == 'creams');
+
+      expect(creams.leaves['custom_x'], 'Мой крем');
+      expect(AppTheme.instance.groupOf('care', 'custom_x'), 'creams');
+    });
+
+    test('removing a custom group ungroups its leaves', () {
+      AppTheme.instance.addGroup('care', 'g1', 'Раздел');
+      AppTheme.instance.addCategory('care', 'leaf1', 'Лист', groupKey: 'g1');
+      expect(AppTheme.instance.groupOf('care', 'leaf1'), 'g1');
+
+      AppTheme.instance.removeGroup('care', 'g1');
+
+      expect(AppTheme.instance.getGroupsByType('care').containsKey('g1'), isFalse);
+      // Custom leaf had no built-in parent, so it becomes un-grouped.
+      expect(AppTheme.instance.groupOf('care', 'leaf1'), isNull);
+    });
+
+    test('a group filter resolves to its children', () {
+      expect(
+        AppTheme.instance.resolveCategoryFilter('care', 'creams'),
+        containsAll(['cream', 'face_cream', 'eye_cream']),
       );
     });
 
@@ -80,6 +108,45 @@ void main() {
         AppTheme.instance.getCategoriesByType('care')['serum'],
         'Сыворотка (своя)',
       );
+    });
+  });
+
+  group('backup state', () {
+    test('toBackup/applyBackup round-trips categories and theme', () {
+      AppTheme.instance.addGroup('care', 'g2', 'Набор');
+      AppTheme.instance.addCategory('care', 'custom_b', 'Моё', groupKey: 'g2');
+      AppTheme.instance.removeCategory('decorative', 'mascara');
+      AppTheme.instance.applyPreset(
+        const Color(0xFFA7E8C4),
+        const Color(0xFFF3FAF5),
+      );
+
+      // Simulate going through JSON, as the real backup does.
+      final snapshot =
+          jsonDecode(jsonEncode(AppTheme.instance.toBackup())) as Map<String, dynamic>;
+
+      // Wipe, then restore.
+      AppTheme.instance.resetCategoriesForTest();
+      AppTheme.instance.applyPreset(
+        const Color(0xFFE8B4BC),
+        const Color(0xFFFDF9FA),
+      );
+      AppTheme.instance.applyBackup(snapshot);
+
+      expect(AppTheme.instance.getGroupsByType('care')['g2'], 'Набор');
+      expect(
+        AppTheme.instance
+            .getCategoryTree('care')
+            .firstWhere((g) => g.key == 'g2')
+            .leaves['custom_b'],
+        'Моё',
+      );
+      expect(
+        AppTheme.instance.getCategoriesByType('decorative').containsKey('mascara'),
+        isFalse,
+      );
+      expect(AppTheme.instance.primaryColor.toARGB32(), 0xFFA7E8C4);
+      expect(AppTheme.instance.backgroundColor.toARGB32(), 0xFFF3FAF5);
     });
   });
 }

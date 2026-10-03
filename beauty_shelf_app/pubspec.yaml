@@ -36,6 +36,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.2.0
 
+  # Backup archive (zip)
+  archive: ^3.6.1
+
   # File operations (cross-platform)
   file_picker: ^8.0.0
   path_provider: ^2.1.0

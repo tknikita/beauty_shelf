@@ -81,8 +81,8 @@ void main() {
     await tester.tap(find.text('Уходовая'));
     await tester.pumpAndSettle();
 
-    // The built-in "cream" row exists and is reachable.
-    final creamRow = find.byKey(const ValueKey('care_cream'));
+    // The built-in "cream" leaf exists under the "Кремы" group.
+    final creamRow = find.byKey(const ValueKey('leaf_care_cream'));
     await tester.scrollUntilVisible(creamRow, 300, scrollable: scrollable);
     expect(creamRow, findsOneWidget);
     expect(AppTheme.instance.getCategoriesByType('care').containsKey('cream'), isTrue);
@@ -95,6 +95,6 @@ void main() {
 
     // Gone from both the model and the UI.
     expect(AppTheme.instance.getCategoriesByType('care').containsKey('cream'), isFalse);
-    expect(find.byKey(const ValueKey('care_cream')), findsNothing);
+    expect(find.byKey(const ValueKey('leaf_care_cream')), findsNothing);
   });
 }

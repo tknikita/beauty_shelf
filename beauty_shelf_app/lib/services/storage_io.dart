@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
@@ -147,50 +146,6 @@ class MobileStorageService implements StorageService {
       ORDER BY expiry_date ASC
     ''', [thresholdStr]);
     return maps.map((map) => Product.fromMap(map)).toList();
-  }
-
-  @override
-  Future<String?> exportToJson() async {
-    try {
-      final products = await getAllProducts();
-      final data = {
-        'version': '1.0',
-        'exportedAt': DateTime.now().toIso8601String(),
-        'products': products.map((p) => p.toJson()).toList(),
-      };
-
-      final jsonString = const JsonEncoder.withIndent('  ').convert(data);
-      final dir = await getApplicationDocumentsDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = path.join(dir.path, 'beauty_shelf_export_$timestamp.json');
-
-      final file = File(filePath);
-      await file.writeAsString(jsonString);
-
-      return filePath;
-    } catch (e) {
-      debugPrint('Export error: $e');
-      return null;
-    }
-  }
-
-  @override
-  Future<int> importFromJson(String content) async {
-    try {
-      final data = json.decode(content) as Map<String, dynamic>;
-      final productsList = data['products'] as List<dynamic>;
-      int count = 0;
-
-      for (final jsonProduct in productsList) {
-        final product = Product.fromJson(jsonProduct);
-        await createProduct(product.copyWith(id: null));
-        count++;
-      }
-      return count;
-    } catch (e) {
-      debugPrint('Import error: $e');
-      return 0;
-    }
   }
 
   /// Write image bytes to app's local storage and return the local path.

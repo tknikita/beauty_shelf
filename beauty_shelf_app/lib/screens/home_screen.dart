@@ -103,7 +103,12 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Product> _filterProducts(List<Product> products) {
     return products.where((p) {
       if (_typeFilter != 'all' && p.type != _typeFilter) return false;
-      if (_categoryFilter != null && p.category != _categoryFilter) return false;
+      if (_categoryFilter != null) {
+        // A group filter matches every leaf inside it; a leaf matches itself.
+        final allowed =
+            AppTheme.instance.resolveCategoryFilter(p.type, _categoryFilter!);
+        if (!allowed.contains(p.category)) return false;
+      }
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         if (!p.name.toLowerCase().contains(q) &&
@@ -650,45 +655,53 @@ class _CategoryDropdown extends StatelessWidget {
     required this.onChanged,
   });
 
-  Map<String, String> _getCategories() {
-    final allCategories = <String, String>{};
-    for (final type in ['care', 'decorative']) {
-      final cats = AppTheme.instance.getCategoriesByType(type);
-      allCategories.addAll(cats);
+  /// "Все" + one-level tree: selectable group rows (filter by all children)
+  /// with indented leaves below.
+  List<DropdownMenuItem<String>> _buildItems(AppTheme theme) {
+    final items = <DropdownMenuItem<String>>[
+      const DropdownMenuItem(value: 'all', child: Text('Все')),
+    ];
+    final types = typeFilter == 'all' ? ['care', 'decorative'] : [typeFilter];
+    for (final type in types) {
+      for (final group in AppTheme.instance.getCategoryTree(type)) {
+        if (!group.isUngrouped) {
+          items.add(DropdownMenuItem<String>(
+            value: group.key,
+            child: Text(
+              group.name,
+              style: TextStyle(fontWeight: FontWeight.w600, color: theme.textColor),
+            ),
+          ));
+        }
+        for (final leaf in group.leaves.entries) {
+          items.add(DropdownMenuItem<String>(
+            value: leaf.key,
+            child: Padding(
+              padding: EdgeInsets.only(left: group.isUngrouped ? 0 : 12),
+              child: Text(leaf.value),
+            ),
+          ));
+        }
+      }
     }
-    final sortedKeys = allCategories.keys.toList()
-      ..sort((a, b) => allCategories[a]!.compareTo(allCategories[b]!));
-    return {for (final k in sortedKeys) k: allCategories[k]!};
+    return items;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
-
-    Map<String, String> categoryItems;
-    if (typeFilter == 'all') {
-      categoryItems = {'all': 'Все', ..._getCategories()};
-    } else {
-      categoryItems = {'all': 'Все', ...AppTheme.instance.getCategoriesByType(typeFilter)};
-      final sortedKeys = categoryItems.keys.toList()
-        ..sort((a, b) {
-          if (a == 'all') return -1;
-          if (b == 'all') return 1;
-          return categoryItems[a]!.compareTo(categoryItems[b]!);
-        });
-      categoryItems = {for (final k in sortedKeys) k: categoryItems[k]!};
-    }
+    final items = _buildItems(theme);
+    final value =
+        items.any((i) => i.value == categoryFilter) ? categoryFilter! : 'all';
 
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
-        value: categoryFilter ?? 'all',
+        value: value,
         isExpanded: true,
         icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 18),
         style: TextStyle(fontSize: 12, color: theme.textColor),
         dropdownColor: theme.surfaceColor,
-        items: categoryItems.entries
-            .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-            .toList(),
+        items: items,
         onChanged: (v) => onChanged(v == 'all' ? null : v),
       ),
     );

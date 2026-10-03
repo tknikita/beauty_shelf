@@ -25,10 +25,17 @@ class ProductCard extends StatelessWidget {
 
   String _getStatusText() {
     final days = product.daysLeft;
-    if (days < 0) return '${-days} дн.';
+    if (days < 0) return 'Просрочено · ${-days} дн.';
     if (days == 0) return 'Сегодня';
-    if (days == 1) return '1 дн.';
-    return '$days дн.';
+    if (days < 30) return 'Скоро · $days дн.';
+    return 'OK · $days дн.';
+  }
+
+  String _getDateText() {
+    final d = product.effectiveExpiryDate;
+    final date = 'до ${d.day.toString().padLeft(2, '0')}.'
+        '${d.month.toString().padLeft(2, '0')}.${d.year}';
+    return product.isOpened ? '$date · вскрыт' : date;
   }
 
   @override
@@ -94,20 +101,33 @@ class ProductCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: statusBgColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _getStatusText(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: statusColor,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: statusBgColor,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _getStatusText(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: statusColor,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _getDateText(),
+                          style: TextStyle(fontSize: 12, color: theme.textLightColor),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -12,6 +12,7 @@ class Product {
   final int expiryDaysAfterOpen;
   final String? imageUrl;
   final int? notificationDays; // null = no notification, 1-365 = days before expiry
+  final int quantity; // number of identical items, default 1
 
   Product({
     this.id,
@@ -25,6 +26,7 @@ class Product {
     this.expiryDaysAfterOpen = 30,
     this.imageUrl,
     this.notificationDays,
+    this.quantity = 1,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -42,6 +44,7 @@ class Product {
       expiryDaysAfterOpen: json['expiry_days_after_open'] as int? ?? 30,
       imageUrl: json['image_url'] as String?,
       notificationDays: json['notification_days'] as int?,
+      quantity: json['quantity'] as int? ?? 1,
     );
   }
 
@@ -58,6 +61,7 @@ class Product {
       'expiry_days_after_open': expiryDaysAfterOpen,
       'image_url': imageUrl,
       if (notificationDays != null) 'notification_days': notificationDays,
+      'quantity': quantity,
     };
   }
 
@@ -77,6 +81,7 @@ class Product {
       expiryDaysAfterOpen: map['expiry_days_after_open'] as int? ?? 30,
       imageUrl: map['image_url'] as String?,
       notificationDays: map['notification_days'] as int?,
+      quantity: map['quantity'] as int? ?? 1,
     );
   }
 
@@ -93,6 +98,7 @@ class Product {
       'expiry_days_after_open': expiryDaysAfterOpen,
       'image_url': imageUrl,
       if (notificationDays != null) 'notification_days': notificationDays,
+      'quantity': quantity,
     };
   }
 
@@ -177,6 +183,7 @@ class Product {
     int? expiryDaysAfterOpen,
     String? imageUrl,
     int? notificationDays,
+    int? quantity,
     bool clearPurpose = false,
     bool clearOpenedDate = false,
     bool clearImageUrl = false,
@@ -195,6 +202,7 @@ class Product {
       imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
       notificationDays:
           clearNotificationDays ? null : (notificationDays ?? this.notificationDays),
+      quantity: quantity ?? this.quantity,
     );
   }
 }

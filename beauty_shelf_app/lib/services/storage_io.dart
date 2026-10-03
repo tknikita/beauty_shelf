@@ -24,7 +24,7 @@ class MobileStorageService implements StorageService {
 
     return await openDatabase(
       dbFile,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE products (
@@ -39,6 +39,7 @@ class MobileStorageService implements StorageService {
             expiry_days_after_open INTEGER DEFAULT 30,
             image_url TEXT,
             notification_days INTEGER,
+            quantity INTEGER DEFAULT 1,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
           )
@@ -48,6 +49,11 @@ class MobileStorageService implements StorageService {
         if (oldVersion < 2) {
           await db.execute(
             'ALTER TABLE products ADD COLUMN notification_days INTEGER',
+          );
+        }
+        if (oldVersion < 3) {
+          await db.execute(
+            'ALTER TABLE products ADD COLUMN quantity INTEGER DEFAULT 1',
           );
         }
       },

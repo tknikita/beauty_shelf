@@ -137,6 +137,23 @@ void main() {
       expect(map['notification_days'], 21);
       expect(Product.fromMap(map).notificationDays, 21);
     });
+
+    test('quantity defaults to 1 and round-trips', () {
+      final base = Product(
+        name: 'X',
+        type: 'care',
+        category: 'cream',
+        expiryDate: DateTime(2027, 1, 1),
+      );
+      expect(base.quantity, 1);
+
+      final p = base.copyWith(quantity: 3);
+      expect(p.quantity, 3);
+      expect(p.toJson()['quantity'], 3);
+      expect(p.toMap()['quantity'], 3);
+      expect(Product.fromJson(p.toJson()).quantity, 3);
+      expect(Product.fromMap(p.toMap()).quantity, 3);
+    });
   });
 
   group('copyWith', () {

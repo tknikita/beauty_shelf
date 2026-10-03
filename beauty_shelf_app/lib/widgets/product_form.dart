@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import '../models/product.dart';
 import '../screens/barcode_scanner_screen.dart';
 import '../services/api_service.dart';
@@ -36,6 +37,7 @@ class _ProductFormState extends State<ProductForm> {
   String? _imageUrl;
   bool _isUploadingImage = false;
   late TextEditingController _notificationDaysController;
+  late TextEditingController _quantityController;
   
   bool _isLookingUp = false;
   String? _lookupResult;
@@ -59,6 +61,9 @@ class _ProductFormState extends State<ProductForm> {
     _notificationDaysController = TextEditingController(
       text: p?.notificationDays?.toString() ?? '',
     );
+    _quantityController = TextEditingController(
+      text: (p?.quantity ?? 1).toString(),
+    );
 
     // Listen for theme changes
     AppTheme.instance.addListener(_onThemeChanged);
@@ -70,6 +75,7 @@ class _ProductFormState extends State<ProductForm> {
     _nameController.dispose();
     _purposeController.dispose();
     _notificationDaysController.dispose();
+    _quantityController.dispose();
     AppTheme.instance.removeListener(_onThemeChanged);
     super.dispose();
   }
@@ -129,6 +135,8 @@ class _ProductFormState extends State<ProductForm> {
   void _submit() {
     if (_formKey.currentState!.validate()) {
       final notificationDays = int.tryParse(_notificationDaysController.text.trim());
+      final parsedQuantity = int.tryParse(_quantityController.text.trim()) ?? 1;
+      final quantity = parsedQuantity < 1 ? 1 : parsedQuantity;
       final product = Product(
         id: widget.product?.id,
         name: _nameController.text.trim(),
@@ -141,6 +149,7 @@ class _ProductFormState extends State<ProductForm> {
         expiryDaysAfterOpen: _expiryDaysAfterOpen,
         imageUrl: _imageUrl,
         notificationDays: notificationDays,
+        quantity: quantity,
       );
       widget.onSave(product);
     }
@@ -172,17 +181,20 @@ class _ProductFormState extends State<ProductForm> {
     if (source == null) return;
 
     final ImagePicker picker = ImagePicker();
-    final image = await picker.pickImage(source: source, maxWidth: 800, imageQuality: 80);
-    
+    final image = await picker.pickImage(source: source, maxWidth: 1600, imageQuality: 90);
     if (image == null) return;
-    
+
+    // Offer native cropping (uCrop on Android) right after picking.
+    final cropped = await _cropImage(image);
+    if (cropped == null) return; // user cancelled the crop
+
     setState(() => _isUploadingImage = true);
-    
+
     try {
-      // Persist the picked image (local file on mobile, upload on web).
-      final bytes = await image.readAsBytes();
+      // Persist the cropped image to local storage.
+      final bytes = await cropped.readAsBytes();
       final storage = createStorageService();
-      final url = await storage.saveImageBytes(bytes, image.name);
+      final url = await storage.saveImageBytes(bytes, cropped.path.split('/').last);
 
       if (url != null && mounted) {
         setState(() => _imageUrl = url);
@@ -216,6 +228,30 @@ class _ProductFormState extends State<ProductForm> {
       if (mounted) {
         setState(() => _isUploadingImage = false);
       }
+    }
+  }
+
+  Future<CroppedFile?> _cropImage(XFile picked) async {
+    try {
+      return await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 85,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Обрезка фото',
+            toolbarColor: AppTheme.instance.primaryColor,
+            toolbarWidgetColor: Colors.white,
+            lockAspectRatio: false,
+            hideBottomControls: false,
+            initAspectRatio: CropAspectRatioPreset.original,
+          ),
+          IOSUiSettings(title: 'Обрезка фото'),
+        ],
+      );
+    } catch (e) {
+      debugPrint('crop error: $e');
+      return null;
     }
   }
 
@@ -495,6 +531,23 @@ class _ProductFormState extends State<ProductForm> {
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                   focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                   hintText: 'Например: Для сухой кожи',
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Quantity
+              TextFormField(
+                controller: _quantityController,
+                keyboardType: TextInputType.number,
+                style: TextStyle(color: theme.textColor),
+                decoration: InputDecoration(
+                  labelText: 'Количество',
+                  labelStyle: TextStyle(color: theme.textColor),
+                  helperText: 'Сколько одинаковых единиц (по умолчанию 1)',
+                  helperStyle: TextStyle(color: theme.textLightColor, fontSize: 11),
+                  border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                 ),
               ),
               const SizedBox(height: 16),

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Auto Backup rules for API < 31.
+     Backs up the SQLite DB, SharedPreferences and app files (product images). -->
+<full-backup-content>
+    <include domain="database" path="." />
+    <include domain="sharedpref" path="." />
+    <include domain="file" path="." />
+    <include domain="root" path="." />
+</full-backup-content>

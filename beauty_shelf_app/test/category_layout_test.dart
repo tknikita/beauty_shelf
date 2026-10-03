@@ -57,6 +57,21 @@ void main() {
       expect(layout.leavesByGroup['g3'], ['d']);
     });
 
+    test('a section dragged to the top does not absorb un-grouped leaves', () {
+      final rows = [
+        l('u1'), l('u2'),
+        h('g1'), l('a'),
+        h('g2'), l('b'),
+      ];
+
+      final layout = layoutFromRows(reorderCategoryRows(rows, 4, 0));
+
+      expect(layout.leavesByGroup[''], ['u1', 'u2']);
+      expect(layout.leavesByGroup['g1'], ['a']);
+      expect(layout.leavesByGroup['g2'], ['b']);
+      expect(layout.groupKeys, ['g2', 'g1']);
+    });
+
     test('moving a header snaps to a boundary and never splits a group', () {
       final rows = [
         h('g1'), l('a'), l('b'),

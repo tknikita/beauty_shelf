@@ -63,7 +63,9 @@ List<CategoryRow> reorderCategoryRows(
     // block shift it back by the block length when moving down.
     var target = newIndex;
     if (newIndex > oldIndex) target -= block.length;
-    target = _snapToGroupBoundary(working, target);
+    // The un-grouped block stays at the top: a section can never jump above it
+    // (otherwise it would silently absorb those categories).
+    target = _snapToGroupBoundary(working, target, _leadingLeafCount(working));
 
     working.insertAll(target, block);
   } else {
@@ -74,10 +76,20 @@ List<CategoryRow> reorderCategoryRows(
   return working;
 }
 
-/// Nearest position where a whole group can start (0 or right after another
-/// group's block), so dragging a header never splits a group.
-int _snapToGroupBoundary(List<CategoryRow> rows, int target) {
-  final boundaries = <int>[0];
+/// Number of leading un-grouped rows (they live above the first header).
+int _leadingLeafCount(List<CategoryRow> rows) {
+  var i = 0;
+  while (i < rows.length && !rows[i].isHeader) {
+    i++;
+  }
+  return i;
+}
+
+/// Nearest position where a whole group can start: the top of the sections
+/// (right after the un-grouped block) or right after another group's block, so
+/// dragging a header never splits a group nor absorbs un-grouped categories.
+int _snapToGroupBoundary(List<CategoryRow> rows, int target, int min) {
+  final boundaries = <int>[min];
   var i = 0;
   while (i < rows.length) {
     if (rows[i].isHeader) {
@@ -92,7 +104,7 @@ int _snapToGroupBoundary(List<CategoryRow> rows, int target) {
     }
   }
 
-  target = target.clamp(0, rows.length);
+  target = target.clamp(min, rows.length);
   var best = boundaries.first;
   for (final b in boundaries) {
     if ((b - target).abs() < (best - target).abs()) best = b;

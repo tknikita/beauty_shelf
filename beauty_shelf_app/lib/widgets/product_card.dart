@@ -44,16 +44,8 @@ class ProductCard extends StatelessWidget {
 
   String _getDateText() {
     final d = product.effectiveExpiryDate;
-    final date = 'до ${d.day.toString().padLeft(2, '0')}.'
+    return 'до ${d.day.toString().padLeft(2, '0')}.'
         '${d.month.toString().padLeft(2, '0')}.${d.year}';
-    switch (product.expiryBasis) {
-      case ExpiryBasis.periodAfterOpening:
-        return '$date · после вскрытия';
-      case ExpiryBasis.printedExpiry:
-        return '$date · срок производителя';
-      case ExpiryBasis.none:
-        return date;
-    }
   }
 
   @override
@@ -70,94 +62,123 @@ class ProductCard extends StatelessWidget {
         side: BorderSide(color: theme.borderColor),
       ),
       clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Full-height media, cropped to fill the card.
-            GestureDetector(
-              onTap: () => _showImagePreview(context, product),
-              child: SizedBox(
-                width: 76,
-                child: _buildProductImage(product, theme),
-              ),
-            ),
-            // Meta
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 0, 10),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: theme.textColor,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _subtitle(),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.textLightColor,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+      child: Stack(
+        children: [
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Full-height media, cropped to fill the card.
+                GestureDetector(
+                  onTap: () => _showImagePreview(context, product),
+                  child: SizedBox(
+                    width: 76,
+                    child: _buildProductImage(product, theme),
+                  ),
+                ),
+                // Meta
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 0, 10),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: statusBgColor,
-                            borderRadius: BorderRadius.circular(8),
+                        Text(
+                          product.name,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: theme.textColor,
                           ),
-                          child: Text(
-                            _getStatusText(),
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: statusColor,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _subtitle(),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: theme.textLightColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: statusBgColor,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _getStatusText(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: statusColor,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            // Opened-package indicator.
+                            if (product.isOpened) ...[
+                              const SizedBox(width: 6),
+                              Tooltip(
+                                message: 'Вскрыта упаковка',
+                                child: Icon(
+                                  Icons.lock_open,
+                                  size: 15,
+                                  color: theme.textLightColor,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _getDateText(),
+                          style: TextStyle(fontSize: 12, color: theme.textLightColor),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _getDateText(),
-                      style: TextStyle(fontSize: 12, color: theme.textLightColor),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                // Width reserved for the right-hand controls (overflow menu and,
+                // when present, the quantity stepper). They are painted as an
+                // overlay below, so they never steal width from the text.
+                const SizedBox(width: 56),
+              ],
             ),
-            // Right controls: menu + quantity stepper
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (reorderIndex != null)
-                    ReorderableDragStartListener(
-                      index: reorderIndex!,
-                      child: Icon(
-                        Icons.drag_indicator,
-                        color: theme.textLightColor,
-                        size: 20,
-                      ),
+          ),
+          // Right-hand controls as overlays so they don't affect the row layout
+          // (the metadata text keeps its full width and the card height is the
+          // same with or without the stepper): the overflow menu sits at the
+          // top-right, the quantity stepper at the bottom-right.
+          Positioned(
+            top: 0,
+            right: 4,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (reorderIndex != null)
+                  ReorderableDragStartListener(
+                    index: reorderIndex!,
+                    child: Icon(
+                      Icons.drag_indicator,
+                      color: theme.textLightColor,
+                      size: 20,
                     ),
-                  PopupMenuButton<String>(
+                  ),
+                PopupMenuButton<String>(
                   padding: EdgeInsets.zero,
                   icon: Icon(Icons.more_vert, color: theme.textLightColor, size: 20),
                   onSelected: (value) {
@@ -187,23 +208,24 @@ class ProductCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (onQuantityChanged != null && product.quantity > 1) ...[
-                  const SizedBox(height: 2),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {},
-                    child: _QuantityStepper(
-                      quantity: product.quantity,
-                      theme: theme,
-                      onChanged: onQuantityChanged!,
-                    ),
-                  ),
-                ],
-                ],
+              ],
+            ),
+          ),
+          if (onQuantityChanged != null && product.quantity > 1)
+            Positioned(
+              right: 4,
+              bottom: 10,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {},
+                child: _QuantityStepper(
+                  quantity: product.quantity,
+                  theme: theme,
+                  onChanged: onQuantityChanged!,
+                ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

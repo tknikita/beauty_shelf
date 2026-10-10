@@ -73,28 +73,6 @@ date.
 - **WHEN** remaining days are 60 or more
 - **THEN** the status is ok
 
-### Requirement: Product card indicates which limit is binding
-
-The system SHALL indicate on the product card which limit produced the effective
-expiry, so a product that is good by PAO but past the printed date is not shown
-as simply "good".
-
-#### Scenario: PAO limit is binding
-
-- **WHEN** an opened product's effective expiry comes from `opened_date + PAO`
-- **THEN** the card indicates the expiry-after-opening limit
-
-#### Scenario: Printed expiry limit is binding
-
-- **WHEN** an opened product's effective expiry comes from the printed expiry
-  date (the PAO limit was later)
-- **THEN** the card indicates the manufacturer-expiry limit
-
-#### Scenario: Product not opened
-
-- **WHEN** a product is not opened
-- **THEN** the card shows the printed expiry date without a binding-limit label
-
 ### Requirement: Expiry-dependent queries apply the same effective-expiry rule
 
 The system SHALL apply the same effective-expiry rule when selecting products by
@@ -111,3 +89,34 @@ expiry proximity, so filters and notifications match the values shown on cards.
 - **WHEN** an opened product's `opened_date + PAO` is beyond the query window but
   the printed expiry falls within it
 - **THEN** the product is included in the expiring set
+
+### Requirement: Product card shows the effective expiry date
+
+The system SHALL show a product's effective expiry date on its card, formatted as
+`до DD.MM.YYYY`, without labelling which limit (printed expiry or period after
+opening) produced the date.
+
+#### Scenario: Opened product
+
+- **WHEN** a product is opened with a known open date
+- **THEN** the card shows only the effective expiry date, with no binding-limit label
+
+#### Scenario: Product not opened
+
+- **WHEN** a product is not opened
+- **THEN** the card shows the printed expiry date, with no binding-limit label
+
+### Requirement: Product card marks opened packages
+
+The system SHALL mark a product whose packaging is opened on its card, so the
+period-after-opening date is understandable at a glance.
+
+#### Scenario: Opened product
+
+- **WHEN** a product is marked as opened
+- **THEN** the card shows an opened-package indicator next to the status badge
+
+#### Scenario: Closed product
+
+- **WHEN** a product is not marked as opened
+- **THEN** the card shows no opened-package indicator

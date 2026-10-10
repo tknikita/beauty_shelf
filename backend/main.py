@@ -3,20 +3,40 @@ Beauty Shelf - Backend API (FastAPI + SQLite)
 """
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
-from datetime import date, datetime
+from datetime import date
+from contextlib import asynccontextmanager
 import sqlite3
 from pathlib import Path
 import os
 import uuid
 
-app = FastAPI(title="Beauty Shelf API", version="0.1.0")
 
-# CORS for web frontend
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize the database when the application starts."""
+    init_db()
+    yield
+
+
+app = FastAPI(title="Beauty Shelf API", version="0.1.0", lifespan=lifespan)
+
+# CORS for web frontend.
+# "*" must not be combined with credentials, so use an explicit allowlist.
+# Override with ALLOWED_ORIGINS="https://app.example.com,https://admin.example.com".
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000",
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,6 +49,8 @@ DB_PATH = DB_DIR / "beauty_shelf.db"
 # Image storage
 IMG_DIR = DB_DIR / "images"
 IMG_DIR.mkdir(parents=True, exist_ok=True)
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
+ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
 
 # External API URLs
 OPEN_FOOD_FACTS_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
@@ -43,9 +65,8 @@ def get_db():
     return conn
 
 
-@app.on_event("startup")
 def init_db():
-    """Initialize database on startup."""
+    """Initialize database (called from the application lifespan)."""
     DB_DIR.mkdir(parents=True, exist_ok=True)
     conn = get_db()
     with conn:
@@ -62,6 +83,7 @@ def init_db():
                 opened_date DATE,
                 expiry_days_after_open INTEGER DEFAULT 30,
                 image_url TEXT,
+                notification_days INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -84,6 +106,10 @@ def init_db():
             conn.execute("ALTER TABLE products ADD COLUMN image_url TEXT")
         except sqlite3.OperationalError:
             pass
+        try:
+            conn.execute("ALTER TABLE products ADD COLUMN notification_days INTEGER")
+        except sqlite3.OperationalError:
+            pass
         
         conn.execute("""
             CREATE TABLE IF NOT EXISTS settings (
@@ -99,37 +125,26 @@ def init_db():
 # Barcode lookup endpoint (proxy to avoid CORS)
 @app.get("/api/barcode/{barcode}")
 async def lookup_barcode(barcode: str):
-    """Lookup product by barcode using OpenFoodFacts API."""
+    """Lookup a product by barcode.
+
+    Beauty/cosmetics sources are queried first, then food as a fallback.
+    """
     import httpx
-    
-    # Try OpenFoodFacts first
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                OPEN_FOOD_FACTS_URL.format(barcode=barcode),
-                headers={"User-Agent": "BeautyShelf/1.0"}
-            )
+
+    for url_template in (OPEN_BEAUTY_FACTS_URL, OPEN_FOOD_FACTS_URL):
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                response = await client.get(
+                    url_template.format(barcode=barcode),
+                    headers={"User-Agent": "BeautyShelf/1.0"},
+                )
             if response.status_code == 200:
                 data = response.json()
                 if data.get("status") == 1:
                     return data.get("product", {})
-    except Exception:
-        pass
-    
-    # Fallback to OpenBeautyFacts
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                OPEN_BEAUTY_FACTS_URL.format(barcode=barcode),
-                headers={"User-Agent": "BeautyShelf/1.0"}
-            )
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("status") == 1:
-                    return data.get("product", {})
-    except Exception:
-        pass
-    
+        except Exception:
+            continue
+
     return {}
 
 
@@ -144,6 +159,7 @@ class ProductCreate(BaseModel):
     opened_date: Optional[date] = None
     expiry_days_after_open: int = 30
     image_url: Optional[str] = None
+    notification_days: Optional[int] = None
 
 
 class ProductUpdate(BaseModel):
@@ -156,6 +172,7 @@ class ProductUpdate(BaseModel):
     opened_date: Optional[date] = None
     expiry_days_after_open: Optional[int] = None
     image_url: Optional[str] = None
+    notification_days: Optional[int] = None
 
 
 class Product(BaseModel):
@@ -169,11 +186,11 @@ class Product(BaseModel):
     opened_date: Optional[str]
     expiry_days_after_open: int
     image_url: Optional[str]
+    notification_days: Optional[int]
     created_at: Optional[str]
     updated_at: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Products endpoints
@@ -207,8 +224,8 @@ def create_product(product: ProductCreate):
     """Create a new product."""
     conn = get_db()
     cursor = conn.execute(
-        """INSERT INTO products (name, type, category, purpose, expiry_date, is_opened, opened_date, expiry_days_after_open, image_url)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO products (name, type, category, purpose, expiry_date, is_opened, opened_date, expiry_days_after_open, image_url, notification_days)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             product.name,
             product.type,
@@ -218,7 +235,8 @@ def create_product(product: ProductCreate):
             1 if product.is_opened else 0,
             product.opened_date.isoformat() if product.opened_date else None,
             product.expiry_days_after_open,
-            product.image_url
+            product.image_url,
+            product.notification_days
         )
     )
     conn.commit()
@@ -231,45 +249,34 @@ def create_product(product: ProductCreate):
 
 @app.put("/api/products/{product_id}", response_model=Product)
 def update_product(product_id: int, product: ProductUpdate):
-    """Update an existing product."""
+    """Update an existing product.
+
+    Only fields explicitly present in the request body are changed, so
+    passing ``null`` for a nullable field (purpose, opened_date, image_url,
+    notification_days) clears it.
+    """
     conn = get_db()
-    cursor = conn.execute("SELECT * FROM products WHERE id = ?", (product_id,))
+    cursor = conn.execute("SELECT id FROM products WHERE id = ?", (product_id,))
     if not cursor.fetchone():
         conn.close()
         raise HTTPException(status_code=404, detail="Product not found")
-    
+
+    # Only fields the client actually sent (explicit null counts as "sent").
+    data = product.model_dump(exclude_unset=True)
+
     updates, values = [], []
-    if product.name is not None:
-        updates.append("name = ?")
-        values.append(product.name)
-    if product.type is not None:
-        updates.append("type = ?")
-        values.append(product.type)
-    if product.category is not None:
-        updates.append("category = ?")
-        values.append(product.category)
-    if product.purpose is not None:
-        updates.append("purpose = ?")
-        values.append(product.purpose)
-    if product.expiry_date is not None:
-        updates.append("expiry_date = ?")
-        values.append(product.expiry_date.isoformat())
-    if product.is_opened is not None:
-        updates.append("is_opened = ?")
-        values.append(1 if product.is_opened else 0)
-    if product.opened_date is not None:
-        updates.append("opened_date = ?")
-        values.append(product.opened_date.isoformat() if product.opened_date else None)
-    if product.expiry_days_after_open is not None:
-        updates.append("expiry_days_after_open = ?")
-        values.append(product.expiry_days_after_open)
-    if product.image_url is not None:
-        updates.append("image_url = ?")
-        values.append(product.image_url)
-    
+    for field, value in data.items():
+        if field == "is_opened":
+            values.append(1 if value else 0)
+        elif field in ("expiry_date", "opened_date"):
+            values.append(value.isoformat() if value is not None else None)
+        else:
+            values.append(value)
+        updates.append(f"{field} = ?")
+
     updates.append("updated_at = CURRENT_TIMESTAMP")
     values.append(product_id)
-    
+
     conn.execute(f"UPDATE products SET {', '.join(updates)} WHERE id = ?", values)
     conn.commit()
     cursor = conn.execute("SELECT * FROM products WHERE id = ?", (product_id,))
@@ -307,16 +314,28 @@ def search_products(query: str):
 
 @app.get("/api/expiring")
 def get_expiring(days: int = 7):
-    """Get products expiring within specified days, including already expired.
-    Considers both original expiry_date and opened-date PAO."""
+    """Get products whose effective expiry falls within `days` days.
+
+    Effective expiry is the earlier of the printed ``expiry_date`` and the
+    period-after-opening limit (``opened_date + expiry_days_after_open``) for an
+    opened product with an opened date, so PAO never extends the effective
+    expiry past the printed date. The window is computed in server-local time so
+    it matches the client's local-date countdown (SQLite's ``date('now')`` alone
+    is UTC). Already-expired products are included.
+    """
     conn = get_db()
     cursor = conn.execute("""
-        SELECT * FROM products 
-        WHERE expiry_date <= date('now', '+' || ? || ' days')
-           OR (is_opened = 1 AND opened_date IS NOT NULL 
-               AND date(opened_date, '+' || expiry_days_after_open || ' days') <= date('now', '+' || ? || ' days'))
+        SELECT * FROM products
+        WHERE MIN(
+            expiry_date,
+            CASE
+                WHEN is_opened = 1 AND opened_date IS NOT NULL
+                    THEN date(opened_date, '+' || expiry_days_after_open || ' days')
+                ELSE expiry_date
+            END
+        ) <= date('now', 'localtime', '+' || ? || ' days')
         ORDER BY expiry_date ASC
-    """, (days, days))
+    """, (days,))
     products = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return products
@@ -332,22 +351,28 @@ def health_check():
 @app.post("/api/images/upload")
 async def upload_image(file: UploadFile = File(...)):
     """Upload an image and return its URL."""
-    # Validate file type
-    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
-    if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: jpeg, png, gif, webp")
-    
-    # Generate unique filename
-    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    # Validate by extension: multipart clients (Flutter web) may send
+    # "application/octet-stream" as the content type.
+    original_name = file.filename or ""
+    ext = original_name.rsplit(".", 1)[-1].lower() if "." in original_name else ""
+    if ext not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Allowed: " + ", ".join(sorted(ALLOWED_IMAGE_EXTENSIONS)),
+        )
+
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+        )
+
     filename = f"{uuid.uuid4().hex}.{ext}"
     filepath = IMG_DIR / filename
-    
-    # Save file
-    contents = await file.read()
     with open(filepath, "wb") as f:
         f.write(contents)
-    
-    # Return URL
+
     return {"url": f"/api/images/{filename}"}
 
 

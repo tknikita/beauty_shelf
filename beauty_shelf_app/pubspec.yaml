@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.1.1+2
+version: 0.2.9+14
 
 environment:
   sdk: ^3.11.5
@@ -30,17 +30,23 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   http: ^1.2.0
-  intl: ^0.19.0
+
+  # Backup archive (zip)
+  archive: ^3.6.1
 
   # File operations (cross-platform)
   file_picker: ^8.0.0
   path_provider: ^2.1.0
   image_picker: ^1.0.0
+  # Native image cropping (uCrop on Android)
+  image_cropper: ^8.0.0
   # Barcode scanning
   mobile_scanner: ^7.2.0
   # Local database
@@ -51,9 +57,12 @@ dependencies:
   # Notifications
   flutter_local_notifications: ^21.0.0
   timezone: ^0.11.0
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -62,6 +71,21 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  image: ^4.3.0
+
+# Launcher icon generation config.
+# Regenerate icons after changing the source image: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  # Adaptive icon (Android 8+): background colour + foreground layer.
+  # The foreground is a full-bleed opaque square, so inset must be 0 (otherwise
+  # a visible inner square appears). Background colour is a fallback only.
+  adaptive_icon_background: "#f9f5e0"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  adaptive_icon_foreground_inset: 0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -73,6 +97,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Vector assets.
+  assets:
+    - assets/icons/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

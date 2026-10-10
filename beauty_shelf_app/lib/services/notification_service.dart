@@ -101,6 +101,18 @@ class NotificationService {
     await _scheduleDailyCheck();
   }
 
+  /// Best-effort match of the device's current UTC offset to a timezone
+  /// location, falling back to Europe/Moscow if no match is found.
+  tz.Location _deviceLocation() {
+    final offsetMinutes = DateTime.now().timeZoneOffset.inMinutes;
+    for (final location in tz.timeZoneDatabase.locations.values) {
+      if (tz.TZDateTime.now(location).timeZoneOffset.inMinutes == offsetMinutes) {
+        return location;
+      }
+    }
+    return tz.getLocation('Europe/Moscow');
+  }
+
   /// Schedule daily check for expiring products
   Future<void> _scheduleDailyCheck() async {
     final enabled = await areNotificationsEnabled();
@@ -109,9 +121,9 @@ class NotificationService {
     // Cancel existing scheduled notification
     await _notifications.cancel(id: 999);
 
-    // Use explicit timezone instead of tz.local which may be null on some devices
-    final location = tz.getLocation('Europe/Moscow');
-    
+    // Resolve the device timezone instead of tz.local (which may be unset).
+    final location = _deviceLocation();
+
     // Schedule for 9 AM tomorrow
     final now = tz.TZDateTime.now(location);
     var scheduledDate = tz.TZDateTime(location, now.year, now.month, now.day, 9);
@@ -231,10 +243,7 @@ class NotificationService {
 
     final daysBeforeExpiry = product.notificationDays!;
     final effectiveDate = product.effectiveExpiryDate;
-    
-    // Guard against null or invalid date
-    if (effectiveDate == null) return;
-    
+
     final notificationDate = effectiveDate.subtract(
       Duration(days: daysBeforeExpiry),
     );
@@ -257,9 +266,9 @@ class NotificationService {
 
     const details = NotificationDetails(android: androidDetails);
 
-    // Use explicit timezone instead of tz.local which may be null
-    final location = tz.getLocation('Europe/Moscow');
-    
+    // Resolve the device timezone instead of tz.local (which may be unset).
+    final location = _deviceLocation();
+
     // Schedule for 9 AM on the notification date
     final scheduledDate = tz.TZDateTime(
       location,

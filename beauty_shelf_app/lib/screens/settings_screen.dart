@@ -1,8 +1,9 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../services/storage_io.dart';
+import '../services/backup_service.dart';
 import '../services/notification_service.dart';
+import '../utils/category_layout.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,7 +13,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final _storage = MobileStorageService();
+  final BackupService _backup = BackupService();
   bool _notificationsEnabled = false;
   int _notificationDays = 7;
   bool _loading = true;
@@ -38,7 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleNotifications(bool value) async {
     final service = NotificationService();
-    if (value && Platform.isAndroid) {
+    if (value && defaultTargetPlatform == TargetPlatform.android) {
       final granted = await service.requestPermission();
       if (!granted) {
         if (mounted) {
@@ -62,42 +63,160 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _notificationDays = days);
   }
 
-  Future<void> _exportData(BuildContext context) async {
+  Future<void> _createBackup(BuildContext context) async {
     try {
-      final result = await _storage.exportToJson();
+      final path = await _backup.exportBackup();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result != null ? 'Экспорт завершён' : 'Ошибка экспорта'),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
-          ),
+        _showMessage(
+          context,
+          path != null ? 'Резервная копия сохранена' : 'Сохранение отменено',
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка экспорта: $e'),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
-          ),
-        );
-      }
+      if (context.mounted) _showMessage(context, 'Ошибка резервного копирования: $e');
     }
   }
 
-  Future<void> _importData(BuildContext context) async {
-    // Note: Import requires file picker which is implemented in platform-specific code
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Импорт временно недоступен на Android'),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
+  Future<void> _restoreBackup(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Восстановить из копии?'),
+        content: const Text(
+          'Все текущие товары будут заменены данными из резервной копии.',
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Восстановить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      final count = await _backup.restoreBackup();
+      if (!context.mounted) return;
+      _showMessage(
+        context,
+        count < 0 ? 'Восстановление отменено' : 'Восстановлено товаров: $count',
       );
+    } catch (e) {
+      if (context.mounted) _showMessage(context, 'Ошибка восстановления: $e');
     }
+  }
+
+  void _showMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
+      ),
+    );
+  }
+
+  Future<String?> _promptText(
+    BuildContext context,
+    String title,
+    String initial,
+  ) {
+    final controller = TextEditingController(text: initial);
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Название'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Rename / delete / restore the product types (Уходовая, Декоративная).
+  Future<void> _manageTypes(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Типы средств'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final t in AppTheme.instance.allTypes())
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(AppTheme.instance.typeName(t)),
+                  subtitle: AppTheme.instance.isTypeRemoved(t)
+                      ? const Text('Скрыт')
+                      : null,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        tooltip: 'Переименовать',
+                        onPressed: () async {
+                          final name = await _promptText(
+                            ctx,
+                            'Переименовать тип',
+                            AppTheme.instance.typeName(t),
+                          );
+                          if (name != null && name.isNotEmpty) {
+                            AppTheme.instance.renameType(t, name);
+                            setLocal(() {});
+                          }
+                        },
+                      ),
+                      if (AppTheme.instance.isTypeRemoved(t))
+                        IconButton(
+                          icon: const Icon(Icons.restore, size: 18),
+                          tooltip: 'Вернуть',
+                          onPressed: () {
+                            AppTheme.instance.restoreType(t);
+                            setLocal(() {});
+                          },
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          tooltip: 'Удалить',
+                          onPressed: () {
+                            AppTheme.instance.removeType(t);
+                            setLocal(() {});
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Готово'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   static const _presets = [
@@ -115,7 +234,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       listenable: AppTheme.instance,
       builder: (context, _) {
         final theme = AppTheme.instance;
-        
+        final visibleTypes = AppTheme.instance.visibleTypes();
+
         return Scaffold(
           backgroundColor: theme.backgroundColor,
           appBar: AppBar(
@@ -169,7 +289,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Switch(
                       value: theme.isDarkMode,
                       onChanged: (_) => theme.toggleDarkMode(),
-                      activeColor: theme.primaryColor,
+                        activeThumbColor: theme.primaryColor,
                     ),
                   ],
                 ),
@@ -188,12 +308,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: _presets.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
                   itemBuilder: (context, index) {
                     final preset = _presets[index];
                     final primary = Color(preset['primary'] as int);
                     final bg = Color(preset['bg'] as int);
-                    final isSelected = theme.primaryColor.value == primary.value;
+                    final isSelected =
+                        theme.primaryColor.toARGB32() == primary.toARGB32();
                     
                     return _PresetChip(
                       name: preset['name'] as String,
@@ -304,9 +425,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
 
               // Categories
-              Text(
-                'Категории',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+              Row(
+                children: [
+                  Text(
+                    'Категории',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () => _manageTypes(context),
+                    icon: const Icon(Icons.tune, size: 18),
+                    label: const Text('Типы'),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               Container(
@@ -317,17 +448,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 child: Column(
                   children: [
-                    _CategoryTab(
-                      type: 'care',
-                      label: 'Уходовая',
-                      categories: theme.getCategoriesByType('care'),
-                    ),
-                    const Divider(height: 1),
-                    _CategoryTab(
-                      type: 'decorative',
-                      label: 'Декоративная',
-                      categories: theme.getCategoriesByType('decorative'),
-                    ),
+                    for (var i = 0; i < visibleTypes.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      _CategoryTab(
+                        type: visibleTypes[i],
+                        label: AppTheme.instance.typeName(visibleTypes[i]),
+                      ),
+                    ],
+                    if (visibleTypes.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Все типы скрыты. Нажмите «Типы», чтобы вернуть.',
+                          style: TextStyle(color: theme.textLightColor),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -358,7 +493,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       trailing: Switch(
                         value: _notificationsEnabled,
                         onChanged: _loading ? null : _toggleNotifications,
-                        activeColor: theme.primaryColor,
+                      activeThumbColor: theme.primaryColor,
                       ),
                     ),
                     if (_notificationsEnabled) ...[
@@ -400,19 +535,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   children: [
                     ListTile(
-                      leading: Icon(Icons.upload_file, color: theme.primaryColor),
-                      title: Text('Экспорт', style: TextStyle(color: theme.textColor)),
-                      subtitle: Text('Сохранить продукты в JSON', style: TextStyle(color: theme.textLightColor, fontSize: 12)),
+                      leading: Icon(Icons.backup_outlined, color: theme.primaryColor),
+                      title: Text('Создать резервную копию', style: TextStyle(color: theme.textColor)),
+                      subtitle: Text('Товары, категории, настройки и фото в ZIP', style: TextStyle(color: theme.textLightColor, fontSize: 12)),
                       trailing: Icon(Icons.chevron_right, color: theme.textLightColor),
-                      onTap: () => _exportData(context),
+                      onTap: () => _createBackup(context),
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      leading: Icon(Icons.download, color: theme.primaryColor),
-                      title: Text('Импорт', style: TextStyle(color: theme.textColor)),
-                      subtitle: Text('Загрузить продукты из JSON', style: TextStyle(color: theme.textLightColor, fontSize: 12)),
+                      leading: Icon(Icons.restore, color: theme.primaryColor),
+                      title: Text('Восстановить', style: TextStyle(color: theme.textColor)),
+                      subtitle: Text('Заменить данные из ZIP-копии', style: TextStyle(color: theme.textLightColor, fontSize: 12)),
                       trailing: Icon(Icons.chevron_right, color: theme.textLightColor),
-                      onTap: () => _importData(context),
+                      onTap: () => _restoreBackup(context),
                     ),
                   ],
                 ),
@@ -513,12 +648,14 @@ class _CustomColorSectionState extends State<_CustomColorSection> with SingleTic
                 children: [
                   _ColorPickerColumn(
                     currentColor: theme.primaryColor,
+                    palette: _ColorPickerColumn.primaryPalette,
                     onColorSelected: (color) {
                       AppTheme.instance.setCustomColors(color, theme.backgroundColor);
                     },
                   ),
                   _ColorPickerColumn(
                     currentColor: theme.backgroundColor,
+                    palette: _ColorPickerColumn.backgroundPalette,
                     onColorSelected: (color) {
                       AppTheme.instance.setCustomColors(theme.primaryColor, color);
                     },
@@ -537,17 +674,28 @@ class _ColorPickerColumn extends StatelessWidget {
   const _ColorPickerColumn({
     required this.currentColor,
     required this.onColorSelected,
+    required this.palette,
   });
 
   final Color currentColor;
   final ValueChanged<Color> onColorSelected;
+  final List<int> palette;
 
-  static const _palette = [
+  /// Saturated accent palette.
+  static const primaryPalette = [
     0xFFE8B4BC, 0xFFE8A7B4, 0xFFD9848C, 0xFFE88C8C,
     0xFFB4A7E8, 0xFFA7B4E8, 0xFF9B8AD9, 0xFF8A7CC9,
     0xFFA7C4E8, 0xFFA7D4E8, 0xFF8FC9A3, 0xFF7CB98C,
     0xFFA7E8C4, 0xFFD4E8A7, 0xFFE8D4A7, 0xFFE8C4A7,
     0xFF666666, 0xFF888888, 0xFFAAAAAA, 0xFFCCCCCC,
+  ];
+
+  /// Pale background palette (tints, matching the built-in preset backgrounds).
+  static const backgroundPalette = [
+    0xFFFFFFFF, 0xFFFDF9FA, 0xFFF5F3FA, 0xFFF3FAF5,
+    0xFFFAF5F3, 0xFFF3F5FA, 0xFFF9FBE7, 0xFFF1F8E9,
+    0xFFFFF3E0, 0xFFFFEBEE, 0xFFE8F5E9, 0xFFE3F2FD,
+    0xFFF3E5F5, 0xFFECEFF1,
   ];
 
   @override
@@ -583,9 +731,10 @@ class _ColorPickerColumn extends StatelessWidget {
             child: Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: _palette.map((colorValue) {
+              children: palette.map((colorValue) {
                 final color = Color(colorValue);
-                final isSelected = currentColor.value == color.value;
+                final isSelected =
+                    currentColor.toARGB32() == color.toARGB32();
                 
                 return GestureDetector(
                   onTap: () => onColorSelected(color),
@@ -645,7 +794,7 @@ class _CompactHexInputState extends State<_CompactHexInput> {
   }
 
   String _colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+    return '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
   }
 
   Color? _hexToColor(String hex) {
@@ -768,13 +917,8 @@ class _PresetChip extends StatelessWidget {
 class _CategoryTab extends StatefulWidget {
   final String type;
   final String label;
-  final Map<String, String> categories;
 
-  const _CategoryTab({
-    required this.type,
-    required this.label,
-    required this.categories,
-  });
+  const _CategoryTab({required this.type, required this.label});
 
   @override
   State<_CategoryTab> createState() => _CategoryTabState();
@@ -782,28 +926,82 @@ class _CategoryTab extends StatefulWidget {
 
 class _CategoryTabState extends State<_CategoryTab> {
   bool _expanded = false;
+  // Groups start expanded; this tracks the ones the user collapsed.
+  final Set<String> _collapsed = {};
 
-  void _addCategory() {
-    final keyController = TextEditingController();
+  String _newKey() => 'custom_${DateTime.now().microsecondsSinceEpoch}';
+
+  bool _isExpandedGroup(String id) => !_collapsed.contains(id);
+
+  Future<void> _addCategory(String? groupKey) async {
     final nameController = TextEditingController();
+    final groups = AppTheme.instance.getGroupsByType(widget.type);
+    String? selectedGroup = groupKey;
 
-    showDialog(
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Добавить категорию (${widget.label})'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: keyController,
-              decoration: const InputDecoration(labelText: 'Ключ', hintText: 'my_category'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: Text('Добавить категорию · ${widget.label}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Название'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButton<String>(
+                isExpanded: true,
+                value: selectedGroup ?? '',
+                items: [
+                  const DropdownMenuItem(value: '', child: Text('— без раздела —')),
+                  ...groups.entries.map(
+                    (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  ),
+                ],
+                onChanged: (v) => setLocal(
+                  () => selectedGroup = (v == null || v.isEmpty) ? null : v,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Отмена'),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Название'),
+            FilledButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                if (name.isEmpty) return;
+                AppTheme.instance.addCategory(
+                  widget.type,
+                  _newKey(),
+                  name,
+                  groupKey: selectedGroup,
+                );
+                Navigator.pop(ctx);
+              },
+              child: const Text('Добавить'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addGroup() async {
+    final nameController = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Новый раздел · ${widget.label}'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Название раздела'),
         ),
         actions: [
           TextButton(
@@ -812,14 +1010,10 @@ class _CategoryTabState extends State<_CategoryTab> {
           ),
           FilledButton(
             onPressed: () {
-              if (keyController.text.isNotEmpty && nameController.text.isNotEmpty) {
-                AppTheme.instance.addCategory(
-                  widget.type,
-                  keyController.text.trim().toLowerCase().replaceAll(' ', '_'),
-                  nameController.text.trim(),
-                );
-                Navigator.pop(ctx);
-              }
+              final name = nameController.text.trim();
+              if (name.isEmpty) return;
+              AppTheme.instance.addGroup(widget.type, _newKey(), name);
+              Navigator.pop(ctx);
             },
             child: const Text('Добавить'),
           ),
@@ -828,17 +1022,70 @@ class _CategoryTabState extends State<_CategoryTab> {
     );
   }
 
+  Future<void> _renameGroup(String key, String current) async {
+    final controller = TextEditingController(text: current);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Переименовать раздел · ${widget.label}'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Название'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final name = controller.text.trim();
+              if (name.isEmpty) return;
+              AppTheme.instance.renameGroup(widget.type, key, name);
+              Navigator.pop(ctx);
+            },
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _removeGroup(String key, String name) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Удалить раздел «$name»?'),
+        content: const Text('Категории из него останутся, но станут без раздела.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) AppTheme.instance.removeGroup(widget.type, key);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
-    final sortedKeys = widget.categories.keys.toList()..sort();
+    final tree = AppTheme.instance.getCategoryTree(widget.type);
+    final total = tree.fold<int>(0, (sum, g) => sum + g.leaves.length);
+    final manual = AppTheme.instance.isManualSort(widget.type);
 
     return Column(
       children: [
         InkWell(
           onTap: () => setState(() => _expanded = !_expanded),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
             child: Row(
               children: [
                 Icon(
@@ -856,72 +1103,374 @@ class _CategoryTabState extends State<_CategoryTab> {
                 ),
                 const Spacer(),
                 Text(
-                  '${sortedKeys.length} шт.',
+                  '$total шт.',
                   style: TextStyle(fontSize: 12, color: theme.textLightColor),
                 ),
+                IconButton(
+                  icon: Icon(
+                    manual ? Icons.swap_vert : Icons.sort_by_alpha,
+                    size: 18,
+                    color: theme.primaryColor,
+                  ),
+                  tooltip: manual ? 'Ручной порядок' : 'По алфавиту',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () =>
+                      AppTheme.instance.setManualSort(widget.type, !manual),
+                ),
+                if (manual)
+                  IconButton(
+                    icon: Icon(
+                      Icons.restart_alt,
+                      size: 18,
+                      color: theme.textLightColor,
+                    ),
+                    tooltip: 'Сбросить порядок',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => AppTheme.instance.resetSort(widget.type),
+                  ),
               ],
             ),
           ),
         ),
         if (_expanded) ...[
-          ReorderableListView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            onReorder: (oldIndex, newIndex) {
-              if (newIndex > oldIndex) newIndex--;
-              final keys = List<String>.from(sortedKeys);
-              final key = keys.removeAt(oldIndex);
-              keys.insert(newIndex, key);
-              AppTheme.instance.reorderCategories(widget.type, keys);
-            },
-            children: sortedKeys.asMap().entries.map((entry) {
-              final index = entry.key;
-              final key = entry.value;
-              final name = widget.categories[key]!;
-
-              return ReorderableDragStartListener(
-                key: ValueKey('${widget.type}_$key'),
-                index: index,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: index > 0 ? BorderSide(color: theme.borderColor, width: 0.5) : BorderSide.none,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.drag_handle, size: 18, color: theme.textLightColor),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(name, style: TextStyle(color: theme.textColor)),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 18),
-                        color: theme.expiredColor,
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                        padding: EdgeInsets.zero,
-                        onPressed: () {
-                          AppTheme.instance.removeCategory(widget.type, key);
-                        },
-                      ),
-                    ],
+          if (manual)
+            ..._buildManual(theme, tree)
+          else
+            for (final group in tree) ..._buildGroup(theme, group),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _addCategory(null),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Категория'),
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: OutlinedButton.icon(
-              onPressed: _addCategory,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Добавить'),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _addGroup,
+                    icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+                    label: const Text('Раздел'),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ],
+    );
+  }
+
+  List<Widget> _buildGroup(AppTheme theme, CategoryGroup group) {
+    final id = group.key ?? '';
+    final expanded = _isExpandedGroup(id);
+
+    return [
+      _groupHeader(theme, group),
+      if (expanded)
+        for (final leaf in group.leaves.entries)
+          _buildLeaf(theme, leaf.key, leaf.value, 40.0),
+    ];
+  }
+
+  Widget _groupHeader(AppTheme theme, CategoryGroup group) {
+    final id = group.key ?? '';
+    final isUngrouped = group.isUngrouped;
+    final expanded = _isExpandedGroup(id);
+    return InkWell(
+      onTap: () => setState(() {
+        if (_collapsed.contains(id)) {
+          _collapsed.remove(id);
+        } else {
+          _collapsed.add(id);
+        }
+      }),
+      child: Container(
+        color: theme.neutralBgColor,
+        padding: const EdgeInsets.only(left: 8, right: 4),
+        child: Row(
+          children: [
+            Icon(
+              expanded ? Icons.arrow_drop_down : Icons.arrow_right,
+              size: 22,
+              color: theme.textLightColor,
+            ),
+            Expanded(
+              child: Text(
+                group.name,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: theme.textColor,
+                ),
+              ),
+            ),
+            Text(
+              '${group.leaves.length}',
+              style: TextStyle(fontSize: 12, color: theme.textLightColor),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add, size: 18),
+              color: theme.primaryColor,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: EdgeInsets.zero,
+              tooltip: 'Добавить в раздел',
+              onPressed: () => _addCategory(group.key),
+            ),
+            if (!isUngrouped)
+              PopupMenuButton<String>(
+                tooltip: 'Раздел',
+                icon: Icon(Icons.more_vert, size: 18, color: theme.textLightColor),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onSelected: (v) {
+                  if (v == 'rename') _renameGroup(group.key!, group.name);
+                  if (v == 'delete') _removeGroup(group.key!, group.name);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'rename', child: Text('Переименовать')),
+                  PopupMenuItem(value: 'delete', child: Text('Удалить')),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Manual mode: one flat, fully drag-reorderable list. Sections (including
+  /// "Без раздела") move together with their categories, can be collapsed, and
+  /// a category can be dropped into any section.
+  List<Widget> _buildManual(AppTheme theme, List<CategoryGroup> tree) {
+    final leavesMap = AppTheme.instance.getCategoriesByType(widget.type);
+
+    final rows = <CategoryRow>[];
+    final hidden = <String, List<String>>{};
+    final names = <String, String>{};
+    final counts = <String, int>{};
+
+    for (final g in tree) {
+      final key = g.key ?? '';
+      names[key] = g.name;
+      counts[key] = g.leaves.length;
+      rows.add(CategoryRow.header(key));
+      final expanded = _isExpandedGroup(key);
+      for (final leafKey in g.leaves.keys) {
+        if (expanded) {
+          rows.add(CategoryRow.leaf(leafKey));
+        } else {
+          hidden.putIfAbsent(key, () => []).add(leafKey);
+        }
+      }
+    }
+
+    return [
+      ReorderableListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        buildDefaultDragHandles: false,
+        itemCount: rows.length,
+        onReorder: (o, n) => _onReorderRows(rows, hidden, o, n),
+        itemBuilder: (context, index) {
+          final row = rows[index];
+          if (row.isHeader) {
+            final key = row.groupKey ?? '';
+            return _manualHeader(
+              theme,
+              key,
+              names[key] ?? key,
+              counts[key] ?? 0,
+              index,
+            );
+          }
+          return _manualLeaf(
+            theme,
+            row.leafKey!,
+            leavesMap[row.leafKey] ?? row.leafKey!,
+            index,
+          );
+        },
+      ),
+    ];
+  }
+
+  void _onReorderRows(
+    List<CategoryRow> rows,
+    Map<String, List<String>> hidden,
+    int oldIndex,
+    int newIndex,
+  ) {
+    final moved = reorderCategoryRows(rows, oldIndex, newIndex);
+    // Re-attach collapsed sections' hidden leaves right after their header.
+    final full = <CategoryRow>[];
+    for (final row in moved) {
+      full.add(row);
+      if (row.isHeader) {
+        for (final leaf in hidden[row.groupKey ?? ''] ?? const <String>[]) {
+          full.add(CategoryRow.leaf(leaf));
+        }
+      }
+    }
+    final layout = layoutFromRows(full);
+    AppTheme.instance.applyManualLayout(
+      widget.type,
+      layout.groupKeys,
+      layout.leavesByGroup,
+    );
+  }
+
+  Widget _manualHeader(
+    AppTheme theme,
+    String groupKey,
+    String name,
+    int count,
+    int index,
+  ) {
+    final isUngrouped = groupKey.isEmpty;
+    final expanded = _isExpandedGroup(groupKey);
+    return Container(
+      key: ValueKey('grp_$groupKey'),
+      color: theme.neutralBgColor,
+      padding: const EdgeInsets.only(left: 8, right: 4),
+      child: Row(
+        children: [
+          // Collapse/expand is a dedicated tap target so it doesn't fight the
+          // drag gesture.
+          IconButton(
+            icon: Icon(
+              expanded ? Icons.arrow_drop_down : Icons.arrow_right,
+              size: 22,
+              color: theme.textLightColor,
+            ),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            tooltip: expanded ? 'Свернуть' : 'Развернуть',
+            onPressed: () => setState(() {
+              if (_collapsed.contains(groupKey)) {
+                _collapsed.remove(groupKey);
+              } else {
+                _collapsed.add(groupKey);
+              }
+            }),
+          ),
+          // Drag anywhere on the name area to reorder.
+          Expanded(
+            child: ReorderableDragStartListener(
+              index: index,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.drag_indicator,
+                    size: 18,
+                    color: theme.textLightColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: theme.textColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Text('$count', style: TextStyle(fontSize: 12, color: theme.textLightColor)),
+          IconButton(
+            icon: const Icon(Icons.add, size: 18),
+            color: theme.primaryColor,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            tooltip: 'Добавить в раздел',
+            onPressed: () => _addCategory(groupKey),
+          ),
+          if (!isUngrouped)
+            PopupMenuButton<String>(
+              tooltip: 'Раздел',
+              icon: Icon(Icons.more_vert, size: 18, color: theme.textLightColor),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              onSelected: (v) {
+                if (v == 'rename') _renameGroup(groupKey, name);
+                if (v == 'delete') _removeGroup(groupKey, name);
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'rename', child: Text('Переименовать')),
+                PopupMenuItem(value: 'delete', child: Text('Удалить')),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _manualLeaf(
+    AppTheme theme,
+    String leafKey,
+    String name,
+    int index,
+  ) {
+    return Container(
+      key: ValueKey('leaf_${widget.type}_$leafKey'),
+      padding: const EdgeInsets.fromLTRB(40, 6, 12, 6),
+      child: Row(
+        children: [
+          // Drag anywhere on the row (except the delete button).
+          Expanded(
+            child: ReorderableDragStartListener(
+              index: index,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.drag_indicator,
+                    size: 18,
+                    color: theme.textLightColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(name, style: TextStyle(color: theme.textColor)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 18),
+            color: theme.expiredColor,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            onPressed: () => AppTheme.instance.removeCategory(widget.type, leafKey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeaf(AppTheme theme, String key, String name, double indent) {
+    return Container(
+      key: ValueKey('leaf_${widget.type}_$key'),
+      padding: EdgeInsets.fromLTRB(indent, 6, 12, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(name, style: TextStyle(color: theme.textColor)),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 18),
+            color: theme.expiredColor,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            onPressed: () => AppTheme.instance.removeCategory(widget.type, key),
+          ),
+        ],
+      ),
     );
   }
 }

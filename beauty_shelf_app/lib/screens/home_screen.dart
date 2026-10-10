@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/product.dart';
@@ -104,10 +103,16 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Product> _filterProducts(List<Product> products) {
     return products.where((p) {
       if (_typeFilter != 'all' && p.type != _typeFilter) return false;
-      if (_categoryFilter != null && p.category != _categoryFilter) return false;
+      if (_categoryFilter != null) {
+        // A group filter matches every leaf inside it; a leaf matches itself.
+        final allowed =
+            AppTheme.instance.resolveCategoryFilter(p.type, _categoryFilter!);
+        if (!allowed.contains(p.category)) return false;
+      }
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         if (!p.name.toLowerCase().contains(q) &&
+            !(p.brand?.toLowerCase().contains(q) ?? false) &&
             !(p.purpose?.toLowerCase().contains(q) ?? false)) {
           return false;
         }
@@ -145,6 +150,37 @@ class _HomeScreenState extends State<HomeScreen> {
     _showFormModal(product);
   }
 
+  Future<void> _changeQuantity(Product product, int quantity) async {
+    if (quantity < 1 || quantity == product.quantity) return;
+    try {
+      await _storage.updateProduct(product.copyWith(quantity: quantity));
+      _loadProducts();
+    } catch (e) {
+      _showSnackBar('Ошибка обновления количества');
+    }
+  }
+
+  /// Manual reordering is only offered when the list is not filtered/searched.
+  bool get _manualOrder =>
+      _sortField == SortField.position &&
+      _searchQuery.isEmpty &&
+      _typeFilter == 'all' &&
+      _categoryFilter == null;
+
+  Future<void> _onReorderProducts(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex--;
+    final list = List<Product>.of(_sortedFilteredProducts);
+    final moved = list.removeAt(oldIndex);
+    list.insert(newIndex, moved);
+    for (var i = 0; i < list.length; i++) {
+      final p = list[i];
+      if (p.id != null && p.position != i) {
+        await _storage.updateProduct(p.copyWith(position: i));
+      }
+    }
+    _loadProducts();
+  }
+
   void _showFormModal(Product? product) {
     showModalBottomSheet(
       context: context,
@@ -159,16 +195,13 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.pop(context);
           try {
             final notificationService = NotificationService();
-            int? productId;
 
             if (p.id == null) {
               final created = await _storage.createProduct(p);
-              productId = created.id;
               // Schedule notification for new product
               await notificationService.scheduleProductNotification(created);
             } else {
               await _storage.updateProduct(p);
-              productId = p.id;
               // Cancel old notification and schedule new one
               await notificationService.cancelProductNotification(p.id!);
               await notificationService.scheduleProductNotification(p);
@@ -451,10 +484,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 18),
                         style: TextStyle(fontSize: 12, color: theme.textColor),
                         dropdownColor: theme.surfaceColor,
-                        items: const [
-                          DropdownMenuItem(value: 'all', child: Text('Все')),
-                          DropdownMenuItem(value: 'care', child: Text('Уход')),
-                          DropdownMenuItem(value: 'decorative', child: Text('Декор.')),
+                        items: [
+                          const DropdownMenuItem(value: 'all', child: Text('Все')),
+                          ...AppTheme.instance.visibleTypes().map(
+                            (t) => DropdownMenuItem(
+                              value: t,
+                              child: Text(AppTheme.instance.typeName(t)),
+                            ),
+                          ),
                         ],
                         onChanged: (v) {
                           if (v != null) _setTypeFilter(v);
@@ -497,21 +534,45 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? _buildError()
                     : _filteredProducts.isEmpty
                         ? _buildEmpty()
-                        : ListView.builder(
-                            padding: const EdgeInsets.only(top: 4, bottom: 80),
-                            itemCount: _sortedFilteredProducts.length,
-                            itemBuilder: (context, index) {
-                              final p = _sortedFilteredProducts[index];
-                              return Padding(
-                                padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                                child: _SwipeableProductCard(
-                                  product: p,
-                                  onEdit: () => _showEditModal(p),
-                                  onDelete: () => _confirmDelete(p),
-                                ),
-                              );
-                            },
-                          ),
+                        : _manualOrder
+                            ? ReorderableListView.builder(
+                                padding: const EdgeInsets.only(top: 4, bottom: 80),
+                                buildDefaultDragHandles: false,
+                                itemCount: _sortedFilteredProducts.length,
+                                onReorder: _onReorderProducts,
+                                itemBuilder: (context, index) {
+                                  final p = _sortedFilteredProducts[index];
+                                  return KeyedSubtree(
+                                    key: ValueKey('product_${p.id}'),
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                                      child: _SwipeableProductCard(
+                                        product: p,
+                                        onEdit: () => _showEditModal(p),
+                                        onDelete: () => _confirmDelete(p),
+                                        onQuantityChanged: (q) => _changeQuantity(p, q),
+                                        reorderIndex: index,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.only(top: 4, bottom: 80),
+                                itemCount: _sortedFilteredProducts.length,
+                                itemBuilder: (context, index) {
+                                  final p = _sortedFilteredProducts[index];
+                                  return Padding(
+                                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                                    child: _SwipeableProductCard(
+                                      product: p,
+                                      onEdit: () => _showEditModal(p),
+                                      onDelete: () => _confirmDelete(p),
+                                      onQuantityChanged: (q) => _changeQuantity(p, q),
+                                    ),
+                                  );
+                                },
+                              ),
           ),
         ],
       ),
@@ -614,6 +675,10 @@ class _SortButton extends StatelessWidget {
           value: SortField.category,
           child: _buildSortItem('По категории', SortField.category),
         ),
+        PopupMenuItem(
+          value: SortField.position,
+          child: _buildSortItem('Вручную', SortField.position),
+        ),
       ],
     );
   }
@@ -654,45 +719,54 @@ class _CategoryDropdown extends StatelessWidget {
     required this.onChanged,
   });
 
-  Map<String, String> _getCategories() {
-    final allCategories = <String, String>{};
-    for (final type in ['care', 'decorative']) {
-      final cats = AppTheme.instance.getCategoriesByType(type);
-      allCategories.addAll(cats);
+  /// "Все" + one-level tree: selectable group rows (filter by all children)
+  /// with indented leaves below.
+  List<DropdownMenuItem<String>> _buildItems(AppTheme theme) {
+    final items = <DropdownMenuItem<String>>[
+      const DropdownMenuItem(value: 'all', child: Text('Все')),
+    ];
+    final types =
+        typeFilter == 'all' ? AppTheme.instance.visibleTypes() : [typeFilter];
+    for (final type in types) {
+      for (final group in AppTheme.instance.getCategoryTree(type)) {
+        if (!group.isUngrouped) {
+          items.add(DropdownMenuItem<String>(
+            value: group.key,
+            child: Text(
+              group.name,
+              style: TextStyle(fontWeight: FontWeight.w600, color: theme.textColor),
+            ),
+          ));
+        }
+        for (final leaf in group.leaves.entries) {
+          items.add(DropdownMenuItem<String>(
+            value: leaf.key,
+            child: Padding(
+              padding: EdgeInsets.only(left: group.isUngrouped ? 0 : 12),
+              child: Text(leaf.value),
+            ),
+          ));
+        }
+      }
     }
-    final sortedKeys = allCategories.keys.toList()
-      ..sort((a, b) => allCategories[a]!.compareTo(allCategories[b]!));
-    return {for (final k in sortedKeys) k: allCategories[k]!};
+    return items;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
-
-    Map<String, String> categoryItems;
-    if (typeFilter == 'all') {
-      categoryItems = {'all': 'Все', ..._getCategories()};
-    } else {
-      categoryItems = {'all': 'Все', ...AppTheme.instance.getCategoriesByType(typeFilter)};
-      final sortedKeys = categoryItems.keys.toList()
-        ..sort((a, b) {
-          if (a == 'all') return -1;
-          if (b == 'all') return 1;
-          return categoryItems[a]!.compareTo(categoryItems[b]!);
-        });
-      categoryItems = {for (final k in sortedKeys) k: categoryItems[k]!};
-    }
+    final items = _buildItems(theme);
+    final value =
+        items.any((i) => i.value == categoryFilter) ? categoryFilter! : 'all';
 
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
-        value: categoryFilter ?? 'all',
+        value: value,
         isExpanded: true,
         icon: Icon(Icons.keyboard_arrow_down, color: theme.textLightColor, size: 18),
         style: TextStyle(fontSize: 12, color: theme.textColor),
         dropdownColor: theme.surfaceColor,
-        items: categoryItems.entries
-            .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-            .toList(),
+        items: items,
         onChanged: (v) => onChanged(v == 'all' ? null : v),
       ),
     );
@@ -703,11 +777,15 @@ class _SwipeableProductCard extends StatefulWidget {
   final Product product;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final ValueChanged<int>? onQuantityChanged;
+  final int? reorderIndex;
 
   const _SwipeableProductCard({
     required this.product,
     required this.onEdit,
     required this.onDelete,
+    this.onQuantityChanged,
+    this.reorderIndex,
   });
 
   @override
@@ -717,11 +795,12 @@ class _SwipeableProductCard extends StatefulWidget {
 class _SwipeableProductCardState extends State<_SwipeableProductCard>
     with SingleTickerProviderStateMixin {
   double _dragExtent = 0;
+  double _animationStartExtent = 0;
   bool _isDragging = false;
   late AnimationController _controller;
-  late Animation<double> _animation;
 
   static const _threshold = 0.25;
+  static const _maxDragExtent = 120.0;
 
   @override
   void initState() {
@@ -734,11 +813,12 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
   }
 
   void _onAnimationTick() {
-    if (mounted) {
-      setState(() {
-        _dragExtent = _controller.value;
-      });
-    }
+    if (!mounted) return;
+    // Interpolate the drag extent (pixels) down to 0 using the controller.
+    final eased = Curves.easeOut.transform(_controller.value);
+    setState(() {
+      _dragExtent = _animationStartExtent * (1 - eased);
+    });
   }
 
   @override
@@ -751,8 +831,8 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
   void _onDragUpdate(DragUpdateDetails details) {
     setState(() {
       _isDragging = true;
-      _dragExtent += details.delta.dx;
-      _dragExtent = _dragExtent.clamp(-120.0, 120.0);
+      _dragExtent = (_dragExtent + details.delta.dx)
+          .clamp(-_maxDragExtent, _maxDragExtent);
     });
   }
 
@@ -771,11 +851,12 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
       }
     }
 
-    // Reset position via animation
-    _controller.value = _dragExtent;
-    _controller.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut).then((_) {
+    // Animate the card back to its resting position.
+    _animationStartExtent = _dragExtent;
+    _controller.forward(from: 0).whenComplete(() {
       if (mounted) {
         setState(() {
+          _dragExtent = 0;
           _isDragging = false;
         });
       }
@@ -786,7 +867,7 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
     final isDelete = _dragExtent < 0;
-    final progress = (_dragExtent.abs() / 120).clamp(0.0, 1.0);
+    final progress = (_dragExtent.abs() / _maxDragExtent).clamp(0.0, 1.0);
 
     return GestureDetector(
       onHorizontalDragUpdate: _onDragUpdate,
@@ -830,6 +911,8 @@ class _SwipeableProductCardState extends State<_SwipeableProductCard>
                 product: widget.product,
                 onEdit: widget.onEdit,
                 onDelete: widget.onDelete,
+                onQuantityChanged: widget.onQuantityChanged,
+                reorderIndex: widget.reorderIndex,
               ),
             ),
           ),

@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/home_screen.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize notification service
-  await NotificationService().initialize();
-  
+
+  // Initialize notification service. Never let a plugin failure (e.g. on
+  // platforms without support) prevent the app from starting.
+  try {
+    await NotificationService().initialize();
+  } catch (e) {
+    debugPrint('Notification init failed: $e');
+  }
+
   await Future.wait([
     loadThemeFromStorage(),
     loadDarkMode(),
@@ -48,6 +54,13 @@ class _BeautyShelfAppState extends State<BeautyShelfApp> {
     return MaterialApp(
       title: 'Полочка',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('ru'),
+      supportedLocales: const [Locale('ru'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: theme.primaryColor,

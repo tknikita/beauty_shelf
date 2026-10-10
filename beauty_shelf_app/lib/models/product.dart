@@ -12,6 +12,9 @@ class Product {
   final int expiryDaysAfterOpen;
   final String? imageUrl;
   final int? notificationDays; // null = no notification, 1-365 = days before expiry
+  final int quantity; // number of identical items, default 1
+  final String? brand; // manufacturer / brand, optional
+  final int position; // manual sort order (lower = earlier)
 
   Product({
     this.id,
@@ -25,6 +28,9 @@ class Product {
     this.expiryDaysAfterOpen = 30,
     this.imageUrl,
     this.notificationDays,
+    this.quantity = 1,
+    this.brand,
+    this.position = 0,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -42,6 +48,9 @@ class Product {
       expiryDaysAfterOpen: json['expiry_days_after_open'] as int? ?? 30,
       imageUrl: json['image_url'] as String?,
       notificationDays: json['notification_days'] as int?,
+      quantity: json['quantity'] as int? ?? 1,
+      brand: json['brand'] as String?,
+      position: json['position'] as int? ?? 0,
     );
   }
 
@@ -58,6 +67,9 @@ class Product {
       'expiry_days_after_open': expiryDaysAfterOpen,
       'image_url': imageUrl,
       if (notificationDays != null) 'notification_days': notificationDays,
+      'quantity': quantity,
+      'brand': brand,
+      'position': position,
     };
   }
 
@@ -77,6 +89,9 @@ class Product {
       expiryDaysAfterOpen: map['expiry_days_after_open'] as int? ?? 30,
       imageUrl: map['image_url'] as String?,
       notificationDays: map['notification_days'] as int?,
+      quantity: map['quantity'] as int? ?? 1,
+      brand: map['brand'] as String?,
+      position: map['position'] as int? ?? 0,
     );
   }
 
@@ -93,15 +108,38 @@ class Product {
       'expiry_days_after_open': expiryDaysAfterOpen,
       'image_url': imageUrl,
       if (notificationDays != null) 'notification_days': notificationDays,
+      'quantity': quantity,
+      'brand': brand,
+      'position': position,
     };
   }
 
+  /// The earlier of the printed [expiryDate] and the period-after-opening limit.
+  ///
+  /// The printed expiry and the PAO (`openedDate + expiryDaysAfterOpen`) are two
+  /// independent constraints: a product is fit for use only while both hold, so
+  /// the effective expiry is the earlier of the two. PAO never extends the
+  /// effective expiry past the manufacturer's printed date. Falls back to the
+  /// printed [expiryDate] when the product is not opened or has no open date.
   DateTime get effectiveExpiryDate {
     if (isOpened && openedDate != null) {
-      return openedDate!.add(Duration(days: expiryDaysAfterOpen));
+      final pao = openedDate!.add(Duration(days: expiryDaysAfterOpen));
+      if (_dateOnly(pao).isBefore(_dateOnly(expiryDate))) return pao;
     }
     return expiryDate;
   }
+
+  /// Which constraint produced [effectiveExpiryDate].
+  ExpiryBasis get expiryBasis {
+    if (!isOpened || openedDate == null) return ExpiryBasis.none;
+    final pao = openedDate!.add(Duration(days: expiryDaysAfterOpen));
+    return _dateOnly(pao).isBefore(_dateOnly(expiryDate))
+        ? ExpiryBasis.periodAfterOpening
+        : ExpiryBasis.printedExpiry;
+  }
+
+  /// Truncates [d] to a calendar day for date-only comparisons.
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
   int get daysLeft {
     final now = DateTime.now();
@@ -146,11 +184,17 @@ class Product {
     return url;
   }
 
-  /// Check if path is a local file path (not a remote URL)
+  /// Check whether [path] points to a local file, as opposed to a remote
+  /// URL, a web blob/data URL, or a backend API path.
+  ///
+  /// The previous implementation only matched Android paths ("/data/" ...),
+  /// so images saved on iOS/macOS/desktop were treated as network URLs.
   static bool isLocalPath(String path) {
-    return path.startsWith('/data/') ||
-           path.startsWith('/storage/') ||
-           path.startsWith('data/');
+    if (path.isEmpty) return false;
+    if (path.startsWith('http://') || path.startsWith('https://')) return false;
+    if (path.startsWith('blob:') || path.startsWith('data:')) return false;
+    if (path.startsWith('/api/') || path.startsWith('/images/')) return false;
+    return true;
   }
 
   /// Check if imageUrl is a local file path (not a remote URL)
@@ -171,24 +215,48 @@ class Product {
     int? expiryDaysAfterOpen,
     String? imageUrl,
     int? notificationDays,
+    int? quantity,
+    String? brand,
+    int? position,
+    bool clearPurpose = false,
+    bool clearOpenedDate = false,
+    bool clearImageUrl = false,
+    bool clearNotificationDays = false,
+    bool clearBrand = false,
   }) {
     return Product(
       id: id ?? this.id,
       name: name ?? this.name,
       type: type ?? this.type,
       category: category ?? this.category,
-      purpose: purpose ?? this.purpose,
+      purpose: clearPurpose ? null : (purpose ?? this.purpose),
       expiryDate: expiryDate ?? this.expiryDate,
       isOpened: isOpened ?? this.isOpened,
-      openedDate: openedDate ?? this.openedDate,
+      openedDate: clearOpenedDate ? null : (openedDate ?? this.openedDate),
       expiryDaysAfterOpen: expiryDaysAfterOpen ?? this.expiryDaysAfterOpen,
-      imageUrl: imageUrl ?? this.imageUrl,
-      notificationDays: notificationDays ?? this.notificationDays,
+      imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
+      notificationDays:
+          clearNotificationDays ? null : (notificationDays ?? this.notificationDays),
+      quantity: quantity ?? this.quantity,
+      brand: clearBrand ? null : (brand ?? this.brand),
+      position: position ?? this.position,
     );
   }
 }
 
 enum ProductStatus { ok, warning, danger, expired }
+
+/// Which limit determines a product's effective expiry date.
+enum ExpiryBasis {
+  /// Not opened (or no open date): the printed expiry date applies.
+  none,
+
+  /// The printed manufacturer expiry is the earlier limit.
+  printedExpiry,
+
+  /// The period-after-opening limit is the earlier limit.
+  periodAfterOpening,
+}
 
 /// Categories helper - uses AppTheme for actual data
 class Categories {

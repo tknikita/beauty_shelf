@@ -7,15 +7,9 @@ services:
       - db_data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
-
-  frontend:
-    build:
-      context: ./beauty_shelf_app
-      dockerfile: Dockerfile
-    ports:
-      - "8080:80"
-    depends_on:
-      - backend
+      # Server-local timezone used by /api/expiring. Set TZ to your zone so
+      # the web expiry window matches the device's local date.
+      - TZ=${TZ:-Europe/Moscow}
 
 volumes:
   db_data:

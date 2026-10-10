@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 /// Service for external API calls (barcode lookup, etc.)
@@ -36,7 +37,7 @@ class ApiService {
     for (final source in _sources) {
       final result = await _lookupFromApi(barcode, source);
       if (result != null) {
-        print('Found in: ${source.name}');
+        debugPrint('Found in: ${source.name}');
         return result;
       }
     }
@@ -82,7 +83,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      print('${source.name} error: $e');
+      debugPrint('${source.name} error: $e');
       return null;
     }
   }
@@ -120,7 +121,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      print('Search error: $e');
+      debugPrint('Search error: $e');
       return null;
     }
   }

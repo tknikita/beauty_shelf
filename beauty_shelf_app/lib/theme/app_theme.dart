@@ -16,8 +16,6 @@ class AppTheme extends ChangeNotifier {
   static const _lightBorder = Color(0xFFE8E8E8);
 
   // Dark theme colors
-  static const _darkPrimary = Color(0xFFE8B4BC);
-  static const _darkPrimaryDark = Color(0xFFD49BA5);
   static const _darkBackground = Color(0xFF1A1A1A);
   static const _darkText = Color(0xFFF5F5F5);
   static const _darkTextLight = Color(0xFFAAAAAA);
@@ -30,6 +28,11 @@ class AppTheme extends ChangeNotifier {
   Color textColor = _lightText;
   Color textLightColor = _lightTextLight;
   Color borderColor = _lightBorder;
+
+  /// User-selected light-mode background. [backgroundColor] is derived from
+  /// this (or the dark palette) inside [adjustColors], so a chosen preset
+  /// background is not clobbered by subsequent [adjustColors] passes.
+  Color _lightBackgroundColor = _lightBackground;
 
   // Status colors
   Color expiredColor = const Color(0xFFC62828);
@@ -59,17 +62,89 @@ class AppTheme extends ChangeNotifier {
   // Custom categories
   Map<String, Map<String, String>> customCategories = {};
 
+  /// Custom category groups (one-level subcategories): `type -> groupKey -> name`.
+  Map<String, Map<String, String>> customGroups = {};
+
+  /// Parent group of a leaf, stored as `type|leafKey -> groupKey`. Overrides
+  /// the built-in assignment so built-in leaves can be reorganised.
+  Map<String, String> leafParent = {};
+
+  /// Per-type sort mode: `'auto'` (alphabetical by name) or `'manual'`.
+  Map<String, String> categorySortMode = {};
+
+  /// Manual group order per type (`type -> [groupKey, ...]`).
+  Map<String, List<String>> groupOrder = {};
+
+  /// Manual leaf order per type and group id (`''` = un-grouped):
+  /// `type -> groupId -> [leafKey, ...]`.
+  Map<String, Map<String, List<String>>> leafOrder = {};
+
+  /// Product-type label overrides (`care -> 'Уходовая'`).
+  Map<String, String> typeNames = {};
+
+  /// Product types hidden by the user.
+  final Set<String> _removedTypes = {};
+
+  static const List<String> _defaultTypeKeys = ['care', 'decorative'];
+  static const Map<String, String> _defaultTypeNames = {
+    'care': 'Уходовая',
+    'decorative': 'Декоративная',
+  };
+
+  /// Built-in categories hidden by the user, stored as `type|key` entries.
+  /// Needed because built-ins come from [_getDefaultCategories] and would
+  /// otherwise reappear after removal.
+  final Set<String> _removedCategories = {};
+
+  /// Built-in groups hidden by the user, stored as `type|groupKey`.
+  final Set<String> _removedGroups = {};
+
+  bool isCategoryRemoved(String type, String key) =>
+      _removedCategories.contains('$type|$key');
+
+  /// Clears custom and hidden categories. Test-only helper.
+  @visibleForTesting
+  void resetCategoriesForTest() {
+    customCategories.clear();
+    customGroups.clear();
+    leafParent.clear();
+    _removedCategories.clear();
+    _removedGroups.clear();
+    categorySortMode.clear();
+    groupOrder.clear();
+    leafOrder.clear();
+    typeNames.clear();
+    _removedTypes.clear();
+  }
+
   // Storage keys
   static const _keyDark = 'beauty_shelf_dark';
   static const _keyTheme = 'beauty_shelf_theme';
   static const _keyCategories = 'beauty_shelf_categories';
+  static const _keyRemovedCategories = 'beauty_shelf_removed_categories';
+  static const _keyGroups = 'beauty_shelf_groups';
+  static const _keyLeafParent = 'beauty_shelf_leaf_parent';
+  static const _keyRemovedGroups = 'beauty_shelf_removed_groups';
+  static const _keySortMode = 'beauty_shelf_sort_mode';
+  static const _keyGroupOrder = 'beauty_shelf_group_order';
+  static const _keyLeafOrder = 'beauty_shelf_leaf_order';
+  static const _keyTypeNames = 'beauty_shelf_type_names';
+  static const _keyRemovedTypes = 'beauty_shelf_removed_types';
 
   void toggleDarkMode() {
-    _savedPrimaryColor = primaryColor;
-    _instancePrimarySet = true;
     _isDarkMode = !_isDarkMode;
     _applyDarkMode();
     _saveDarkMode();
+    notifyListeners();
+  }
+
+  /// Apply a dark-mode value loaded from storage and notify listeners.
+  ///
+  /// Kept as a public method so top-level loaders don't call the protected
+  /// [notifyListeners] directly.
+  void applyLoadedDarkMode(bool dark) {
+    _isDarkMode = dark;
+    _applyDarkMode();
     notifyListeners();
   }
 
@@ -98,9 +173,6 @@ class AppTheme extends ChangeNotifier {
     adjustColors();
   }
   
-  static bool _instancePrimarySet = false;
-  Color _savedPrimaryColor = _lightPrimary;
-
   Future<void> _saveDarkMode() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -112,10 +184,10 @@ class AppTheme extends ChangeNotifier {
 
   void applyPreset(Color primary, Color background) {
     primaryColor = primary;
-    _savedPrimaryColor = primary;
-    if (!_isDarkMode) {
-      backgroundColor = background;
-    }
+    // Always store the chosen light-mode background so it applies whenever
+    // the user switches back to light mode (in dark mode the dark palette is
+    // used regardless).
+    _lightBackgroundColor = background;
     adjustColors();
     _saveToStorage();
     notifyListeners();
@@ -144,7 +216,7 @@ class AppTheme extends ChangeNotifier {
       careTypeBgColor = const Color(0xFF0D2744);
       decorativeTypeBgColor = const Color(0xFF2D1A3D);
     } else {
-      backgroundColor = _lightBackground;
+      backgroundColor = _lightBackgroundColor;
       surfaceColor = Colors.white;
       borderColor = _lightBorder;
       selectionColor = const Color(0xFFE8B4BC);
@@ -185,7 +257,7 @@ class AppTheme extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
         _keyTheme,
-        '${primaryColor.toARGB32()},${backgroundColor.toARGB32()},${_savedPrimaryColor.toARGB32()}',
+        '${primaryColor.toARGB32()},${_lightBackgroundColor.toARGB32()}',
       );
     } catch (e) {
       debugPrint('_saveToStorage error: $e');
@@ -193,40 +265,263 @@ class AppTheme extends ChangeNotifier {
   }
 
   // Categories management
-  void addCategory(String type, String key, String name) {
+  void addCategory(String type, String key, String name, {String? groupKey}) {
     if (!customCategories.containsKey(type)) {
       customCategories[type] = {};
     }
     customCategories[type]![key] = name;
+    // Re-adding a previously removed built-in makes it visible again.
+    _removedCategories.remove('$type|$key');
+    if (groupKey != null) {
+      leafParent['$type|$key'] = groupKey;
+    }
     _saveCategories();
     notifyListeners();
   }
 
   void removeCategory(String type, String key) {
     customCategories[type]?.remove(key);
+    leafParent.remove('$type|$key');
+    // Remember the removal so a built-in category does not reappear from
+    // [_getDefaultCategories] on the next rebuild.
+    _removedCategories.add('$type|$key');
     _saveCategories();
     notifyListeners();
   }
 
-  void reorderCategories(String type, List<String> keys) {
-    final reordered = <String, String>{};
-    for (final key in keys) {
-      final name = _getDefaultCategories()[type]?[key] ?? customCategories[type]?[key];
-      if (name != null) {
-        reordered[key] = name;
-      }
-    }
-    customCategories[type] = reordered;
+  /// Adds a one-level group (subcategory bucket).
+  void addGroup(String type, String key, String name) {
+    customGroups.putIfAbsent(type, () => {})[key] = name;
+    _removedGroups.remove('$type|$key');
     _saveCategories();
     notifyListeners();
+  }
+
+  /// Renames a group. Works for built-ins too (stored as an override).
+  void renameGroup(String type, String key, String name) {
+    customGroups.putIfAbsent(type, () => {})[key] = name;
+    _removedGroups.remove('$type|$key');
+    _saveCategories();
+    notifyListeners();
+  }
+
+  /// Hides a group (built-in or custom). Its leaves become un-grouped.
+  void removeGroup(String type, String key) {
+    customGroups[type]?.remove(key);
+    _removedGroups.add('$type|$key');
+    // Leaves that pointed at this group fall back to their default/un-grouped.
+    leafParent.removeWhere((k, v) => v == key && k.startsWith('$type|'));
+    _saveCategories();
+    notifyListeners();
+  }
+
+  /// Group key that [leafKey] belongs to, or null when un-grouped. An empty
+  /// override (`''`) means "explicitly no group" (used by manual reordering).
+  String? groupOf(String type, String leafKey) {
+    final override = leafParent['$type|$leafKey'];
+    if (override != null) return override.isEmpty ? null : override;
+    return _getDefaultLeafParent()[type]?[leafKey];
+  }
+
+  bool isManualSort(String type) => categorySortMode[type] == 'manual';
+
+  /// Switches a type between alphabetical ('auto') and manual ordering.
+  void setManualSort(String type, bool manual) {
+    categorySortMode[type] = manual ? 'manual' : 'auto';
+    _saveCategories();
+    notifyListeners();
+  }
+
+  /// Returns a type to alphabetical order and forgets manual positions.
+  void resetSort(String type) {
+    categorySortMode.remove(type);
+    groupOrder.remove(type);
+    leafOrder.remove(type);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  void reorderGroups(String type, List<String> keys) {
+    categorySortMode[type] = 'manual';
+    groupOrder[type] = List.of(keys);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  void reorderLeaves(String type, String? groupKey, List<String> keys) {
+    categorySortMode[type] = 'manual';
+    leafOrder.putIfAbsent(type, () => {})[groupKey ?? ''] = List.of(keys);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  /// Applies a whole manual layout produced by the flat reorder editor:
+  /// group order, per-group leaf order and leaf -> group assignment.
+  void applyManualLayout(
+    String type,
+    List<String> groupKeys,
+    Map<String, List<String>> leavesByGroup,
+  ) {
+    categorySortMode[type] = 'manual';
+    groupOrder[type] = List.of(groupKeys);
+
+    final perGroup = <String, List<String>>{};
+    for (final e in leavesByGroup.entries) {
+      perGroup[e.key] = List.of(e.value);
+    }
+    leafOrder[type] = perGroup;
+
+    for (final e in leavesByGroup.entries) {
+      for (final leaf in e.value) {
+        // '' means explicitly un-grouped, keeping the choice sticky.
+        leafParent['$type|$leaf'] = e.key;
+      }
+    }
+    _saveCategories();
+    notifyListeners();
+  }
+
+  // Product types -----------------------------------------------------------
+  List<String> allTypes() => List.of(_defaultTypeKeys);
+
+  List<String> visibleTypes() =>
+      _defaultTypeKeys.where((t) => !_removedTypes.contains(t)).toList();
+
+  bool isTypeRemoved(String type) => _removedTypes.contains(type);
+
+  String typeName(String type) =>
+      typeNames[type] ?? _defaultTypeNames[type] ?? type;
+
+  void renameType(String type, String name) {
+    typeNames[type] = name;
+    _removedTypes.remove(type);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  void removeType(String type) {
+    _removedTypes.add(type);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  void restoreType(String type) {
+    _removedTypes.remove(type);
+    _saveCategories();
+    notifyListeners();
+  }
+
+  /// Serializable snapshot of theme + category state for backups.
+  Map<String, dynamic> toBackup() => {
+        'customCategories': customCategories,
+        'customGroups': customGroups,
+        'leafParent': leafParent,
+        'removedCategories': _removedCategories.toList(),
+        'removedGroups': _removedGroups.toList(),
+        'categorySortMode': categorySortMode,
+        'groupOrder': groupOrder,
+        'leafOrder': leafOrder,
+        'typeNames': typeNames,
+        'removedTypes': _removedTypes.toList(),
+        'primary': primaryColor.toARGB32(),
+        'background': _lightBackgroundColor.toARGB32(),
+        'dark': _isDarkMode,
+      };
+
+  /// Restores state produced by [toBackup] and persists it.
+  void applyBackup(Map<String, dynamic> data) {
+    try {
+      customCategories = _readNested(data['customCategories']);
+      customGroups = _readNested(data['customGroups']);
+      leafParent = _readFlat(data['leafParent']);
+      _removedCategories
+        ..clear()
+        ..addAll(((data['removedCategories'] as List?) ?? const [])
+            .map((e) => e.toString()));
+      _removedGroups
+        ..clear()
+        ..addAll(((data['removedGroups'] as List?) ?? const [])
+            .map((e) => e.toString()));
+      categorySortMode = _readFlat(data['categorySortMode']);
+      groupOrder = _readListMap(data['groupOrder']);
+      leafOrder = _readLeafOrder(data['leafOrder']);
+      typeNames = _readFlat(data['typeNames']);
+      _removedTypes
+        ..clear()
+        ..addAll(((data['removedTypes'] as List?) ?? const [])
+            .map((e) => e.toString()));
+
+      if (data['primary'] is int) primaryColor = Color(data['primary'] as int);
+      if (data['background'] is int) {
+        _lightBackgroundColor = Color(data['background'] as int);
+      }
+      _isDarkMode = data['dark'] == true;
+      adjustColors();
+
+      _saveCategories();
+      _saveToStorage();
+      _saveDarkMode();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('applyBackup error: $e');
+    }
+  }
+
+  Map<String, Map<String, String>> _readNested(dynamic src) {
+    final out = <String, Map<String, String>>{};
+    if (src is Map) {
+      src.forEach((k, v) {
+        final inner = <String, String>{};
+        if (v is Map) {
+          v.forEach((ik, iv) => inner['$ik'] = '$iv');
+        }
+        out['$k'] = inner;
+      });
+    }
+    return out;
+  }
+
+  Map<String, String> _readFlat(dynamic src) {
+    final out = <String, String>{};
+    if (src is Map) {
+      src.forEach((k, v) => out['$k'] = '$v');
+    }
+    return out;
+  }
+
+  Map<String, List<String>> _readListMap(dynamic src) {
+    final out = <String, List<String>>{};
+    if (src is Map) {
+      src.forEach((k, v) {
+        if (v is List) out['$k'] = v.map((e) => '$e').toList();
+      });
+    }
+    return out;
+  }
+
+  Map<String, Map<String, List<String>>> _readLeafOrder(dynamic src) {
+    final out = <String, Map<String, List<String>>>{};
+    if (src is Map) {
+      src.forEach((k, v) {
+        if (v is Map) out['$k'] = _readListMap(v);
+      });
+    }
+    return out;
   }
 
   Future<void> _saveCategories() async {
     try {
-      final encoded = customCategories.map((type, cats) =>
-        MapEntry(type, cats.map((k, v) => MapEntry(k, v))));
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyCategories, _encodeMap(encoded));
+      await prefs.setString(_keyCategories, _encodeMap(customCategories));
+      await prefs.setString(_keyRemovedCategories, _removedCategories.join(';'));
+      await prefs.setString(_keyGroups, _encodeMap(customGroups));
+      await prefs.setString(_keyLeafParent, _encodeFlat(leafParent));
+      await prefs.setString(_keyRemovedGroups, _removedGroups.join(';'));
+      await prefs.setString(_keySortMode, _encodeFlat(categorySortMode));
+      await prefs.setString(_keyGroupOrder, _encodeLists(groupOrder));
+      await prefs.setString(_keyLeafOrder, _encodeLeafOrder(leafOrder));
+      await prefs.setString(_keyTypeNames, _encodeFlat(typeNames));
+      await prefs.setString(_keyRemovedTypes, _removedTypes.join(';'));
     } catch (e) {
       debugPrint('_saveCategories error: $e');
     }
@@ -256,28 +551,233 @@ class AppTheme extends ChangeNotifier {
     return result;
   }
 
-  Map<String, Map<String, String>> get categories {
-    final defaults = _getDefaultCategories();
-    final result = <String, Map<String, String>>{};
-    for (final type in defaults.keys) {
-      final def = defaults[type]!;
-      final custom = customCategories[type] ?? {};
-      result[type] = Map<String, String>.from(def)..addAll(custom);
+  String _encodeFlat(Map<String, String> data) =>
+      data.entries.map((e) => '${e.key}=${e.value}').join(';');
+
+  Map<String, String> _decodeFlat(String encoded) {
+    final result = <String, String>{};
+    if (encoded.isEmpty) return result;
+    for (final entry in encoded.split(';')) {
+      final idx = entry.indexOf('=');
+      if (idx > 0) {
+        result[entry.substring(0, idx)] = entry.substring(idx + 1);
+      }
     }
     return result;
   }
 
+  String _encodeLists(Map<String, List<String>> data) => data.entries
+      .map((e) => '${e.key}:${e.value.join(',')}')
+      .join(';');
+
+  Map<String, List<String>> _decodeLists(String encoded) {
+    final result = <String, List<String>>{};
+    if (encoded.isEmpty) return result;
+    for (final entry in encoded.split(';')) {
+      final idx = entry.indexOf(':');
+      if (idx > 0) {
+        final rest = entry.substring(idx + 1);
+        result[entry.substring(0, idx)] =
+            rest.isEmpty ? [] : rest.split(',');
+      }
+    }
+    return result;
+  }
+
+  String _encodeLeafOrder(Map<String, Map<String, List<String>>> data) =>
+      data.entries
+          .map((e) => '${e.key}=${e.value.entries.map((g) => '${g.key}:${g.value.join(',')}').join('|')}')
+          .join(';');
+
+  Map<String, Map<String, List<String>>> _decodeLeafOrder(String encoded) {
+    final result = <String, Map<String, List<String>>>{};
+    if (encoded.isEmpty) return result;
+    for (final entry in encoded.split(';')) {
+      final idx = entry.indexOf('=');
+      if (idx <= 0) continue;
+      final groups = <String, List<String>>{};
+      for (final g in entry.substring(idx + 1).split('|')) {
+        final gi = g.indexOf(':');
+        if (gi < 0) continue;
+        final rest = g.substring(gi + 1);
+        groups[g.substring(0, gi)] = rest.isEmpty ? [] : rest.split(',');
+      }
+      result[entry.substring(0, idx)] = groups;
+    }
+    return result;
+  }
+
+  Map<String, Map<String, String>> get categories {
+    final defaults = _getDefaultCategories();
+    final result = <String, Map<String, String>>{};
+    for (final type in defaults.keys) {
+      result[type] = getCategoriesByType(type);
+    }
+    return result;
+  }
+
+  /// Visible leaves for [type], sorted by display name: built-ins minus removed
+  /// ones, overridden by custom categories.
   Map<String, String> getCategoriesByType(String type) {
+    final result = <String, String>{};
     final defaults = _getDefaultCategories()[type] ?? {};
+    for (final entry in defaults.entries) {
+      if (!isCategoryRemoved(type, entry.key)) {
+        result[entry.key] = entry.value;
+      }
+    }
     final custom = customCategories[type] ?? {};
-    return Map<String, String>.from(defaults)..addAll(custom);
+    for (final entry in custom.entries) {
+      if (!isCategoryRemoved(type, entry.key)) {
+        result[entry.key] = entry.value;
+      }
+    }
+    return _sortedByName(result);
+  }
+
+  /// Groups (subcategory buckets) for [type], minus hidden ones. Ordered
+  /// manually when the type is in manual mode, otherwise by name.
+  Map<String, String> getGroupsByType(String type) {
+    final base = <String, String>{};
+    (_getDefaultGroups()[type] ?? const {}).forEach((k, v) {
+      if (!_removedGroups.contains('$type|$k')) base[k] = v;
+    });
+    (customGroups[type] ?? const {}).forEach((k, v) {
+      if (!_removedGroups.contains('$type|$k')) base[k] = v;
+    });
+
+    if (!isManualSort(type)) return _sortedByName(base);
+    return _applyOrder(base, groupOrder[type]);
+  }
+
+  /// Key of the pseudo-section that holds categories without a group. It is a
+  /// first-class section: it can be moved anywhere (even after other sections)
+  /// and collapsed like any other.
+  static const String ungroupedSectionKey = '';
+  static const String ungroupedSectionName = 'Без раздела';
+
+  /// Ready-to-render one-level tree for the settings / forms UI. Includes the
+  /// "Без раздела" section (always in manual mode, when non-empty otherwise).
+  List<CategoryGroup> getCategoryTree(String type) {
+    final leaves = getCategoriesByType(type);
+    final realGroups = getGroupsByType(type);
+
+    final byGroup = <String, Map<String, String>>{};
+    for (final entry in leaves.entries) {
+      final g0 = groupOf(type, entry.key);
+      // Leaves whose group was removed fall into "Без раздела".
+      final g = (g0 == null || !realGroups.containsKey(g0))
+          ? ungroupedSectionKey
+          : g0;
+      byGroup.putIfAbsent(g, () => {})[entry.key] = entry.value;
+    }
+
+    final ungroupedLeaves = byGroup[ungroupedSectionKey] ?? const {};
+    final showUngrouped = ungroupedLeaves.isNotEmpty || isManualSort(type);
+
+    CategoryGroup ungrouped() => CategoryGroup(
+          key: ungroupedSectionKey,
+          name: ungroupedSectionName,
+          leaves: _orderLeaves(type, ungroupedSectionKey, ungroupedLeaves),
+        );
+    CategoryGroup group(String key, String name) => CategoryGroup(
+          key: key,
+          name: name,
+          leaves: _orderLeaves(type, key, byGroup[key] ?? const {}),
+        );
+
+    final result = <CategoryGroup>[];
+
+    if (!isManualSort(type)) {
+      if (showUngrouped) result.add(ungrouped());
+      for (final e in realGroups.entries) {
+        result.add(group(e.key, e.value));
+      }
+      return result;
+    }
+
+    // Manual: honour the stored bucket order (may include the un-grouped '').
+    final order = groupOrder[type] ?? const <String>[];
+    final seen = <String>{};
+    for (final key in order) {
+      if (!seen.add(key)) continue;
+      if (key == ungroupedSectionKey) {
+        if (showUngrouped) result.add(ungrouped());
+      } else if (realGroups.containsKey(key)) {
+        result.add(group(key, realGroups[key]!));
+      }
+    }
+    for (final e in realGroups.entries) {
+      if (!seen.contains(e.key)) result.add(group(e.key, e.value));
+    }
+    if (showUngrouped && !seen.contains(ungroupedSectionKey)) {
+      result.insert(0, ungrouped()); // default position: top
+    }
+    return result;
+  }
+
+  /// Orders leaves for a group: manual positions when the type is manual (new
+  /// keys appended alphabetically), otherwise alphabetical by name.
+  Map<String, String> _orderLeaves(
+    String type,
+    String? groupKey,
+    Map<String, String> leaves,
+  ) {
+    if (!isManualSort(type)) return _sortedByName(leaves);
+    final order = leafOrder[type]?[groupKey ?? ''];
+    if (order == null || order.isEmpty) return _sortedByName(leaves);
+
+    final result = <String, String>{};
+    for (final k in order) {
+      if (leaves.containsKey(k)) result[k] = leaves[k]!;
+    }
+    for (final k in _extras(leaves, result)) {
+      result[k] = leaves[k]!;
+    }
+    return result;
+  }
+
+  /// Applies a manual [order] to [base], appending unknown keys by name.
+  Map<String, String> _applyOrder(Map<String, String> base, List<String>? order) {
+    if (order == null || order.isEmpty) return _sortedByName(base);
+    final result = <String, String>{};
+    for (final k in order) {
+      if (base.containsKey(k)) result[k] = base[k]!;
+    }
+    for (final k in _extras(base, result)) {
+      result[k] = base[k]!;
+    }
+    return result;
+  }
+
+  /// Keys of [base] not yet in [taken], sorted by their display name.
+  List<String> _extras(Map<String, String> base, Map<String, String> taken) {
+    return base.keys.where((k) => !taken.containsKey(k)).toList()
+      ..sort((a, b) => base[a]!.toLowerCase().compareTo(base[b]!.toLowerCase()));
+  }
+
+  /// Leaf keys that a filter on [groupOrLeaf] should match: the leaf itself, or
+  /// every child when a group key is given.
+  Set<String> resolveCategoryFilter(String type, String groupOrLeaf) {
+    final groupLeaves = getCategoryTree(type)
+        .where((g) => g.key == groupOrLeaf)
+        .expand((g) => g.leaves.keys)
+        .toSet();
+    if (groupLeaves.isNotEmpty) return groupLeaves;
+    return {groupOrLeaf};
+  }
+
+  Map<String, String> _sortedByName(Map<String, String> data) {
+    final sorted = data.entries.toList()
+      ..sort((a, b) => a.value.toLowerCase().compareTo(b.value.toLowerCase()));
+    return {for (final e in sorted) e.key: e.value};
   }
 
   Map<String, Map<String, String>> _getDefaultCategories() {
     return {
       'care': {
         'basic_care': 'Базовая уходовая',
-        'cleanser': 'Очищение',
+        'cleanser': 'Очищающее средство',
         'tonic': 'Тоник',
         'serum': 'Сыворотка',
         'cream': 'Крем',
@@ -304,20 +804,71 @@ class AppTheme extends ChangeNotifier {
       },
     };
   }
+
+  /// Built-in one-level groups (subcategory buckets) per type.
+  Map<String, Map<String, String>> _getDefaultGroups() {
+    return {
+      'care': {
+        'cleansing': 'Очищение и тонизирование',
+        'face_care': 'Уход за лицом',
+        'creams': 'Кремы',
+      },
+      'decorative': {
+        'complexion': 'Тон и коррекция',
+        'sculpting': 'Скульптурирование',
+        'eyes': 'Глаза',
+      },
+    };
+  }
+
+  /// Built-in leaf -> group assignment. Leaves absent here are un-grouped.
+  Map<String, Map<String, String>> _getDefaultLeafParent() {
+    return {
+      'care': {
+        'basic_care': 'cleansing',
+        'cleanser': 'cleansing',
+        'tonic': 'cleansing',
+        'serum': 'face_care',
+        'mask': 'face_care',
+        'special': 'face_care',
+        'sunscreen': 'face_care',
+        'cream': 'creams',
+        'face_cream': 'creams',
+        'eye_cream': 'creams',
+      },
+      'decorative': {
+        'base': 'complexion',
+        'tone': 'complexion',
+        'concealer': 'complexion',
+        'powder': 'complexion',
+        'blush': 'sculpting',
+        'bronzer': 'sculpting',
+        'highlighter': 'sculpting',
+        'eyeshadow': 'eyes',
+        'eyeliner': 'eyes',
+        'mascara': 'eyes',
+        'eyebrows': 'eyes',
+      },
+    };
+  }
+}
+
+/// A one-level category group with its leaves, ready for rendering.
+class CategoryGroup {
+  final String? key;
+  final String name;
+  final Map<String, String> leaves;
+
+  const CategoryGroup({required this.key, required this.name, required this.leaves});
+
+  bool get isUngrouped => key == null || key!.isEmpty;
 }
 
 Future<void> loadDarkMode() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('beauty_shelf_dark');
-    if (saved == '1') {
-      AppTheme.instance._isDarkMode = true;
-      AppTheme.instance._applyDarkMode();
-      AppTheme.instance.notifyListeners();
-    } else {
-      AppTheme.instance._isDarkMode = false;
-      AppTheme.instance._applyDarkMode();
-    }
+    AppTheme.instance.applyLoadedDarkMode(saved == '1');
   } catch (e) {
     debugPrint('loadDarkMode error: $e');
   }
@@ -329,6 +880,48 @@ Future<void> loadCategories() async {
     final saved = prefs.getString('beauty_shelf_categories');
     if (saved != null && saved.isNotEmpty) {
       AppTheme.instance.customCategories = AppTheme.instance._decodeMap(saved);
+    }
+    final removed = prefs.getString('beauty_shelf_removed_categories');
+    if (removed != null && removed.isNotEmpty) {
+      AppTheme.instance._removedCategories
+        ..clear()
+        ..addAll(removed.split(';').where((e) => e.isNotEmpty));
+    }
+    final groups = prefs.getString('beauty_shelf_groups');
+    if (groups != null && groups.isNotEmpty) {
+      AppTheme.instance.customGroups = AppTheme.instance._decodeMap(groups);
+    }
+    final parents = prefs.getString('beauty_shelf_leaf_parent');
+    if (parents != null && parents.isNotEmpty) {
+      AppTheme.instance.leafParent = AppTheme.instance._decodeFlat(parents);
+    }
+    final removedGroups = prefs.getString('beauty_shelf_removed_groups');
+    if (removedGroups != null && removedGroups.isNotEmpty) {
+      AppTheme.instance._removedGroups
+        ..clear()
+        ..addAll(removedGroups.split(';').where((e) => e.isNotEmpty));
+    }
+    final sortMode = prefs.getString('beauty_shelf_sort_mode');
+    if (sortMode != null && sortMode.isNotEmpty) {
+      AppTheme.instance.categorySortMode = AppTheme.instance._decodeFlat(sortMode);
+    }
+    final groupOrder = prefs.getString('beauty_shelf_group_order');
+    if (groupOrder != null && groupOrder.isNotEmpty) {
+      AppTheme.instance.groupOrder = AppTheme.instance._decodeLists(groupOrder);
+    }
+    final leafOrder = prefs.getString('beauty_shelf_leaf_order');
+    if (leafOrder != null && leafOrder.isNotEmpty) {
+      AppTheme.instance.leafOrder = AppTheme.instance._decodeLeafOrder(leafOrder);
+    }
+    final typeNames = prefs.getString('beauty_shelf_type_names');
+    if (typeNames != null && typeNames.isNotEmpty) {
+      AppTheme.instance.typeNames = AppTheme.instance._decodeFlat(typeNames);
+    }
+    final removedTypes = prefs.getString('beauty_shelf_removed_types');
+    if (removedTypes != null && removedTypes.isNotEmpty) {
+      AppTheme.instance._removedTypes
+        ..clear()
+        ..addAll(removedTypes.split(';').where((e) => e.isNotEmpty));
     }
   } catch (e) {
     debugPrint('loadCategories error: $e');
@@ -346,14 +939,7 @@ Future<void> loadThemeFromStorage() async {
         final bg = int.tryParse(parts[1]);
         if (primary != null && bg != null) {
           AppTheme.instance.primaryColor = Color(primary);
-          AppTheme.instance._savedPrimaryColor = Color(primary);
-          AppTheme._instancePrimarySet = true;
-          
-          if (!AppTheme.instance._isDarkMode) {
-            AppTheme.instance.backgroundColor = Color(bg);
-            AppTheme.instance.surfaceColor = Colors.white;
-            AppTheme.instance.borderColor = AppTheme._lightBorder;
-          }
+          AppTheme.instance._lightBackgroundColor = Color(bg);
           AppTheme.instance.adjustColors();
         }
       }

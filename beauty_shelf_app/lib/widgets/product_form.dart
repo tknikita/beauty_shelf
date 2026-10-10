@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import '../models/product.dart';
 import '../screens/barcode_scanner_screen.dart';
 import '../services/api_service.dart';
@@ -23,15 +24,10 @@ class ProductForm extends StatefulWidget {
 
 class _ProductFormState extends State<ProductForm> {
   final _formKey = GlobalKey<FormState>();
-  
-  // Abbreviate category names for dropdown
-  String _abbr(String name) {
-    if (name.length <= 10) return name;
-    return '${name.substring(0, 8)}…';
-  }
-  
+
   late TextEditingController _barcodeController;
   late TextEditingController _nameController;
+  late TextEditingController _brandController;
   late TextEditingController _purposeController;
   late String _type;
   late String _category;
@@ -42,6 +38,7 @@ class _ProductFormState extends State<ProductForm> {
   String? _imageUrl;
   bool _isUploadingImage = false;
   late TextEditingController _notificationDaysController;
+  late int _quantity;
   
   bool _isLookingUp = false;
   String? _lookupResult;
@@ -53,9 +50,13 @@ class _ProductFormState extends State<ProductForm> {
     final p = widget.product;
     _barcodeController = TextEditingController(text: '');
     _nameController = TextEditingController(text: p?.name ?? '');
+    _brandController = TextEditingController(text: p?.brand ?? '');
     _purposeController = TextEditingController(text: p?.purpose ?? '');
-    _type = p?.type ?? 'care';
-    _category = p?.category ?? 'basic_care';
+    final visibleTypes = AppTheme.instance.visibleTypes();
+    _type = p?.type ?? (visibleTypes.isNotEmpty ? visibleTypes.first : 'care');
+    final initialCategories = AppTheme.instance.getCategoriesByType(_type);
+    _category = p?.category ??
+        (initialCategories.isNotEmpty ? initialCategories.keys.first : 'basic_care');
     _expiryDate = p?.expiryDate ?? DateTime.now().add(const Duration(days: 180));
     _isOpened = p?.isOpened ?? false;
     _openedDate = p?.openedDate;
@@ -64,6 +65,7 @@ class _ProductFormState extends State<ProductForm> {
     _notificationDaysController = TextEditingController(
       text: p?.notificationDays?.toString() ?? '',
     );
+    _quantity = p?.quantity ?? 1;
 
     // Listen for theme changes
     AppTheme.instance.addListener(_onThemeChanged);
@@ -73,6 +75,7 @@ class _ProductFormState extends State<ProductForm> {
   void dispose() {
     _barcodeController.dispose();
     _nameController.dispose();
+    _brandController.dispose();
     _purposeController.dispose();
     _notificationDaysController.dispose();
     AppTheme.instance.removeListener(_onThemeChanged);
@@ -107,11 +110,17 @@ class _ProductFormState extends State<ProductForm> {
           if (result != null) {
             _lookupResult = result['name'] ?? result['product_name'] ?? 'Найден товар';
             _lookupError = null;
-            // Auto-fill name if empty
+            // Auto-fill name/brand if empty
             if (_nameController.text.trim().isEmpty) {
               final name = result['name'] ?? result['product_name'];
               if (name != null) {
                 _nameController.text = name;
+              }
+            }
+            if (_brandController.text.trim().isEmpty) {
+              final brand = result['brand'];
+              if (brand is String && brand.trim().isNotEmpty) {
+                _brandController.text = brand.trim();
               }
             }
           } else {
@@ -140,12 +149,14 @@ class _ProductFormState extends State<ProductForm> {
         type: _type,
         category: _category,
         purpose: _purposeController.text.trim().isEmpty ? null : _purposeController.text.trim(),
+        brand: _brandController.text.trim().isEmpty ? null : _brandController.text.trim(),
         expiryDate: _expiryDate,
         isOpened: _isOpened,
         openedDate: _isOpened ? _openedDate : null,
         expiryDaysAfterOpen: _expiryDaysAfterOpen,
         imageUrl: _imageUrl,
         notificationDays: notificationDays,
+        quantity: _quantity,
       );
       widget.onSave(product);
     }
@@ -177,22 +188,34 @@ class _ProductFormState extends State<ProductForm> {
     if (source == null) return;
 
     final ImagePicker picker = ImagePicker();
-    final image = await picker.pickImage(source: source, maxWidth: 800, imageQuality: 80);
-    
+    final image = await picker.pickImage(source: source, maxWidth: 1600, imageQuality: 90);
     if (image == null) return;
-    
+
+    // Offer native cropping (uCrop on Android) right after picking.
+    final cropped = await _cropImage(image);
+    if (cropped == null) return; // user cancelled the crop
+
     setState(() => _isUploadingImage = true);
-    
+
     try {
-      // Copy image to local storage
+      // Persist the cropped image to local storage.
+      final bytes = await cropped.readAsBytes();
       final storage = createStorageService();
-      final localPath = await storage.saveImage(image.path);
-      
-      if (localPath != null && mounted) {
-        setState(() => _imageUrl = localPath);
+      final url = await storage.saveImageBytes(bytes, cropped.path.split('/').last);
+
+      if (url != null && mounted) {
+        setState(() => _imageUrl = url);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Изображение добавлено'),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Не удалось сохранить изображение'),
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
           ),
@@ -215,10 +238,102 @@ class _ProductFormState extends State<ProductForm> {
     }
   }
 
+  Future<CroppedFile?> _cropImage(XFile picked) async {
+    try {
+      return await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        // Square only (1:1) — matches the card media.
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 85,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Обрезка фото',
+            toolbarColor: AppTheme.instance.primaryColor,
+            toolbarWidgetColor: Colors.white,
+            lockAspectRatio: true,
+            hideBottomControls: false,
+            initAspectRatio: CropAspectRatioPreset.square,
+            aspectRatioPresets: [CropAspectRatioPreset.square],
+          ),
+          IOSUiSettings(
+            title: 'Обрезка фото',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPresets: [CropAspectRatioPreset.square],
+          ),
+        ],
+      );
+    } catch (e) {
+      debugPrint('crop error: $e');
+      return null;
+    }
+  }
+
+  String _formatDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}.'
+      '${d.month.toString().padLeft(2, '0')}.${d.year}';
+
+  /// Type options: visible types (+ the current one even if hidden).
+  List<DropdownMenuItem<String>> _typeItems(AppTheme theme) {
+    final types = AppTheme.instance.visibleTypes();
+    if (!types.contains(_type)) types.add(_type);
+    return types
+        .map((t) => DropdownMenuItem(
+              value: t,
+              child: Text(
+                AppTheme.instance.typeName(t),
+                style: TextStyle(color: theme.textColor),
+              ),
+            ))
+        .toList();
+  }
+
+  /// Grouped dropdown items: a disabled header per group, leaves indented.
+  List<DropdownMenuItem<String>> _buildCategoryItems(AppTheme theme) {
+    final items = <DropdownMenuItem<String>>[];
+    for (final group in AppTheme.instance.getCategoryTree(_type)) {
+      if (!group.isUngrouped) {
+        items.add(DropdownMenuItem<String>(
+          enabled: false,
+          value: '_group_${group.key}',
+          child: Text(
+            group.name,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: theme.textLightColor,
+            ),
+          ),
+        ));
+      }
+      for (final leaf in group.leaves.entries) {
+        items.add(DropdownMenuItem<String>(
+          value: leaf.key,
+          child: Padding(
+            padding: EdgeInsets.only(left: group.isUngrouped ? 0 : 12),
+            child: Text(leaf.value, style: TextStyle(color: theme.textColor)),
+          ),
+        ));
+      }
+    }
+    // Never silently drop the product's category: keep it selectable even if it
+    // is not part of the current list (e.g. a deleted custom category).
+    if (!items.any((i) => i.value == _category)) {
+      items.add(DropdownMenuItem<String>(
+        value: _category,
+        child: Text(
+          Categories.getCategoryName(_type, _category),
+          style: TextStyle(color: theme.textColor),
+        ),
+      ));
+    }
+    return items;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
-    final categories = theme.getCategoriesByType(_type);
     final mediaQuery = MediaQuery.of(context);
     final bottomPadding = mediaQuery.viewInsets.bottom + mediaQuery.padding.bottom + 24;
 
@@ -340,14 +455,14 @@ class _ProductFormState extends State<ProductForm> {
                                   fit: BoxFit.cover,
                                   cacheWidth: 160,
                                   cacheHeight: 160,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+                                  errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported),
                                 )
                               : Image.network(
                                   Product.getDisplayUrl(_imageUrl) ?? _imageUrl!,
                                   fit: BoxFit.cover,
                                   cacheWidth: 160,
                                   cacheHeight: 160,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+                                  errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported),
                                 ),
                         ),
                       ),
@@ -392,10 +507,27 @@ class _ProductFormState extends State<ProductForm> {
               ),
               const SizedBox(height: 16),
 
+              // Brand
+              TextFormField(
+                controller: _brandController,
+                style: TextStyle(color: theme.textColor),
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: 'Бренд',
+                  labelStyle: TextStyle(color: theme.textColor),
+                  hintText: 'Например: CeraVe',
+                  hintStyle: TextStyle(color: theme.textLightColor),
+                  border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
+                ),
+              ),
+              const SizedBox(height: 16),
+
               // Type & Category row
               // Type & Category - stacked on narrow screens
               DropdownButtonFormField<String>(
-                value: _type,
+                initialValue: _type,
                 dropdownColor: theme.surfaceColor,
                 decoration: InputDecoration(
                   labelText: 'Тип',
@@ -404,21 +536,22 @@ class _ProductFormState extends State<ProductForm> {
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                   focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                 ),
-                items: [
-                  DropdownMenuItem(value: 'care', child: Text('Уходовая', style: TextStyle(color: theme.textColor))),
-                  DropdownMenuItem(value: 'decorative', child: Text('Декоративная', style: TextStyle(color: theme.textColor))),
-                ],
+                items: _typeItems(theme),
                 onChanged: (v) {
                   setState(() {
                     _type = v!;
+                    // Keep the chosen category if it is still valid for the new
+                    // type; only fall back when it no longer exists.
                     final cats = theme.getCategoriesByType(_type);
-                    _category = cats.keys.first;
+                    if (!cats.containsKey(_category) && cats.isNotEmpty) {
+                      _category = cats.keys.first;
+                    }
                   });
                 },
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: categories.containsKey(_category) ? _category : categories.keys.first,
+                initialValue: _category,
                 dropdownColor: theme.surfaceColor,
                 decoration: InputDecoration(
                   labelText: 'Категория',
@@ -427,10 +560,7 @@ class _ProductFormState extends State<ProductForm> {
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                   focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                 ),
-                items: (categories.entries.toList()
-                      ..sort((a, b) => a.value.compareTo(b.value)))
-                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: TextStyle(color: theme.textColor))))
-                    .toList(),
+                items: _buildCategoryItems(theme),
                 onChanged: (v) => setState(() => _category = v!),
               ),
               const SizedBox(height: 16),
@@ -447,6 +577,53 @@ class _ProductFormState extends State<ProductForm> {
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                   focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: theme.primaryColor, width: 2)),
                   hintText: 'Например: Для сухой кожи',
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Quantity stepper
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: theme.borderColor),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'Количество',
+                      style: TextStyle(color: theme.textColor, fontSize: 16),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: _quantity > 1
+                          ? () => setState(() => _quantity--)
+                          : null,
+                      icon: const Icon(Icons.remove_circle_outline),
+                      color: theme.primaryColor,
+                      iconSize: 28,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    SizedBox(
+                      width: 36,
+                      child: Text(
+                        '$_quantity',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: theme.textColor,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => setState(() => _quantity++),
+                      icon: const Icon(Icons.add_circle_outline),
+                      color: theme.primaryColor,
+                      iconSize: 28,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
@@ -471,7 +648,7 @@ class _ProductFormState extends State<ProductForm> {
                     suffixIcon: Icon(Icons.calendar_today, color: theme.textLightColor),
                   ),
                   child: Text(
-                    '${_expiryDate.day}.${_expiryDate.month.toString().padLeft(2, '0')}.${_expiryDate.year}',
+                    _formatDate(_expiryDate),
                     style: TextStyle(color: theme.textColor),
                   ),
                 ),
@@ -533,8 +710,7 @@ class _ProductFormState extends State<ProductForm> {
                             border: OutlineInputBorder(borderSide: BorderSide(color: theme.borderColor)),
                           ),
                           child: Text(
-                            _openedDate != null
-                                ? '${_openedDate!.day}.${_openedDate!.month.toString().padLeft(2, '0')}.${_openedDate!.year}'
+                            _openedDate != null ? _formatDate(_openedDate!)
                                 : 'Выберите дату',
                             style: TextStyle(color: theme.textColor),
                           ),
@@ -608,12 +784,12 @@ class _ProductFormState extends State<ProductForm> {
                     ? Image.file(
                         File(imageUrl),
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => _buildPreviewError(theme),
+                        errorBuilder: (_, _, _) => _buildPreviewError(theme),
                       )
                     : Image.network(
                         Product.getDisplayUrl(imageUrl) ?? imageUrl,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => _buildPreviewError(theme),
+                        errorBuilder: (_, _, _) => _buildPreviewError(theme),
                       ),
               ),
             ),

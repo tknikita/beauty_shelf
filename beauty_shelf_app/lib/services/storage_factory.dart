@@ -1,6 +1,7 @@
 import 'storage_service.dart';
-import 'storage_web.dart' if (dart.library.io) 'storage_io.dart' as impl;
+import 'storage_io.dart' as impl;
 
+/// Mobile-only build: storage is always backed by the local SQLite database.
 StorageService createStorageService() {
   return impl.createStorage();
 }

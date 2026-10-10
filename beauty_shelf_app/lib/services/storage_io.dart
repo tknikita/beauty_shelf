@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
@@ -11,7 +11,7 @@ StorageService createStorage() => MobileStorageService();
 class MobileStorageService implements StorageService {
   Database? _database;
   static const String _imagesDir = 'images';
-  static const int _maxImageSize = 500 * 1024; // 500KB
+  static const int _maxImageSize = 5 * 1024 * 1024; // 5 MB
 
   Future<Database> get database async {
     _database ??= await _initDatabase();
@@ -24,7 +24,7 @@ class MobileStorageService implements StorageService {
 
     return await openDatabase(
       dbFile,
-      version: 2,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE products (
@@ -39,6 +39,9 @@ class MobileStorageService implements StorageService {
             expiry_days_after_open INTEGER DEFAULT 30,
             image_url TEXT,
             notification_days INTEGER,
+            quantity INTEGER DEFAULT 1,
+            brand TEXT,
+            position INTEGER DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
           )
@@ -49,6 +52,19 @@ class MobileStorageService implements StorageService {
           await db.execute(
             'ALTER TABLE products ADD COLUMN notification_days INTEGER',
           );
+        }
+        if (oldVersion < 3) {
+          await db.execute(
+            'ALTER TABLE products ADD COLUMN quantity INTEGER DEFAULT 1',
+          );
+        }
+        if (oldVersion < 4) {
+          await db.execute('ALTER TABLE products ADD COLUMN brand TEXT');
+          await db.execute(
+            'ALTER TABLE products ADD COLUMN position INTEGER DEFAULT 0',
+          );
+          // Give existing rows a stable manual order.
+          await db.execute('UPDATE products SET position = id');
         }
       },
     );
@@ -77,8 +93,15 @@ class MobileStorageService implements StorageService {
   Future<Product> createProduct(Product product) async {
     final db = await database;
     final map = product.toMap()..remove('id');
+    // Append new products to the end of the manual order.
+    if ((map['position'] as int?) == null || (map['position'] as int) == 0) {
+      final r = await db.rawQuery(
+        'SELECT COALESCE(MAX(position), 0) + 1 AS next FROM products',
+      );
+      map['position'] = (r.first['next'] as int?) ?? 1;
+    }
     final id = await db.insert('products', map);
-    return product.copyWith(id: id);
+    return product.copyWith(id: id, position: map['position'] as int);
   }
 
   @override
@@ -130,92 +153,55 @@ class MobileStorageService implements StorageService {
     final now = DateTime.now();
     final threshold = now.add(Duration(days: days));
     final thresholdStr = threshold.toIso8601String().split('T')[0];
-    final todayStr = now.toIso8601String().split('T')[0];
 
-    // Query products expiring within `days` days, considering:
-    // 1. Original expiry_date
-    // 2. Opened products: opened_date + expiry_days_after_open
+    // Effective expiry is the earlier of the printed expiry_date and the PAO
+    // limit (opened_date + expiry_days_after_open), matching
+    // Product.effectiveExpiryDate. The threshold is a local date string so it
+    // matches Product.daysLeft.
     final maps = await db.rawQuery('''
-      SELECT * FROM products 
-      WHERE expiry_date <= ?
-         OR (is_opened = 1 AND opened_date IS NOT NULL 
-             AND date(opened_date, '+' || expiry_days_after_open || ' days') <= ?)
+      SELECT * FROM products
+      WHERE MIN(
+        expiry_date,
+        CASE
+          WHEN is_opened = 1 AND opened_date IS NOT NULL
+            THEN date(opened_date, '+' || expiry_days_after_open || ' days')
+          ELSE expiry_date
+        END
+      ) <= ?
       ORDER BY expiry_date ASC
-    ''', [thresholdStr, thresholdStr]);
+    ''', [thresholdStr]);
     return maps.map((map) => Product.fromMap(map)).toList();
   }
 
+  /// Write image bytes to app's local storage and return the local path.
   @override
-  Future<String?> exportToJson() async {
+  Future<String?> saveImageBytes(List<int> bytes, String? fileName) async {
     try {
-      final products = await getAllProducts();
-      final data = {
-        'version': '1.0',
-        'exportedAt': DateTime.now().toIso8601String(),
-        'products': products.map((p) => p.toJson()).toList(),
-      };
-
-      final jsonString = const JsonEncoder.withIndent('  ').convert(data);
-      final dir = await getApplicationDocumentsDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = path.join(dir.path, 'beauty_shelf_export_$timestamp.json');
-
-      final file = File(filePath);
-      await file.writeAsString(jsonString);
-
-      return filePath;
-    } catch (e) {
-      print('Export error: $e');
-      return null;
-    }
-  }
-
-  @override
-  Future<int> importFromJson(String content) async {
-    try {
-      final data = json.decode(content) as Map<String, dynamic>;
-      final productsList = data['products'] as List<dynamic>;
-      int count = 0;
-
-      for (final jsonProduct in productsList) {
-        final product = Product.fromJson(jsonProduct);
-        await createProduct(product.copyWith(id: null));
-        count++;
+      if (bytes.length > _maxImageSize) {
+        debugPrint('Image rejected: ${bytes.length} bytes exceeds $_maxImageSize');
+        return null;
       }
-      return count;
-    } catch (e) {
-      print('Import error: $e');
-      return 0;
-    }
-  }
 
-  /// Copy image to app's local storage and return local path
-  @override
-  Future<String?> saveImage(String sourcePath) async {
-    try {
       final dir = await getApplicationDocumentsDirectory();
       final imagesPath = path.join(dir.path, _imagesDir);
-      
+
       // Create images directory if not exists
       final imagesDir = Directory(imagesPath);
       if (!await imagesDir.exists()) {
         await imagesDir.create(recursive: true);
       }
 
-      // Generate unique filename
+      // Generate unique filename, preserving a valid extension
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final ext = path.extension(sourcePath).toLowerCase();
+      final ext = path.extension(fileName ?? '').toLowerCase();
       final validExt = ['.jpg', '.jpeg', '.png', '.gif', '.webp'].contains(ext) ? ext : '.jpg';
-      final localFileName = 'product_$timestamp$validExt';
-      final localPath = path.join(imagesPath, localFileName);
+      final localPath = path.join(imagesPath, 'product_$timestamp$validExt');
 
-      // Copy file
-      final sourceFile = File(sourcePath);
-      await sourceFile.copy(localPath);
+      await File(localPath).writeAsBytes(bytes, flush: true);
 
       return localPath;
     } catch (e) {
-      print('Error saving image: $e');
+      debugPrint('Error saving image: $e');
       return null;
     }
   }
@@ -231,13 +217,9 @@ class MobileStorageService implements StorageService {
         await file.delete();
       }
     } catch (e) {
-      print('Error deleting image: $e');
+      debugPrint('Error deleting image: $e');
     }
   }
 
-  bool _isLocalPath(String path) {
-    return path.startsWith('/data/') ||
-           path.startsWith('/storage/') ||
-           path.startsWith('data/');
-  }
+  bool _isLocalPath(String path) => Product.isLocalPath(path);
 }

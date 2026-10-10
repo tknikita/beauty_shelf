@@ -106,7 +106,8 @@ void main() {
       expect(product.daysLeft, 5);
 
       // The printed date is far (+180d), so the PAO limit is the earlier one.
-      expect(find.text('5 дн.'), findsOneWidget);
+      // The card renders the status as "Скоро · 5 дн." for a near expiry.
+      expect(find.textContaining('5 дн.'), findsOneWidget);
     });
   });
 
@@ -204,8 +205,15 @@ void main() {
       await _openAddForm(tester);
 
       await tester.enterText(find.byType(TextFormField).first, 'С напоминанием');
-      // Field order (closed product): name, purpose, notification days.
-      await tester.enterText(find.byType(TextFormField).at(2), '7');
+      // Locate the notification field by its label - the positional index is
+      // stale now that the brand field sits between name and purpose.
+      await tester.enterText(
+        find.widgetWithText(
+          TextFormField,
+          'Уведомить за (дней, оставьте пустым чтобы не уведомлять)',
+        ),
+        '7',
+      );
 
       await tester.ensureVisible(find.text('Сохранить'));
       await tester.tap(find.text('Сохранить'));

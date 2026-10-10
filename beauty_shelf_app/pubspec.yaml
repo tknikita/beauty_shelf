@@ -70,6 +70,21 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  image: ^4.3.0
+
+# Launcher icon generation config.
+# Regenerate icons after changing the source image: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  # Adaptive icon (Android 8+): background colour + foreground layer.
+  # The foreground is a full-bleed opaque square, so inset must be 0 (otherwise
+  # a visible inner square appears). Background colour is a fallback only.
+  adaptive_icon_background: "#f9f5e0"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  adaptive_icon_foreground_inset: 0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -46,7 +46,14 @@ class ProductCard extends StatelessWidget {
     final d = product.effectiveExpiryDate;
     final date = 'до ${d.day.toString().padLeft(2, '0')}.'
         '${d.month.toString().padLeft(2, '0')}.${d.year}';
-    return product.isOpened ? '$date · вскрыт' : date;
+    switch (product.expiryBasis) {
+      case ExpiryBasis.periodAfterOpening:
+        return '$date · после вскрытия';
+      case ExpiryBasis.printedExpiry:
+        return '$date · срок производителя';
+      case ExpiryBasis.none:
+        return date;
+    }
   }
 
   @override

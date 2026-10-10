@@ -182,10 +182,11 @@ The app uses a reactive theme system:
 
 ### Opened Product Tracking
 When a product is marked as "opened":
-- Store `opened_date` and `expiry_days_after_open` (default 30 days)
-- Calculate effective expiry: `opened_date + expiry_days_after_open`
-- If no `opened_date`, fall back to original `expiry_date`
-- Display "Вскрыто X дн. назад" badge on product cards
+- Store `opened_date` and `expiry_days_after_open` (PAO, default 30 days)
+- The printed `expiry_date` and the PAO limit (`opened_date + expiry_days_after_open`) are two independent constraints; the **effective expiry is the earlier of the two**
+- PAO **never extends** the effective expiry past the manufacturer's printed `expiry_date`
+- If no `opened_date`, the effective expiry falls back to the printed `expiry_date`
+- Product cards label which limit is binding: `после вскрытия` (PAO) or `срок производителя` (printed date); `Product.expiryBasis` exposes the same signal
 
 ### Barcode Scanner
 - Camera scanning (`mobile_scanner`) plus manual barcode input
@@ -268,6 +269,11 @@ docker-compose up -d
 ```
 
 ## Changelog
+
+### 2026-10-10
+- **Corrected opened-product expiry precedence** — the effective expiry is now the **earlier** of the printed `expiry_date` and `opened_date + PAO`, so PAO can no longer extend a product past the manufacturer's printed date
+- Product cards now indicate which limit is binding (`после вскрытия` vs `срок производителя`); `Product.expiryBasis` exposes the same signal
+- Expiring queries (mobile `storage_io.dart` and optional `backend/main.py`) apply the same `MIN(...)` rule
 
 ### 2026-10-02
 - **Mobile-only release** — removed the Flutter Web build and all web-specific paths

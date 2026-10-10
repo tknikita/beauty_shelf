@@ -348,9 +348,10 @@ class TestExpiringAPI:
         assert "PAO" in names7
         assert "PAO" not in names1
 
-    def test_opened_uses_pao_not_printed_expiry(self):
-        """Per SPEC, an opened product's effective expiry is the PAO date, so
-        a soon printed expiry must NOT trigger /expiring when PAO is far."""
+    def test_opened_respects_nearer_printed_expiry(self):
+        """Per SPEC, the effective expiry is the earlier of the printed expiry
+        and the PAO date, so a near printed expiry MUST trigger /expiring even
+        when PAO is far."""
         self._create(
             name="ОткрытPAO",
             expiry_date=_date(3),
@@ -359,7 +360,19 @@ class TestExpiringAPI:
             expiry_days_after_open=300,
         )
         names = [p["name"] for p in client.get("/api/expiring?days=7").json()]
-        assert "ОткрытPAO" not in names
+        assert "ОткрытPAO" in names
+
+    def test_opened_not_expiring_when_both_limits_are_far(self):
+        # Printed expiry +365d and PAO +299d -> the earlier limit is +299d.
+        self._create(
+            name="ОбаДалеко",
+            expiry_date=_date(365),
+            is_opened=True,
+            opened_date=_date(-1),
+            expiry_days_after_open=300,
+        )
+        names = [p["name"] for p in client.get("/api/expiring?days=7").json()]
+        assert "ОбаДалеко" not in names
 
     def test_default_days_is_seven(self):
         self._create(name="Деф7", expiry_date=_date(5))

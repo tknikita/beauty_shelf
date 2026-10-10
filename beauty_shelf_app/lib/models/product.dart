@@ -114,12 +114,32 @@ class Product {
     };
   }
 
+  /// The earlier of the printed [expiryDate] and the period-after-opening limit.
+  ///
+  /// The printed expiry and the PAO (`openedDate + expiryDaysAfterOpen`) are two
+  /// independent constraints: a product is fit for use only while both hold, so
+  /// the effective expiry is the earlier of the two. PAO never extends the
+  /// effective expiry past the manufacturer's printed date. Falls back to the
+  /// printed [expiryDate] when the product is not opened or has no open date.
   DateTime get effectiveExpiryDate {
     if (isOpened && openedDate != null) {
-      return openedDate!.add(Duration(days: expiryDaysAfterOpen));
+      final pao = openedDate!.add(Duration(days: expiryDaysAfterOpen));
+      if (_dateOnly(pao).isBefore(_dateOnly(expiryDate))) return pao;
     }
     return expiryDate;
   }
+
+  /// Which constraint produced [effectiveExpiryDate].
+  ExpiryBasis get expiryBasis {
+    if (!isOpened || openedDate == null) return ExpiryBasis.none;
+    final pao = openedDate!.add(Duration(days: expiryDaysAfterOpen));
+    return _dateOnly(pao).isBefore(_dateOnly(expiryDate))
+        ? ExpiryBasis.periodAfterOpening
+        : ExpiryBasis.printedExpiry;
+  }
+
+  /// Truncates [d] to a calendar day for date-only comparisons.
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
   int get daysLeft {
     final now = DateTime.now();
@@ -225,6 +245,18 @@ class Product {
 }
 
 enum ProductStatus { ok, warning, danger, expired }
+
+/// Which limit determines a product's effective expiry date.
+enum ExpiryBasis {
+  /// Not opened (or no open date): the printed expiry date applies.
+  none,
+
+  /// The printed manufacturer expiry is the earlier limit.
+  printedExpiry,
+
+  /// The period-after-opening limit is the earlier limit.
+  periodAfterOpening,
+}
 
 /// Categories helper - uses AppTheme for actual data
 class Categories {

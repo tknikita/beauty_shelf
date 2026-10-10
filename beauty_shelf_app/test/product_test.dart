@@ -52,10 +52,17 @@ void main() {
       expect(p.effectiveExpiryDate, _dayOffset(50));
     });
 
-    test('PAO overrides a far printed expiry (per SPEC)', () {
+    test('PAO is used when it is the earlier limit', () {
       final p = _p(opened: true, openedDate: _dayOffset(-3), pao: 5, expiry: _dayOffset(365));
       expect(p.effectiveExpiryDate, _dayOffset(2));
       expect(p.daysLeft, 2);
+    });
+
+    test('printed expiry caps a PAO that would extend past it', () {
+      // PAO gives 365 days, but the printed date is nearer -> printed wins.
+      final p = _p(opened: true, openedDate: _dayOffset(-5), pao: 365, expiry: _dayOffset(10));
+      expect(p.effectiveExpiryDate, _dayOffset(10));
+      expect(p.daysLeft, 10);
     });
   });
 
@@ -67,10 +74,35 @@ void main() {
       final p = _p(opened: true, openedDate: _dayOffset(-5), pao: 5, expiry: _dayOffset(365));
       expect(p.daysLeft, 0);
     });
-    test('opened product ignores a nearer printed expiry', () {
-      // Printed expiry is 1 day away, but PAO gives 9 more days -> 9.
+    test('opened product respects a nearer printed expiry', () {
+      // Printed expiry is 1 day away; PAO would give 9 -> printed (1) wins.
       final p = _p(opened: true, openedDate: _dayOffset(-1), pao: 10, expiry: _dayOffset(1));
-      expect(p.daysLeft, 9);
+      expect(p.daysLeft, 1);
+    });
+  });
+
+  group('expiryBasis', () {
+    test('none when not opened', () {
+      expect(_p(expiry: _dayOffset(50)).expiryBasis, ExpiryBasis.none);
+    });
+
+    test('none when opened without a date', () {
+      expect(_p(opened: true, openedDate: null).expiryBasis, ExpiryBasis.none);
+    });
+
+    test('periodAfterOpening when PAO is the earlier limit', () {
+      final p = _p(opened: true, openedDate: _dayOffset(-10), pao: 12, expiry: _dayOffset(500));
+      expect(p.expiryBasis, ExpiryBasis.periodAfterOpening);
+    });
+
+    test('printedExpiry when the printed date is the earlier limit', () {
+      final p = _p(opened: true, openedDate: _dayOffset(-5), pao: 365, expiry: _dayOffset(10));
+      expect(p.expiryBasis, ExpiryBasis.printedExpiry);
+    });
+
+    test('printedExpiry when both limits fall on the same day', () {
+      final p = _p(opened: true, openedDate: _dayOffset(-5), pao: 10, expiry: _dayOffset(5));
+      expect(p.expiryBasis, ExpiryBasis.printedExpiry);
     });
   });
 

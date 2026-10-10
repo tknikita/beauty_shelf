@@ -81,7 +81,7 @@ void main() {
       expect(find.text('Срок после вскрытия (дней)'), findsNothing);
     });
 
-    testWidgets('opened product counts down from PAO, not printed expiry',
+    testWidgets('opened product counts down from the earlier (PAO) limit',
         (tester) async {
       await _pumpApp(tester);
       await _openAddForm(tester);
@@ -105,7 +105,7 @@ void main() {
       expect(product.expiryDaysAfterOpen, 5);
       expect(product.daysLeft, 5);
 
-      // The card shows the PAO-based countdown.
+      // The printed date is far (+180d), so the PAO limit is the earlier one.
       expect(find.text('5 дн.'), findsOneWidget);
     });
   });

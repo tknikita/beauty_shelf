@@ -187,7 +187,7 @@ When a product is marked as "opened":
 - PAO **never extends** the effective expiry past the manufacturer's printed `expiry_date`
 - If no `opened_date`, the effective expiry falls back to the printed `expiry_date`
 - Product cards show only the effective expiry date (`до DD.MM.YYYY`); `Product.expiryBasis` still exposes the binding limit on the model but it is not rendered on the card
-- Product cards mark opened packages with an open-lock icon (tooltip «Вскрыта упаковка») next to the status badge
+- Product cards mark opened packages with the official PAO symbol (open jar; tooltip «Вскрыта упаковка») next to the status badge — vector asset `beauty_shelf_app/assets/icons/pao_symbol.svg`, rendered via `flutter_svg`
 
 ### Barcode Scanner
 - Camera scanning (`mobile_scanner`) plus manual barcode input
@@ -274,7 +274,7 @@ docker-compose up -d
 ### 2026-10-10
 - **Corrected opened-product expiry precedence** — the effective expiry is now the **earlier** of the printed `expiry_date` and `opened_date + PAO`, so PAO can no longer extend a product past the manufacturer's printed date
 - Product cards show only the effective expiry date (`до DD.MM.YYYY`); the `после вскрытия` / `срок производителя` labels were removed
-- **Opened products are marked on the card** — an open-lock icon next to the status badge
+- **Opened products are marked on the card** — the official PAO symbol (open jar) next to the status badge
 - **Card layout reworked** — the overflow menu (⋮) sits in the top-right corner and, when quantity > 1, the `− N +` stepper in the bottom-right corner; both are drawn as overlays so they never widen the controls column — the name/subtitle keep their full width and the card height is the same whether or not the stepper is shown
 - Expiring queries (mobile `storage_io.dart` and optional `backend/main.py`) apply the same `MIN(...)` rule
 

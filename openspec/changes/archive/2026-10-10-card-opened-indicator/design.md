@@ -22,12 +22,13 @@ stepper inset from the right edge.
 
 ## Decisions
 
-**1. Opened indicator = open-lock icon + tooltip in the badge row.**
-`Icons.lock_open` sits right after the status badge and is wrapped in a tooltip
-(`Вскрыта упаковка`). It is semantically the product's *state*, so it belongs on
-the state (badge) row. Alternative — a text chip — was rejected to keep the row
-narrow; alternative — an image-corner badge — was rejected because it obscures
-the photo.
+**1. Opened indicator = the official PAO symbol + tooltip in the badge row.**
+The official period-after-opening vector symbol (`assets/icons/pao_symbol.svg`,
+rendered with `flutter_svg`) sits right after the status badge and is wrapped in
+a tooltip (`Вскрыта упаковка`). It is semantically the product's *state*, so it
+belongs on the state (badge) row. Alternative — a generic `lock_open` icon — was
+rejected as it does not read as a cosmetic container; alternative — an
+image-corner badge — was rejected because it obscures the photo.
 
 **2. Right-hand controls as a `Stack` overlay (menu + stepper grouped).**
 The `Card` child becomes a `Stack`: the non-positioned child is the existing

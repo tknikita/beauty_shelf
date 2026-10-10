@@ -2,7 +2,7 @@
 
 ## 1. Opened-package indicator
 
-- [x] 1.1 Render `Icons.lock_open` (with a `Вскрыта упаковка` tooltip) next to the status badge when `Product.isOpened` — verified by a widget test asserting the icon is present for an opened product and absent otherwise
+- [x] 1.1 Render the official PAO symbol (open jar, `assets/icons/pao_symbol.svg` via `flutter_svg`, with a `Вскрыта упаковка` tooltip) next to the status badge when `Product.isOpened` — verified by a widget test asserting the indicator is present for an opened product and absent otherwise
 
 ## 2. Compact stepper in the corner
 

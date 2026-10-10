@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../theme/app_theme.dart';
+import 'opened_jar_icon.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -131,9 +132,9 @@ class ProductCard extends StatelessWidget {
                               const SizedBox(width: 6),
                               Tooltip(
                                 message: 'Вскрыта упаковка',
-                                child: Icon(
-                                  Icons.lock_open,
-                                  size: 15,
+                                child: OpenedJarIcon(
+                                  key: const ValueKey('opened_indicator'),
+                                  size: 18,
                                   color: theme.textLightColor,
                                 ),
                               ),

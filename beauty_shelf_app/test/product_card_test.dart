@@ -108,9 +108,9 @@ void main() {
 
   testWidgets('shows an opened-package indicator only when opened', (tester) async {
     await _pumpCard(tester, _p(opened: false));
-    expect(find.byIcon(Icons.lock_open), findsNothing);
+    expect(find.byKey(const ValueKey('opened_indicator')), findsNothing);
 
     await _pumpCard(tester, _p(opened: true, openedDate: _dayOffset(-10)));
-    expect(find.byIcon(Icons.lock_open), findsOneWidget);
+    expect(find.byKey(const ValueKey('opened_indicator')), findsOneWidget);
   });
 }

@@ -5,6 +5,7 @@ import 'package:image_cropper/image_cropper.dart';
 import '../models/product.dart';
 import '../screens/barcode_scanner_screen.dart';
 import '../services/api_service.dart';
+import '../services/image_recovery.dart';
 import '../services/storage_factory.dart';
 import '../theme/app_theme.dart';
 
@@ -69,6 +70,22 @@ class _ProductFormState extends State<ProductForm> {
 
     // Listen for theme changes
     AppTheme.instance.addListener(_onThemeChanged);
+
+    _resumeRecoveredImage();
+  }
+
+  /// Picks up a photo recovered after the OS killed us mid-selection and runs
+  /// it through the normal crop-and-attach flow. Deferred to after the first
+  /// frame because the flow opens dialogs and needs a mounted context.
+  void _resumeRecoveredImage() {
+    if (_imageUrl != null) return;
+    final recovered = ImageRecovery.instance.take();
+    if (recovered == null) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _imageUrl != null) return;
+      _applyPickedImage(recovered);
+    });
   }
 
   @override
@@ -187,12 +204,23 @@ class _ProductFormState extends State<ProductForm> {
 
     if (source == null) return;
 
-    final ImagePicker picker = ImagePicker();
-    final image = await picker.pickImage(source: source, maxWidth: 1600, imageQuality: 90);
+    final image = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 1600,
+      imageQuality: 90,
+    );
     if (image == null) return;
 
+    await _applyPickedImage(image);
+  }
+
+  /// Offers a square crop, then persists and attaches the photo.
+  ///
+  /// Shared by the interactive pick flow and by lost-selection recovery, so
+  /// the two cannot drift apart.
+  Future<void> _applyPickedImage(XFile picked) async {
     // Offer native cropping (uCrop on Android) right after picking.
-    final cropped = await _cropImage(image);
+    final cropped = await _cropImage(picked);
     if (cropped == null) return; // user cancelled the crop
 
     setState(() => _isUploadingImage = true);

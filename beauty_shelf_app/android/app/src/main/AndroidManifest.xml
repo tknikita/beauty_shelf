@@ -60,5 +60,11 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Android 11+ package visibility: lets resolveActivity() see gallery
+             apps so ACTION_PICK (image/*) can be resolved to the OEM gallery. -->
+        <intent>
+            <action android:name="android.intent.action.PICK"/>
+            <data android:mimeType="image/*"/>
+        </intent>
     </queries>
 </manifest>

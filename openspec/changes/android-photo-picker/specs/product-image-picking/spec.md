@@ -3,24 +3,30 @@
 ## Purpose
 
 Lets a user attach a photo to a product by capturing one with the camera or
-choosing one from the device gallery, and guarantees the chosen photo is
-cropped, persisted locally, and never silently lost when Android interrupts the
-selection.
+choosing one from the device's own gallery app, and guarantees the chosen photo
+is cropped, persisted locally, and never silently lost when Android interrupts
+the selection.
 
 ## ADDED Requirements
 
-### Requirement: Gallery selection uses the operating system's own picker
+### Requirement: Gallery selection opens the device's own gallery app
 
 On Android, choosing a gallery image from the product form SHALL open the
-operating system's system photo picker UI rather than delegating to an
-installed third-party photo application. The app MUST NOT rely on Android's
-default-handler resolution for an implicit image-browsing intent.
+device's own gallery application when one is installed. The app MUST NOT hand
+the request to Google Photos while a real gallery app is available. When no
+gallery application is present, the system photo picker SHALL be used instead.
 
-#### Scenario: Gallery opens the system picker
+#### Scenario: Gallery app is preferred over Google Photos
 
-- **WHEN** the user taps "Галерея" in the image source dialog on an Android device
-- **THEN** the system photo picker is presented
-- **AND** no third-party photo application is launched as the picker surface
+- **WHEN** the user taps "Галерея" on a device where both an OEM gallery and Google Photos can handle image picking
+- **THEN** the OEM gallery application is opened
+- **AND** Google Photos is not launched as the picker
+
+#### Scenario: No gallery app installed
+
+- **WHEN** the user taps "Галерея" on a device with no gallery application
+- **THEN** the system photo picker is opened
+- **AND** every image on the device is visible in it
 
 #### Scenario: Non-Android platforms are unchanged
 

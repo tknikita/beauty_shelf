@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../models/product.dart';
@@ -24,6 +25,9 @@ class ProductForm extends StatefulWidget {
 }
 
 class _ProductFormState extends State<ProductForm> {
+  static const MethodChannel _galleryChannel =
+      MethodChannel('com.beautyshelf.beauty_shelf/gallery');
+
   final _formKey = GlobalKey<FormState>();
 
   late TextEditingController _barcodeController;
@@ -204,6 +208,13 @@ class _ProductFormState extends State<ProductForm> {
 
     if (source == null) return;
 
+    if (source == ImageSource.gallery) {
+      final picked = await _pickFromGallery();
+      if (picked == null) return;
+      await _applyPickedImage(picked);
+      return;
+    }
+
     final image = await ImagePicker().pickImage(
       source: source,
       maxWidth: 1600,
@@ -212,6 +223,33 @@ class _ProductFormState extends State<ProductForm> {
     if (image == null) return;
 
     await _applyPickedImage(image);
+  }
+
+  /// Opens the device's own gallery app (Xiaomi Gallery, Samsung Gallery, …).
+  ///
+  /// The system Photo Picker (`MediaStore.ACTION_PICK_IMAGES`) is a Google
+  /// component that OEM galleries take no part in — on MIUI it replaces the
+  /// Gallery the user expects. The native side picks `ACTION_PICK` handlers,
+  /// prefers any real gallery over Google Photos, and hands back a cached file
+  /// path for uCrop.
+  ///
+  /// Falls back to the plugin's Photo Picker when the native side reports no
+  /// gallery app at all.
+  Future<XFile?> _pickFromGallery() async {
+    if (Platform.isAndroid) {
+      try {
+        final path = await _galleryChannel.invokeMethod<String>('pickImage');
+        if (path == null) return null;
+        return XFile(path);
+      } on PlatformException catch (e) {
+        debugPrint('native gallery unavailable: $e');
+      }
+    }
+    return ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      imageQuality: 90,
+    );
   }
 
   /// Offers a square crop, then persists and attaches the photo.
@@ -272,6 +310,10 @@ class _ProductFormState extends State<ProductForm> {
         sourcePath: picked.path,
         // Square only (1:1) — matches the card media.
         aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        // The gallery path comes back unresized, so cap it here. The camera
+        // path is already capped by image_picker.
+        maxWidth: 1600,
+        maxHeight: 1600,
         compressFormat: ImageCompressFormat.jpg,
         compressQuality: 85,
         uiSettings: [

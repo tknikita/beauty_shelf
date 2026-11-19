@@ -11,6 +11,7 @@
 - [x] 2.3 Copy the returned `content://` payload into `cacheDir/gallery_pick/` and return a real path for uCrop
 - [x] 2.4 Declare `ACTION_PICK` / `image/*` in the manifest `<queries>` so gallery apps are visible to `queryIntentActivities` on Android 11+
 - [x] 2.5 Verify on the emulator that with a gallery app installed the picker launches that app explicitly (`action=android.intent.action.PICK pkg=<gallery>`), and that removing it falls back to the system photo picker
+- [x] 2.6 Verify on a real HyperOS device that the Xiaomi file manager (which also answers `ACTION_PICK`) is skipped in favour of `com.miui.gallery`, confirmed from the `BeautyShelfGallery` log, and that the picked image reaches uCrop
 
 ## 3. Lost-selection recovery
 

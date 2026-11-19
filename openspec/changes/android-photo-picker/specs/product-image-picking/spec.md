@@ -22,6 +22,12 @@ gallery application is present, the system photo picker SHALL be used instead.
 - **THEN** the OEM gallery application is opened
 - **AND** Google Photos is not launched as the picker
 
+#### Scenario: A file manager that can also pick images is not used
+
+- **WHEN** the device exposes a file manager alongside a gallery app for image picking
+- **THEN** the gallery app is opened
+- **AND** the file manager is not opened as the picker
+
 #### Scenario: No gallery app installed
 
 - **WHEN** the user taps "Галерея" on a device with no gallery application

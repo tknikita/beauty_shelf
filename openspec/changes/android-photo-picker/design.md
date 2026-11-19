@@ -52,20 +52,27 @@ library (observed empty on a stock emulator).
 `MainActivity` therefore exposes a `MethodChannel`
 (`com.beautyshelf.beauty_shelf/gallery`, method `pickImage`) that:
 
-1. Builds `ACTION_PICK` + `type=image/*`.
-2. Calls `queryIntentActivities` and takes the **first handler that is not
-   `com.google.android.apps.photos`**.
-3. If such a handler exists, launches the intent with `setPackage(...)`, which
-   makes the choice deterministic instead of leaving it to default-handler
-   resolution.
+1. Collects candidate packages from both `ACTION_PICK` and `ACTION_GET_CONTENT`
+   for `image/*`, because galleries differ in which one they register.
+2. Keeps only handlers that look like a gallery: the package name contains
+   `gallery`, minus an explicit deny-list (Google Photos, DocumentsUI, Files).
+3. Launches the first match with `setPackage(...)`, trying `ACTION_PICK` first
+   and `ACTION_GET_CONTENT` second, so the choice is explicit instead of left to
+   default-handler resolution.
 4. Otherwise falls back to `ACTION_PICK_IMAGES` (API 33+) or
    `ACTION_OPEN_DOCUMENT` — never to Photos.
 5. On result, copies the `content://` payload into `cacheDir/gallery_pick/` and
    returns a real path, because uCrop needs a file and the URI grant is
    one-shot.
 
-The chosen action and package are logged under the `BeautyShelfGallery` tag so
-device-specific behaviour is diagnosable from logcat.
+The chosen action and package, plus the full candidate list, are logged under
+the `BeautyShelfGallery` tag.
+
+Why a name heuristic rather than "first handler that is not Photos": on
+HyperOS `ACTION_PICK` is answered by Photos, then the Xiaomi file manager, then
+MIUI Gallery. Taking the first non-Photos handler opened the file manager —
+observed on a Xiaomi 23049PCD8G (HyperOS OS3.0, Android 15) — so the deny-list
+alone is not enough.
 
 *Alternatives considered:* `file_picker` (already a dependency) fires
 `ACTION_PICK` for `FileType.image`, but offers no handler preference and no
@@ -133,15 +140,15 @@ The system Photo Picker needs no media permission; `READ_MEDIA_IMAGES` /
 
 ## Risks / Trade-offs
 
-- **Not every OEM gallery registers `ACTION_PICK`** → the handler query is the
-  source of truth; devices with no matching gallery fall back to the photo
-  picker, which is a visible downgrade but never a dead end. The chosen
-  package is logged for diagnosis.
+- **Not every OEM gallery registers `ACTION_PICK`** → both `ACTION_PICK` and
+  `ACTION_GET_CONTENT` candidates are considered; devices with no matching
+  gallery fall back to the photo picker. The chosen package is logged for
+  diagnosis.
+- **The name heuristic misses galleries that do not say "gallery"** → the deny
+  list covers the known impostors (Photos, DocumentsUI, Files); a miss only
+  costs the fallback, and the candidate list in logcat makes the gap obvious.
 - **Picker UI now varies by device** (MIUI, One UI, AOSP) → accepted: that is
   the point — the user asked for their own gallery.
-- **Another non-gallery app could register `ACTION_PICK`** and win the query →
-  mitigated by excluding Google Photos explicitly; other false positives would
-  still present an image-picking UI, so the outcome stays usable.
 - **`useAndroidPhotoPicker` is marked "subject to change"** → pinned by the
   direct dependency on `image_picker_android 0.8.13+17`; it only affects the
   fallback path now.

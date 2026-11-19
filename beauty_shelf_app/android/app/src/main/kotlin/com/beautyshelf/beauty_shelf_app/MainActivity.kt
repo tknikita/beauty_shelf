@@ -55,25 +55,61 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun buildPickIntent(): Intent {
-        val pick = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            .setType("image/*")
+        val candidates = queryCandidates()
+        Log.d(TAG, "Image-pick handlers: $candidates")
 
-        val gallery = packageManager.queryIntentActivities(pick, 0)
-            .firstOrNull { it.activityInfo.packageName != GOOGLE_PHOTOS }
-
-        if (gallery != null) {
-            return pick.setPackage(gallery.activityInfo.packageName)
+        for (pkg in candidates) {
+            if (!isGallery(pkg)) continue
+            val intent = intentFor(pkg) ?: continue
+            Log.d(TAG, "Targeting gallery $pkg via ${intent.action}")
+            return intent
         }
 
-        // No OEM gallery installed (e.g. Pixel): use the system Photo Picker,
-        // which always shows every image the user has.
+        Log.d(TAG, "No gallery app found; falling back to the system picker")
+        // No gallery app (e.g. Pixel), or only file managers: use the system
+        // photo picker, which always shows every image the user has.
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Intent(MediaStore.ACTION_PICK_IMAGES).setType("image/*")
         } else {
-            Intent(Intent.ACTION_OPEN_DOCUMENT)
-                .setType("image/*")
-                .addCategory(Intent.CATEGORY_OPENABLE)
+            openDocumentIntent()
         }
+    }
+
+    /** Packages that can pick an image but are not the gallery the user means. */
+    private fun isGallery(pkg: String): Boolean =
+        pkg !in NON_GALLERY && pkg.contains("gallery", ignoreCase = true)
+
+    /**
+     * Galleries differ in which intent they accept: some take ACTION_PICK,
+     * others only ACTION_GET_CONTENT. Try both, scoped to [pkg].
+     */
+    private fun intentFor(pkg: String): Intent? {
+        val pick = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            .setType("image/*")
+            .setPackage(pkg)
+        if (pick.resolveActivity(packageManager) != null) return pick
+
+        val openDocument = openDocumentIntent().setPackage(pkg)
+        if (openDocument.resolveActivity(packageManager) != null) return openDocument
+
+        return null
+    }
+
+    private fun openDocumentIntent(): Intent =
+        Intent(Intent.ACTION_GET_CONTENT)
+            .setType("image/*")
+            .addCategory(Intent.CATEGORY_OPENABLE)
+
+    private fun queryCandidates(): List<String> {
+        val pick = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            .setType("image/*")
+
+        val packages = mutableListOf<String>()
+        for (intent in listOf(pick, openDocumentIntent())) {
+            packageManager.queryIntentActivities(intent, 0)
+                .mapTo(packages) { it.activityInfo.packageName }
+        }
+        return packages.distinct()
     }
 
     @Suppress("DEPRECATION")
@@ -126,6 +162,13 @@ class MainActivity : FlutterActivity() {
         private const val TAG = "BeautyShelfGallery"
         private const val CHANNEL = "com.beautyshelf.beauty_shelf/gallery"
         private const val REQUEST_PICK = 4711
-        private const val GOOGLE_PHOTOS = "com.google.android.apps.photos"
+
+        /** Can handle image picking, but is not the gallery the user means. */
+        private val NON_GALLERY = setOf(
+            "com.google.android.apps.photos",
+            "com.google.android.apps.docs",
+            "com.google.android.documentsui",
+            "com.android.documentsui",
+        )
     }
 }
